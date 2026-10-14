@@ -75,6 +75,32 @@ function serve() {
     assert.equal(method, 'GET');
     return output({ id: 456 });
   }
+  const pullMatch = endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/pulls(?:\/(\d+))?(.*)$/);
+  if (pullMatch) {
+    const number = pullMatch[1] ? Number(pullMatch[1]) : null;
+    const suffix = pullMatch[2];
+    if (number) {
+      const pull = state.pulls[number];
+      assert.ok(pull, `Missing fixture PR ${number}`);
+      if (method === 'GET' && !suffix) return output(pull);
+      if (method === 'GET' && suffix === '/files?per_page=100') return output(pages(state.pullFiles[number] || []));
+    } else if (method === 'GET') {
+      const params = new URLSearchParams(suffix.replace(/^\?/, ''));
+      const base = params.get('base');
+      const prState = params.get('state') || 'open';
+      const values = Object.values(state.pulls).filter(pr => (!base || pr.base?.ref === base) && (prState === 'all' || pr.state === prState));
+      return output(pages(values));
+    }
+    throw new Error(`Unexpected pull endpoint: ${method} ${endpoint}`);
+  }
+  const compareMatch = endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/compare\/(.+)\.\.\.(.+)$/);
+  if (compareMatch) {
+    assert.equal(method, 'GET');
+    const key = `${compareMatch[1]}...${compareMatch[2]}`;
+    const value = state.compares[key];
+    assert.ok(value, `Missing fixture compare ${key}`);
+    return output(value);
+  }
   const match = endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/issues\/(\d+)(.*)$/);
   assert.ok(match, `Unexpected endpoint: ${endpoint}`);
   const number = Number(match[1]);
@@ -84,9 +110,10 @@ function serve() {
   if (!suffix) {
     if (method === 'GET') return output(issue);
     if (method === 'PATCH') {
-      assert.deepEqual(body, { state: 'closed', state_reason: 'not_planned' });
+      assert.ok(['not_planned', 'completed'].includes(body.state_reason));
+      assert.deepEqual(body, { state: 'closed', state_reason: body.state_reason });
       issue.state = 'closed';
-      issue.state_reason = 'not_planned';
+      issue.state_reason = body.state_reason;
       save(); return output(issue);
     }
   }

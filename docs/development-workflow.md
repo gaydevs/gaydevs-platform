@@ -25,8 +25,13 @@ altamente recomendável. O processo também funciona executando os comandos manu
    do plan e plan antes das tasks/implementação. Registre a aprovação e sua origem
    nos artefatos. Tasks ficam em `tasks.md`, sem Issues automáticas por task.
 6. PR para `develop`: resumo, testes, critérios de aceite, riscos relevantes,
-   `Spec: 00027` e `Refs #27`. Revisão de outro gdev é obrigatória no processo.
-   Não encerre a Issue na integração em develop.
+   `Refs #27` e, quando houver spec, `Spec: 00027`. Não use `Closes`, `Fixes`
+   ou `Resolves` para a Issue SDD nesse PR. O check `SDD PR contract` valida
+   automaticamente esse contrato, mas a revisão de outro gdev continua sendo
+   o gate humano antes do merge. Use **Create a merge commit**.
+7. Depois do PR aberto, mergeado ou fechado, um agente/gdev executa
+   `node scripts/sdd/pr-sync.mjs PR_NUMERO` para sincronizar o Project.
+   Merge em `develop` deixa a Issue aberta em `Ready for Release`.
 
 O contexto local vem da branch Git; Issue, comentários, Priority e dependências
 devem ser relidos do GitHub. Não há ponteiro global nem cache de Issue. Resíduos
@@ -55,7 +60,9 @@ Encerramentos alternativos: Backlog/Specifying → Rejected; Ready/In Progress/
 Review/Ready for Release → Canceled.
 Confira no [registro da implantação](sdd-implementation.md) quais recursos estão
 ativos. Na rotina, agente/scripts devem atualizar o board via gh; arrastar cards
-é uma exceção. Não há automação final de PR/release nesta fase.
+é uma exceção. A automação integral de cards por eventos privilegiados foi
+descartada por complexidade desproporcional; o modelo adotado é automação
+assistida por agente/gdev executando scripts versionados.
 
 O auto-add nativo inclui Issues dos tipos Feature, Bug, Refactor e Tech Debt
 do `gaydevs-platform`, com Status inicial Backlog. Outros tipos, Team Access
@@ -89,8 +96,32 @@ Rejected e Canceled. Rejected registra uma demanda analisada e decidida como
 não sendo feita; Canceled registra uma demanda anteriormente aceita/iniciada e
 depois interrompida. Ambos atualizam o Project e encerram a Issue como
 **Not planned**. Review, Ready for Release e Done continuam reservados às
-transições de PR/release da Rodada 2C. Nenhuma movimentação de card equivale a
-aprovação humana.
+transições dirigidas por `pr-sync.mjs` e `release-sync.mjs`; `status.mjs` não
+libera essas transições como comandos manuais arbitrários. Nenhuma movimentação
+de card equivale a aprovação humana.
+
+Comandos finais de PR/release:
+
+```sh
+node scripts/sdd/pr-check.mjs 123      # valida contrato SDD do PR
+node scripts/sdd/pr-sync.mjs 123       # PR de trabalho -> Review/In Progress/Ready for Release
+node scripts/sdd/release-sync.mjs 456  # release develop -> main -> Done + completed
+```
+
+`pr-sync.mjs` consulta o PR real, valida `Refs`/`Spec` e só aplica:
+In Progress → Review, Review → In Progress em close sem merge, ou
+Review → Ready for Release em merge para `develop`. Estados terminais
+Rejected/Canceled/Done são no-op.
+
+`release-sync.mjs` opera PR `develop → main` já fechado. Se o PR foi fechado sem
+merge, não altera nada. Se foi mergeado, descobre as Issues pelo conjunto de
+commits do release e pelos PRs de trabalho mergeados em `develop` cujo
+`merge_commit_sha` persistido pelo GitHub está nesse intervalo. O corpo do PR
+de release pode ficar vazio; o comando não usa título, branch parecida,
+mensagem livre de commit ou data como heurística. Ele deduplica por Issue,
+finaliza apenas Issues em `Ready for Release`, move para Done e fecha como
+completed. Deploy não é pré-requisito para Done nesta fase, e falha posterior
+de deploy não reabre Issue automaticamente.
 
 Com Project indisponível, `--without-project` permite iniciar com aviso explícito
 de sincronização pendente. Não equivale a card criado. Depois sincronize via
@@ -121,10 +152,12 @@ membros não exigem editar CODEOWNERS ou as listas de restrição de `main`.
 O team deve permanecer Visible e com Admin no repo. Admins externos ao team
 mantêm acesso nativo de atualização, mas não substituem o code owner exigido.
 
-Para preservar o histórico do checkpoint e da promoção, usar **Create a merge
-commit**. Aprovação e merge continuam humanos; nenhuma automação foi criada.
-Done continua condicionado à entrega em produção e ao encerramento da Issue como
-concluída; Rejected e Canceled são os encerramentos Not planned. As automações
-finais de release/Project ficam para a Rodada 2C.
+Para preservar o histórico do checkpoint, de PRs de trabalho e da promoção, usar
+**Create a merge commit**. O repositório está configurado com Allow merge commits
+habilitado e squash/rebase desabilitados. Qualquer outro repositório que adote
+esta infraestrutura SDD reutilizável deve reproduzir essa configuração, salvo se
+substituir explicitamente a estratégia de rastreabilidade de releases por outra
+equivalente. Aprovação e merge continuam humanos; nenhuma automação aprova,
+revisa ou mergeia PRs. Rejected e Canceled são os encerramentos Not planned.
 O deploy existente roda em pushes de main/master que alterem frontend ou o
 workflow de deploy, além de disparo manual; nem todo merge dispara deploy.

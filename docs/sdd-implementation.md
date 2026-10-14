@@ -1,4 +1,4 @@
-# Implantação SDD — Rodadas 2A e 2B
+# Implantação SDD — Rodadas 2A, 2B e 2C
 
 Estado da Rodada 2B: proteções clássicas complementadas em 2026-09-30 e governança
 administrativa transferida para `gdevs-admins` em 2026-10-01;
@@ -7,7 +7,8 @@ humanos descritos ao final. O registro da Rodada 2A abaixo é histórico.
 
 Auditoria ao vivo: 2026-09-30, via gh 2.101.0 e interface do GitHub.
 Registro administrativo: [Issue #8](https://github.com/gaydevs/gaydevs-platform/issues/8).
-Plano: [SDD_PLAN.md](../SDD_PLAN.md). Rodada 2A autorizada pelo gdev nesta sessão;
+O plano histórico inicial foi auditado, migrado para a documentação permanente
+e removido na Rodada 2C. A Rodada 2A foi autorizada pelo gdev naquela sessão;
 isso não constitui aprovação de spec, plan, PR ou release de produto.
 
 ## Estado confirmado
@@ -354,12 +355,88 @@ além de workflow_dispatch. Uma promoção só de infraestrutura SDD não dispar
 esse deploy automaticamente. Nenhum deploy manual foi disparado nesta rodada.
 
 A formulação anterior deste registro atribuía automações/release completos à
-2B. O recorte autorizado os reserva à **2C**: PR → Project (Review, Ready for
+2B. O recorte autorizado os reservava à **2C**: PR → Project (Review, Ready for
 Release, Done), fechamento de Issues após produção, automação completa de
-release, teste final com Feature real e remoção de SDD_PLAN.md. Esses itens não
-foram implementados. Frontend/backend e adaptações do Spec Kit foram preservados.
+release, teste final controlado e remoção do plano histórico. Esses itens ainda
+não tinham sido implementados naquele checkpoint. Frontend/backend e adaptações
+do Spec Kit foram preservados.
 
 Referências das capacidades nativas:
 [proteções](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches),
 [CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
 e [reviews](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/reviewing-proposed-changes-in-a-pull-request).
+
+## Rodada 2C — automação assistida de PR e release
+
+A Issue #16 implantou o modelo simplificado aprovado para as transições finais:
+GitHub Actions valida apenas o contrato de PR para `develop`, e a sincronização
+de Project/Issue é feita por comandos versionados executados por agente ou gdev.
+GitHub continua sendo a fonte da verdade; o agente não concede aprovação, review
+ou merge.
+
+A automação integral de cards por eventos privilegiados foi descartada
+conscientemente. Ela exigiria infraestrutura e credenciais adicionais, como
+GitHub App, tokens privilegiados de Project, políticas especiais e tratamento
+seguro de eventos, um custo desproporcional para movimentar Status do Project.
+O workflow adotado é SDD assistido: qualquer gdev pode pedir ao agente para
+consultar a Issue/PR real e executar o script correto, ou rodar manualmente os
+mesmos comandos sem IA.
+
+Novos comandos:
+
+```sh
+node scripts/sdd/pr-check.mjs PR_NUMERO
+node scripts/sdd/pr-sync.mjs PR_NUMERO
+node scripts/sdd/release-sync.mjs PR_NUMERO
+```
+
+`.github/workflows/sdd-pr-check.yml` usa o evento normal `pull_request` para PRs
+cuja base é `develop`, com permissões read-only (`contents`, `issues` e
+`pull-requests`). Ele não usa `pull_request_target`, GitHub App, token
+privilegiado de Project nem checkout do código do PR com credencial de escrita.
+O check valida exatamente um `Refs #ID`, `Spec: NNNNN` quando houver spec,
+Issue SDD elegível, correspondência entre spec e Issue e ausência de
+`Closes`/`Fixes`/`Resolves` para a Issue. O check é guardrail automático de
+consistência; a revisão de outro gdev em `develop` e a aprovação/merge
+administrativa em `main` continuam gates humanos.
+
+`pr-sync.mjs` valida o contrato do PR de trabalho e aplica somente as transições:
+
+- PR aberto/reaberto para `develop`: `In Progress -> Review`;
+- PR fechado sem merge: `Review -> In Progress`;
+- PR mergeado em `develop`: `Review -> Ready for Release`, mantendo a Issue aberta.
+
+Estados terminais `Rejected`, `Canceled` e `Done` são no-op. Estados
+incompatíveis falham visivelmente, em vez de saltar etapas.
+
+`release-sync.mjs` opera PR `develop -> main`. PR fechado sem merge é no-op.
+Quando mergeado, o comando calcula o intervalo de commits entregue no release,
+lista PRs mergeados com base `develop`, seleciona aqueles cujo
+`merge_commit_sha` persistido pelo GitHub pertence ao intervalo, lê
+`Refs #ID`/`Spec: NNNNN` dos próprios PRs de trabalho, revalida as Issues,
+deduplica por número e finaliza somente Issues em `Ready for Release` com
+Project Status `Done` e Issue `closed`/`completed`. O corpo do PR de release
+pode ficar vazio. O comando não depende de título, branch parecida, mensagem
+livre de commit, data de merge nem `commits/{sha}/pulls` como mecanismo primário.
+
+O repositório está configurado em Settings > General > Pull Requests com
+Allow merge commits habilitado, Allow squash merging desabilitado e Allow rebase
+merging desabilitado. Assim todos os PRs usam merge commit, garantindo a
+premissa de rastreabilidade usada por `release-sync`; a validação de
+`merge_commit_sha` segue como defesa adicional. Qualquer outro repositório que
+adote esta infraestrutura SDD reutilizável deve reproduzir essa configuração de
+merge, salvo se substituir explicitamente a estratégia de rastreabilidade por
+outra equivalente.
+
+`status.mjs` continua limitado a Backlog, Specifying, Ready, In Progress,
+Rejected e Canceled. Review, Ready for Release e Done não foram liberados como
+transições manuais arbitrárias; só os comandos assistidos as aplicam no contexto
+de PR/release confiável. Sucesso de deploy não é pré-requisito para Done nesta
+fase, e falha posterior de deploy não reabre Issue automaticamente.
+
+Validação local da Rodada 2C neste checkout: `node scripts/sdd/test.mjs`
+executou **81 testes: 81 pass, 0 fail, 0 skipped**, cobrindo o check read-only,
+parser `Refs`/`Spec`, sincronização assistida de PR, release por
+`merge_commit_sha`, múltiplas Issues, deduplicação, idempotência, estados
+terminais e sandbox sem rede/writes reais. `git diff --check` deve permanecer
+limpo antes da publicação do PR.
