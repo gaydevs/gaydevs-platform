@@ -8,6 +8,13 @@
 4. Executar a sandbox e `git diff --check`.
 5. Após merge em `develop`, rerodar `release-sync 22` para finalizar somente #16 e #20; a correção segue na promoção seguinte para `main`.
 
+## Ampliação: exclusões explícitas
+
+1. Aceitar `--exclude-issue NUMERO` repetível; rejeitar argumentos inválidos.
+2. Identificar as referências dos PRs entregues antes de validá-las como SDD; excluir somente os números informados.
+3. Falhar antes de escritas se uma exclusão não aparecer no release.
+4. Registrar as exclusões no resultado e cobrir uma ou mais exclusões na sandbox.
+
 ## Arquivos
 
 - `scripts/sdd/core.mjs`
@@ -21,4 +28,4 @@
 
 ## Aprovação humana
 
-Aprovado por luvittor em 2026-10-14 nesta conversa, incluindo o fallback restrito.
+Aprovado por luvittor em 2026-10-14 nesta conversa.
