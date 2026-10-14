@@ -3,6 +3,7 @@ import {
   compareCommits,
   config,
   currentStatus,
+  issueNumber,
   listPullRequests,
   main,
   parsePrContract,
@@ -14,8 +15,18 @@ import {
   validatePrContract,
 } from './core.mjs';
 
+function excludedIssues(args) {
+  const excluded = new Set();
+  for (let index = 0; index < args.length; index += 2) {
+    if (args[index] !== '--exclude-issue') throw new Error('Argumento inválido. Use --exclude-issue NUMERO.');
+    excluded.add(issueNumber(args[index + 1]));
+  }
+  return excluded;
+}
+
 main(() => {
-  const [number] = process.argv.slice(2);
+  const [number, ...args] = process.argv.slice(2);
+  const excluded = excludedIssues(args);
   const release = readPullRequest(number);
   if (release.base?.ref !== 'main' || release.head?.ref !== config.baseBranch) throw new Error('Release sync exige PR develop -> main.');
   if (release.state !== 'closed') throw new Error('Release sync exige PR fechado.');
@@ -35,8 +46,10 @@ main(() => {
 
   const untraceableReady = [];
   for (const pr of mergedDevelopPrs.filter(pr => !pr.merge_commit_sha)) {
-    try { parsePrContract(pr.body || ''); }
+    let contract;
+    try { contract = parsePrContract(pr.body || ''); }
     catch { continue; }
+    if (excluded.has(contract.issueNumber)) continue;
     const result = validatePrContract(pr, { requireBase: config.baseBranch });
     if (currentStatus(result.context.issue, board) === 'Ready for Release') {
       untraceableReady.push({ pr, issue: result.context.issue });
@@ -50,10 +63,18 @@ main(() => {
   if (!workPrs.length) throw new Error('Nenhum PR de trabalho com merge_commit_sha rastreável encontrado no release.');
 
   const byIssue = new Map();
+  const foundExclusions = new Set();
   for (const pr of workPrs) {
+    const contract = parsePrContract(pr.body || '');
+    if (excluded.has(contract.issueNumber)) {
+      foundExclusions.add(contract.issueNumber);
+      continue;
+    }
     const result = validatePrContract(pr, { requireBase: config.baseBranch });
     byIssue.set(result.context.issue.number, { pr, context: result.context });
   }
+  const missingExclusions = [...excluded].filter(number => !foundExclusions.has(number));
+  if (missingExclusions.length) throw new Error(`Exclusões não encontradas no release: ${missingExclusions.map(number => `#${number}`).join(', ')}.`);
 
   const candidates = [...byIssue.values()].map(entry => ({ ...entry, status: currentStatus(entry.context.issue, board) }));
   const invalid = candidates.filter(entry => !['Ready for Release', ...terminalStatuses].includes(entry.status));
@@ -77,5 +98,6 @@ main(() => {
     if (status.changed || entry.context.issue.state !== 'closed' || entry.context.issue.state_reason !== 'completed') changed += 1;
   }
 
-  console.log(`PR #${number}: ${candidates.length} Issue(s) SDD descoberta(s), ${changed} finalizada(s).`);
+  const exclusions = excluded.size ? ` Excluídas explicitamente: ${[...excluded].map(number => `#${number}`).join(', ')}.` : '';
+  console.log(`PR #${number}: ${candidates.length} Issue(s) SDD descoberta(s), ${changed} finalizada(s).${exclusions}`);
 });
