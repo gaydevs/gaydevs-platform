@@ -103,8 +103,8 @@ Independent test criteria: documentation describes the actual commands and merge
 - [x] T058 [US4] Audit the historical planning document for still-useful permanent content and migrate it into `CONTRIBUTING.md`, `docs/development-workflow.md`, or `docs/sdd-implementation.md`
 - [x] T059 [US4] Remove the historical planning document only after migration is complete and validated
 - [x] T060 [US4] Run `node scripts/sdd/test.mjs` and record sandbox results in `docs/sdd-implementation.md`
-- [x] T061 [US4] Execute controlled E2E with technical SDD fixture, manual/agent PR contract validation, assisted `pr-sync`, human review/merge, manual release PR, and assisted `release-sync`
-- [x] T062 [US4] Record E2E evidence, human gate references, and no product Feature scope in `docs/sdd-implementation.md`
+- [ ] T061 [US4] Execute controlled E2E with technical SDD fixture, manual/agent PR contract validation, assisted `pr-sync`, human review/merge, manual release PR, and assisted `release-sync`
+- [ ] T062 [US4] Record E2E evidence, human gate references, and no product Feature scope in `docs/sdd-implementation.md`
 - [x] T063 [US4] Verify no frontend/backend functional changes are present in final diff
 
 ## Dependencies
