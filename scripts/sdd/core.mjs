@@ -13,8 +13,8 @@ export function run(command, args, input) {
   return result.stdout.trim();
 }
 export const git = (...args) => run('git', args);
-export function api(endpoint, { method = 'GET', body, paginate = false } = {}) {
-  const args = ['api', endpoint, '-X', method, '-H', 'X-GitHub-Api-Version: 2026-03-10'];
+export function api(endpoint, { method = 'GET', body, paginate = false, version = '2026-03-10' } = {}) {
+  const args = ['api', endpoint, '-X', method, '-H', `X-GitHub-Api-Version: ${version}`];
   if (paginate) args.push('--paginate', '--slurp');
   if (body !== undefined) args.push('--input', '-');
   const value = JSON.parse(run(ghBinary, args, body === undefined ? undefined : JSON.stringify(body)) || 'null');
@@ -56,7 +56,10 @@ export function readIssue(number) {
   };
 }
 export function readPullRequest(number) {
-  return api(`repos/${config.repository}/pulls/${issueNumber(number)}`);
+  const endpoint = `repos/${config.repository}/pulls/${issueNumber(number)}`;
+  const pull = api(endpoint);
+  if (!pull.merged || pull.merge_commit_sha) return pull;
+  return api(endpoint, { version: '2022-11-28' });
 }
 export function listPullRequests({ base, state = 'closed' } = {}) {
   const query = new URLSearchParams({ state, per_page: '100' });
