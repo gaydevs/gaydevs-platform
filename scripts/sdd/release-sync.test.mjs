@@ -38,6 +38,16 @@ test('release-sync: develop -> main closed without merge is no-op', t => {
   noWrites(s);
 });
 
+test('release-sync: falls back only for a merged release PR without merge_commit_sha', t => {
+  const s = sandbox(t);
+  setupRelease(s, { release: { merge_commit_sha: null } });
+  s.change(v => { v.legacyPulls = { 200: { ...v.pulls[200], merge_commit_sha: 'release-merge' } }; });
+  ok(s.cli('release-sync', [200]));
+  assert.equal(s.state().items.I_27.status, 'Done');
+  const calls = s.calls().filter(c => c.endpoint === 'repos/gaydevs/gaydevs-platform/pulls/200');
+  assert.deepEqual(calls.map(c => c.args.at(-1)), ['X-GitHub-Api-Version: 2026-03-10', 'X-GitHub-Api-Version: 2022-11-28']);
+});
+
 test('release-sync: discovers Issues from work PR merge_commit_sha, not release body', t => {
   const s = sandbox(t);
   setupRelease(s);
