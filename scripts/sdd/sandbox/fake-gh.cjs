@@ -89,7 +89,8 @@ function serve() {
       const params = new URLSearchParams(suffix.replace(/^\?/, ''));
       const base = params.get('base');
       const prState = params.get('state') || 'open';
-      const values = Object.values(state.pulls).filter(pr => (!base || pr.base?.ref === base) && (prState === 'all' || pr.state === prState));
+      const pulls = version.endsWith('2022-11-28') ? { ...state.pulls, ...state.legacyPulls } : state.pulls;
+      const values = Object.values(pulls).filter(pr => (!base || pr.base?.ref === base) && (prState === 'all' || pr.state === prState));
       return output(pages(values));
     }
     throw new Error(`Unexpected pull endpoint: ${method} ${endpoint}`);

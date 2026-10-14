@@ -48,6 +48,19 @@ test('release-sync: falls back only for a merged release PR without merge_commit
   assert.deepEqual(calls.map(c => c.args.at(-1)), ['X-GitHub-Api-Version: 2026-03-10', 'X-GitHub-Api-Version: 2022-11-28']);
 });
 
+test('release-sync: falls back only for merged work PRs without merge_commit_sha in the list', t => {
+  const s = sandbox(t);
+  setupRelease(s);
+  s.change(v => {
+    v.pulls[101].merge_commit_sha = null;
+    v.legacyPulls = { 101: { ...v.pulls[101], merge_commit_sha: 'merge-101' } };
+  });
+  ok(s.cli('release-sync', [200]));
+  assert.equal(s.state().items.I_27.status, 'Done');
+  const calls = s.calls().filter(c => c.endpoint === 'repos/gaydevs/gaydevs-platform/pulls?state=closed&per_page=100&base=develop');
+  assert.deepEqual(calls.map(c => c.args.at(-1)), ['X-GitHub-Api-Version: 2026-03-10', 'X-GitHub-Api-Version: 2022-11-28']);
+});
+
 test('release-sync: accepts multiple explicit exclusions in the delivered release', t => {
   const s = sandbox(t);
   setupRelease(s);
