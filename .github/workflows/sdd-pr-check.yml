@@ -35,4 +35,9 @@ jobs:
       - name: Validate PR contract
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/sdd/pr-check.mjs "${{ github.event.pull_request.number }}"
+        run: |
+          if [ ! -f scripts/sdd/pr-check.mjs ]; then
+            echo "::notice::SDD PR check script is not available in the base branch yet; bootstrap PR must be validated manually."
+            exit 0
+          fi
+          node scripts/sdd/pr-check.mjs "${{ github.event.pull_request.number }}"
