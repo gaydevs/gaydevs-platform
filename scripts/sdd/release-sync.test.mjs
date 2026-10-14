@@ -38,6 +38,52 @@ test('release-sync: develop -> main closed without merge is no-op', t => {
   noWrites(s);
 });
 
+test('release-sync: falls back only for a merged release PR without merge_commit_sha', t => {
+  const s = sandbox(t);
+  setupRelease(s, { release: { merge_commit_sha: null } });
+  s.change(v => { v.legacyPulls = { 200: { ...v.pulls[200], merge_commit_sha: 'release-merge' } }; });
+  ok(s.cli('release-sync', [200]));
+  assert.equal(s.state().items.I_27.status, 'Done');
+  const calls = s.calls().filter(c => c.endpoint === 'repos/gaydevs/gaydevs-platform/pulls/200');
+  assert.deepEqual(calls.map(c => c.args.at(-1)), ['X-GitHub-Api-Version: 2026-03-10', 'X-GitHub-Api-Version: 2022-11-28']);
+});
+
+test('release-sync: falls back only for merged work PRs without merge_commit_sha in the list', t => {
+  const s = sandbox(t);
+  setupRelease(s);
+  s.change(v => {
+    v.pulls[101].merge_commit_sha = null;
+    v.legacyPulls = { 101: { ...v.pulls[101], merge_commit_sha: 'merge-101' } };
+  });
+  ok(s.cli('release-sync', [200]));
+  assert.equal(s.state().items.I_27.status, 'Done');
+  const calls = s.calls().filter(c => c.endpoint === 'repos/gaydevs/gaydevs-platform/pulls?state=closed&per_page=100&base=develop');
+  assert.deepEqual(calls.map(c => c.args.at(-1)), ['X-GitHub-Api-Version: 2026-03-10', 'X-GitHub-Api-Version: 2022-11-28']);
+});
+
+test('release-sync: accepts multiple explicit exclusions in the delivered release', t => {
+  const s = sandbox(t);
+  setupRelease(s);
+  s.change(v => {
+    v.issues[8] = issue(8, 'Task');
+    v.items.I_29 = { id: 'ITEM_I_29', status: 'Ready for Release' };
+    v.pulls[102] = pullRequest(102, 8, { state: 'closed', merged: true, merged_at: '2026-10-13T12:00:00Z', merge_commit_sha: 'merge-102', body: 'Refs #8' });
+    v.pulls[103] = pullRequest(103, 29, { state: 'closed', merged: true, merged_at: '2026-10-13T12:00:00Z', merge_commit_sha: 'merge-103' });
+    v.compares['main-before...release-merge'].commits = [{ sha: 'merge-101' }, { sha: 'merge-102' }, { sha: 'merge-103' }, { sha: 'release-merge' }];
+  });
+  const output = ok(s.cli('release-sync', [200, '--exclude-issue', 8, '--exclude-issue', 29]));
+  assert.equal(s.state().items.I_27.status, 'Done');
+  assert.equal(s.state().items.I_29.status, 'Ready for Release');
+  assert.match(output, /Excluídas explicitamente: #8, #29/);
+});
+
+test('release-sync: rejects an explicit exclusion absent from the release before writes', t => {
+  const s = sandbox(t);
+  setupRelease(s);
+  fail(s.cli('release-sync', [200, '--exclude-issue', 999]), /Exclusões não encontradas no release/);
+  noWrites(s);
+});
+
 test('release-sync: discovers Issues from work PR merge_commit_sha, not release body', t => {
   const s = sandbox(t);
   setupRelease(s);

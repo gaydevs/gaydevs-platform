@@ -21,7 +21,8 @@ function pages(values) {
 }
 function serve() {
   assert.equal(args[0], 'api', 'Only gh api is allowed');
-  assert.equal(flag('-H'), 'X-GitHub-Api-Version: 2026-03-10');
+  const version = flag('-H');
+  assert.ok(['X-GitHub-Api-Version: 2026-03-10', 'X-GitHub-Api-Version: 2022-11-28'].includes(version));
   if (body !== undefined) assert.equal(flag('--input'), '-');
   const failure = state.failures?.find(f => endpoint.includes(f.endpoint) && (!f.method || f.method === method));
   if (failure) {
@@ -82,13 +83,14 @@ function serve() {
     if (number) {
       const pull = state.pulls[number];
       assert.ok(pull, `Missing fixture PR ${number}`);
-      if (method === 'GET' && !suffix) return output(pull);
+      if (method === 'GET' && !suffix) return output(version.endsWith('2022-11-28') ? (state.legacyPulls?.[number] || pull) : pull);
       if (method === 'GET' && suffix === '/files?per_page=100') return output(pages(state.pullFiles[number] || []));
     } else if (method === 'GET') {
       const params = new URLSearchParams(suffix.replace(/^\?/, ''));
       const base = params.get('base');
       const prState = params.get('state') || 'open';
-      const values = Object.values(state.pulls).filter(pr => (!base || pr.base?.ref === base) && (prState === 'all' || pr.state === prState));
+      const pulls = version.endsWith('2022-11-28') ? { ...state.pulls, ...state.legacyPulls } : state.pulls;
+      const values = Object.values(pulls).filter(pr => (!base || pr.base?.ref === base) && (prState === 'all' || pr.state === prState));
       return output(pages(values));
     }
     throw new Error(`Unexpected pull endpoint: ${method} ${endpoint}`);
