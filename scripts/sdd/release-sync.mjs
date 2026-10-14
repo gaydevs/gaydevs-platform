@@ -5,6 +5,7 @@ import {
   currentStatus,
   listPullRequests,
   main,
+  parsePrContract,
   project,
   readPullRequest,
   setStatusIfNeeded,
@@ -27,8 +28,24 @@ main(() => {
   const delivered = new Set((comparison.commits || []).map(commit => commit.sha));
   if (!delivered.size) throw new Error('Intervalo de release sem commits rastreáveis.');
 
-  const workPrs = listPullRequests({ base: config.baseBranch, state: 'closed' })
-    .filter(pr => pr.merged_at && pr.merge_commit_sha && delivered.has(pr.merge_commit_sha));
+  const mergedDevelopPrs = listPullRequests({ base: config.baseBranch, state: 'closed' })
+    .filter(pr => pr.merged_at);
+  const board = project();
+
+  const untraceableReady = [];
+  for (const pr of mergedDevelopPrs.filter(pr => !pr.merge_commit_sha)) {
+    try { parsePrContract(pr.body || ''); }
+    catch { continue; }
+    const result = validatePrContract(pr, { requireBase: config.baseBranch });
+    if (currentStatus(result.context.issue, board) === 'Ready for Release') {
+      untraceableReady.push({ pr, issue: result.context.issue });
+    }
+  }
+  if (untraceableReady.length) {
+    throw new Error(`PRs SDD em Ready for Release sem merge_commit_sha rastreável: ${untraceableReady.map(entry => `#${entry.pr.number}/Issue #${entry.issue.number}`).join(', ')}`);
+  }
+
+  const workPrs = mergedDevelopPrs.filter(pr => pr.merge_commit_sha && delivered.has(pr.merge_commit_sha));
   if (!workPrs.length) throw new Error('Nenhum PR de trabalho com merge_commit_sha rastreável encontrado no release.');
 
   const byIssue = new Map();
@@ -37,7 +54,6 @@ main(() => {
     byIssue.set(result.context.issue.number, { pr, context: result.context });
   }
 
-  const board = project();
   const candidates = [...byIssue.values()].map(entry => ({ ...entry, status: currentStatus(entry.context.issue, board) }));
   const invalid = candidates.filter(entry => !['Ready for Release', ...terminalStatuses].includes(entry.status));
   if (invalid.length) {

@@ -118,6 +118,19 @@ test('release-sync: incompatible states fail before mutation', t => {
   noWrites(s);
 });
 
+test('release-sync: untraceable Ready for Release work PR fails before partial finalization', t => {
+  const s = sandbox(t);
+  setupRelease(s, { issues: [27, 28], statuses: ['Ready for Release', 'Ready for Release'] });
+  s.change(v => {
+    v.pulls[101].merge_commit_sha = null;
+    v.compares['main-before...release-merge'] = { commits: [{ sha: 'merge-102' }, { sha: 'release-merge' }] };
+  });
+  fail(s.cli('release-sync', [200]), /sem merge_commit_sha rastreável/);
+  assert.equal(s.state().items.I_27.status, 'Ready for Release');
+  assert.equal(s.state().items.I_28.status, 'Ready for Release');
+  noWrites(s);
+});
+
 test('release-sync: missing traceable merge commit fails visibly', t => {
   const s = sandbox(t);
   setupRelease(s);
@@ -125,6 +138,6 @@ test('release-sync: missing traceable merge commit fails visibly', t => {
     v.pulls[101].merge_commit_sha = null;
     v.compares['main-before...release-merge'] = { commits: [{ sha: 'squashed-work' }] };
   });
-  fail(s.cli('release-sync', [200]), /Nenhum PR de trabalho/);
+  fail(s.cli('release-sync', [200]), /sem merge_commit_sha rastreável/);
   noWrites(s);
 });
