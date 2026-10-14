@@ -6,7 +6,8 @@ Na raiz do checkout:
 node scripts/sdd/test.mjs
 ```
 
-Use Node.js, Git e PowerShell 7 instalados. A execução foi validada no Windows
+Use Node.js, Git e PowerShell 7 instalados. A execução atual da Rodada 2C passou
+com **81 testes, 81 pass, 0 fail, 0 skipped**. Foi validada no Windows
 com Node 24.15.0 e PowerShell 7.6.6. Não exige gh instalado, login, token,
 dependência npm, Pester ou conexão com GitHub. No Windows, o harness usa os
 caminhos padrão de Git e PowerShell 7; `PWSH_BIN` permite selecionar o PowerShell.
@@ -26,12 +27,14 @@ incluindo acentos, setas e emoji, sem sanitizar ou reparar o JSON recebido.
 | Estado persistente | Resíduos legados envenenados e inalterados, bloqueio de leitura/escrita/probe por Node, auditoria AST dos helpers, snapshots dos arquivos compartilhados e ausência de cache substituto |
 | Issue / blockers | Tipos elegíveis, fechada, sem tipo/marcador, Team Access, Task, PR, paginação de comentários/campos e ambas as direções de dependência, blocker aberto/fechado |
 | Priority / dependências | High/Medium/Low no campo nativo, add/remove com ID nativo, releitura, repetição idempotente, erros e chamadas com método/endpoint/body verificados |
-| Project / gates | Status ativos desta fase, encerramento Not planned, opção/campo/Project inválidos, indisponibilidade explícita, erros HTTP/GraphQL/JSON, declaração humana obrigatória e blockers |
+| Project / gates | Status ativos desta fase, encerramento Not planned, transições assistidas Review/Ready for Release/Done, opção/campo/Project inválidos, indisponibilidade explícita, erros HTTP/GraphQL/JSON, declaração humana obrigatória e blockers |
+| PR / release | Parser `Refs`/`Spec`, closing keywords proibidas, check read-only, PR manual válido, PR aberto/fechado/mergeado para develop, release develop → main com body vazio, descoberta por `merge_commit_sha`, múltiplas Issues, deduplicação, estados terminais e idempotência |
 | Fluxo integrado | Consulta → blockers → from-issue --start → branch/spec → Specifying → decisões externas fictícias → plan → tasks → In Progress |
 | Segurança / limpeza | gh real, subprocessos não permitidos e rede bloqueados; teste deliberadamente falho comprova remoção de checkout, remoto bare e worktree |
 
 Scripts executados: `issue.mjs`, `from-issue.mjs`, `status.mjs`,
-`priority.mjs`, `dependency.mjs` e funções compartilhadas de `core.mjs`
+`priority.mjs`, `dependency.mjs`, `pr-check.mjs`, `pr-sync.mjs`,
+`release-sync.mjs` e funções compartilhadas de `core.mjs`
 (diretamente e por seus consumidores).
 
 Helpers PowerShell executados: `common.ps1`, `check-prerequisites.ps1`,
@@ -82,9 +85,11 @@ exigem revisão explícita da fronteira antes de serem aceitos na suíte.
   após integração do PR #12 continua pendente do review/merge humano.
 - Promoção develop → main, bootstrap do CODEOWNERS na base main, reviews reais
   e deploy continuam dependendo dos gates e da infraestrutura reais.
-- Review / Ready for Release / Done seguem recusados pelo CLI nesta fase.
-  Rejected e Canceled são suportados apenas como encerramentos Not planned.
-  Não foram implementadas automações da Rodada 2C, nem executada Feature real.
+- Review / Ready for Release / Done seguem recusados pelo CLI manual
+  `status.mjs`; essas transições são exercitadas apenas pelos comandos
+  assistidos `pr-sync.mjs` e `release-sync.mjs`.
+- O E2E final de infraestrutura deve usar fixture técnica SDD, nunca Feature
+  real de produto.
 
 A suíte faz **zero leituras e zero escritas reais no GitHub**. Publicar o
 checkpoint e atualizar a descrição do PR são operações separadas de manutenção,
