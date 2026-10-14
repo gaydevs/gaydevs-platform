@@ -93,12 +93,26 @@ function serve() {
     }
     throw new Error(`Unexpected pull endpoint: ${method} ${endpoint}`);
   }
-  const compareMatch = endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/compare\/(.+)\.\.\.(.+)$/);
+  const compareMatch = endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/compare\/([^?]+)(?:\?(.*))?$/);
   if (compareMatch) {
     assert.equal(method, 'GET');
-    const key = `${compareMatch[1]}...${compareMatch[2]}`;
+    const [base, head] = compareMatch[1].split('...');
+    const key = `${base}...${head}`;
     const value = state.compares[key];
     assert.ok(value, `Missing fixture compare ${key}`);
+    const params = new URLSearchParams(compareMatch[2] || '');
+    if (params.has('page') || params.has('per_page')) {
+      const page = Number(params.get('page') || 1);
+      const perPage = Number(params.get('per_page') || 30);
+      assert.ok(Number.isInteger(page) && page > 0, 'invalid compare page');
+      assert.ok(Number.isInteger(perPage) && perPage > 0 && perPage <= 100, 'invalid compare per_page');
+      const commits = value.commits || [];
+      return output({
+        ...value,
+        total_commits: value.total_commits ?? commits.length,
+        commits: commits.slice((page - 1) * perPage, page * perPage),
+      });
+    }
     return output(value);
   }
   const match = endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/issues\/(\d+)(.*)$/);

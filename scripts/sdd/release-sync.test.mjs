@@ -49,6 +49,38 @@ test('release-sync: discovers Issues from work PR merge_commit_sha, not release 
   assert.ok(!s.calls().some(c => /commits\/.+\/pulls/.test(c.endpoint)));
 });
 
+test('release-sync: paginates the complete release commit range before selecting work PRs', t => {
+  const s = sandbox(t);
+  setupRelease(s);
+  s.change(v => {
+    v.compares['main-before...release-merge'] = {
+      total_commits: 251,
+      commits: [
+        ...Array.from({ length: 249 }, (_, i) => ({ sha: `noise-${i}` })),
+        { sha: 'merge-101' },
+        { sha: 'release-merge' },
+      ],
+    };
+  });
+  ok(s.cli('release-sync', [200]));
+  assert.equal(s.state().items.I_27.status, 'Done');
+  assert.ok(s.calls().some(c => c.endpoint === 'repos/gaydevs/gaydevs-platform/compare/main-before...release-merge?per_page=100&page=3'));
+  assert.ok(!s.calls().some(c => c.endpoint === 'repos/gaydevs/gaydevs-platform/compare/main-before...release-merge'));
+});
+
+test('release-sync: incomplete release commit range fails before mutation', t => {
+  const s = sandbox(t);
+  setupRelease(s);
+  s.change(v => {
+    v.compares['main-before...release-merge'] = {
+      total_commits: 3,
+      commits: [{ sha: 'merge-101' }, { sha: 'release-merge' }],
+    };
+  });
+  fail(s.cli('release-sync', [200]), /Compare incompleto/);
+  noWrites(s);
+});
+
 test('release-sync: multiple Issues are deduplicated by Issue number', t => {
   const s = sandbox(t);
   setupRelease(s, { issues: [27, 28], statuses: ['Ready for Release', 'Ready for Release'] });

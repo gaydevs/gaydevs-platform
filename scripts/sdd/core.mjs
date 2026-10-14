@@ -67,7 +67,21 @@ export function listPullRequestFiles(number) {
   return api(`repos/${config.repository}/pulls/${issueNumber(number)}/files?per_page=100`, { paginate: true });
 }
 export function compareCommits(base, head) {
-  return api(`repos/${config.repository}/compare/${base}...${head}`);
+  const perPage = 100;
+  let first;
+  const commits = [];
+  for (let page = 1; ; page += 1) {
+    const comparison = api(`repos/${config.repository}/compare/${base}...${head}?per_page=${perPage}&page=${page}`);
+    first ||= comparison;
+    const pageCommits = comparison.commits || [];
+    commits.push(...pageCommits);
+    if (pageCommits.length < perPage) break;
+  }
+  const total = first?.total_commits;
+  if (Number.isInteger(total) && commits.length !== total) {
+    throw new Error(`Compare incompleto: ${commits.length} de ${total} commits coletados.`);
+  }
+  return { ...first, commits, total_commits: total ?? commits.length };
 }
 export function parsePrContract(body = '') {
   const refs = [...body.matchAll(/(?:^|\n)Refs #([1-9]\d*)\b/g)].map(match => Number(match[1]));
