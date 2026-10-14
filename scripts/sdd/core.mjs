@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -55,6 +55,71 @@ export function readIssue(number) {
     blocking: api(`${endpoint}/dependencies/blocking?per_page=100`, { paginate: true }),
   };
 }
+export function readPullRequest(number) {
+  return api(`repos/${config.repository}/pulls/${issueNumber(number)}`);
+}
+export function listPullRequests({ base, state = 'closed' } = {}) {
+  const query = new URLSearchParams({ state, per_page: '100' });
+  if (base) query.set('base', base);
+  return api(`repos/${config.repository}/pulls?${query}`, { paginate: true });
+}
+export function listPullRequestFiles(number) {
+  return api(`repos/${config.repository}/pulls/${issueNumber(number)}/files?per_page=100`, { paginate: true });
+}
+export function compareCommits(base, head) {
+  const perPage = 100;
+  let first;
+  const commits = [];
+  for (let page = 1; ; page += 1) {
+    const comparison = api(`repos/${config.repository}/compare/${base}...${head}?per_page=${perPage}&page=${page}`);
+    first ||= comparison;
+    const pageCommits = comparison.commits || [];
+    commits.push(...pageCommits);
+    if (pageCommits.length < perPage) break;
+  }
+  const total = first?.total_commits;
+  if (Number.isInteger(total) && commits.length !== total) {
+    throw new Error(`Compare incompleto: ${commits.length} de ${total} commits coletados.`);
+  }
+  return { ...first, commits, total_commits: total ?? commits.length };
+}
+export function parsePrContract(body = '') {
+  const refs = [...body.matchAll(/(?:^|\n)Refs #([1-9]\d*)\b/g)].map(match => Number(match[1]));
+  if (refs.length !== 1) throw new Error('PR deve conter exatamente um Refs #ID.');
+  const closing = /\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#([1-9]\d*)\b/i.exec(body);
+  if (closing) throw new Error('PR para develop não pode usar Closes/Fixes/Resolves para Issue SDD.');
+  const specs = [...body.matchAll(/(?:^|\n)Spec:\s*(\d{5,})\b/g)].map(match => match[1]);
+  if (specs.length > 1) throw new Error('PR deve conter no máximo um Spec: NNNNN.');
+  return { issueNumber: refs[0], specId: specs[0] };
+}
+export function specIdForIssue(number) {
+  return String(issueNumber(number)).padStart(5, '0');
+}
+export function prFilesIncludeSpec(files, number) {
+  const id = specIdForIssue(number);
+  return files.some(file => file.filename?.startsWith(`specs/${id}-`) && file.filename.endsWith('/spec.md'));
+}
+export function localSpecExists(number) {
+  const specs = path.join(root, 'specs');
+  if (!existsSync(specs)) return false;
+  const id = specIdForIssue(number);
+  const matches = readdirSync(specs, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && entry.name.startsWith(`${id}-`) && existsSync(path.join(specs, entry.name, 'spec.md')));
+  if (matches.length > 1) throw new Error(`Mais de uma spec encontrada para ${id}.`);
+  return matches.length === 1;
+}
+export function validatePrContract(pr, { files, requireBase = config.baseBranch } = {}) {
+  if (requireBase && pr.base?.ref !== requireBase) throw new Error(`PR deve apontar para ${requireBase}.`);
+  const contract = parsePrContract(pr.body || '');
+  const context = readIssue(contract.issueNumber);
+  const identity = sddIdentity(context.issue, { requireOpen: false });
+  const hasSpec = localSpecExists(contract.issueNumber) || (files ? prFilesIncludeSpec(files, contract.issueNumber) : Boolean(contract.specId));
+  const requiresSpec = identity.type === 'Feature' || hasSpec;
+  if (requiresSpec && !contract.specId) throw new Error('Trabalho com spec exige exatamente um Spec: NNNNN.');
+  if (!requiresSpec && contract.specId) throw new Error('Spec: NNNNN só deve ser informado quando houver spec.');
+  if (contract.specId && contract.specId !== specIdForIssue(contract.issueNumber)) throw new Error('Spec: NNNNN deve corresponder ao mesmo ID de Refs #ID.');
+  return { ...contract, context, identity, requiresSpec };
+}
 export function assertUnblocked(context) {
   const open = context.blockedBy.filter(issue => issue.state === 'open');
   if (open.length) throw new Error(`Blockers abertos: ${open.map(issue => issue.html_url).join(', ')}`);
@@ -74,6 +139,12 @@ export function setStatus(issue, status, board = project()) {
   const added = graphql(`mutation($project:ID!,$issue:ID!){addProjectV2ItemById(input:{projectId:$project,contentId:$issue}){item{id}}}`, { project: board.id, issue: issue.node_id });
   graphql(`mutation($project:ID!,$item:ID!,$field:ID!,$option:String!){updateProjectV2ItemFieldValue(input:{projectId:$project,itemId:$item,fieldId:$field,value:{singleSelectOptionId:$option}}){projectV2Item{id}}}`, { project: board.id, item: added.addProjectV2ItemById.item.id, field: field.id, option: option.id });
 }
+export function setStatusIfNeeded(issue, status, board = project()) {
+  const current = currentStatus(issue, board);
+  if (current === status) return { changed: false, status: current };
+  setStatus(issue, status, board);
+  return { changed: true, status };
+}
 export function currentStatus(issue, board = project()) {
   const data = graphql(`query($issue:ID!){node(id:$issue){... on Issue{projectItems(first:100){nodes{id project{id} fieldValues(first:100){nodes{... on ProjectV2ItemFieldSingleSelectValue{name field{... on ProjectV2SingleSelectField{id name}}}}}}}}}}`, { issue: issue.node_id });
   const item = data.node?.projectItems.nodes.find(item => item.project.id === board.id);
@@ -81,11 +152,19 @@ export function currentStatus(issue, board = project()) {
   if (!value?.name) throw new Error('Status atual não encontrado no Project.');
   return value.name;
 }
+export const terminalStatuses = ['Rejected', 'Canceled', 'Done'];
 export function closeNotPlanned(issue) {
   if (issue.state === 'closed' && issue.state_reason === 'not_planned') return issue;
   return api(`repos/${config.repository}/issues/${issueNumber(issue.number)}`, {
     method: 'PATCH',
     body: { state: 'closed', state_reason: 'not_planned' },
+  });
+}
+export function closeCompleted(issue) {
+  if (issue.state === 'closed' && issue.state_reason === 'completed') return issue;
+  return api(`repos/${config.repository}/issues/${issueNumber(issue.number)}`, {
+    method: 'PATCH',
+    body: { state: 'closed', state_reason: 'completed' },
   });
 }
 export function main(fn) { try { fn(); } catch (error) { console.error(error.message); process.exitCode = 1; } }

@@ -26,9 +26,24 @@ export function issue(number = 27, type = 'Feature', changes = {}) {
     type: type ? { name: type } : null, body: `<!-- gaydevs-sdd:${type} -->`,
     html_url: `https://github.com/gaydevs/gaydevs-platform/issues/${number}`, ...changes };
 }
+export function pullRequest(number = 101, issueNumber = 27, changes = {}) {
+  return {
+    number,
+    state: 'open',
+    merged: false,
+    merged_at: null,
+    merge_commit_sha: null,
+    base: { ref: 'develop', sha: `base-${number}` },
+    head: { ref: `techdebt/${String(issueNumber).padStart(5, '0')}-technical-fixture-${issueNumber}`, sha: `head-${number}` },
+    body: `Spec: ${String(issueNumber).padStart(5, '0')}\nRefs #${issueNumber}`,
+    html_url: `https://github.com/gaydevs/gaydevs-platform/pull/${number}`,
+    ...changes,
+  };
+}
 export function initialState() {
   return {
     issues: { 27: issue(), 28: issue(28, 'Bug'), 29: issue(29, 'Tech Debt') },
+    pulls: {}, pullFiles: {}, compares: {},
     comments: {}, fields: {}, dependencies: {}, items: {}, failures: [],
     project: { id: 'P_1', title: 'gaydevs project', fields: { nodes: [{ id: 'STATUS', name: 'Status',
       options: ['Backlog', 'Specifying', 'Ready', 'In Progress', 'Review', 'Ready for Release', 'Done', 'Rejected', 'Canceled'].map((name, i) => ({ id: `S_${i}`, name })) }] } },

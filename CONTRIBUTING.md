@@ -25,8 +25,12 @@ node scripts/sdd/from-issue.mjs 27 --start # iniciar após verificar contexto
 Feature sempre exige spec; Bug/Refactor/Tech Debt triviais aceitam `--trivial`.
 Aprovar spec → elaborar plan → aprovar plan → tasks → código. Não pular gates.
 PRs de trabalho apontam para `develop`, com `Refs #27` (não `Closes #27`).
-Solicite revisão de outro gdev. Consulte o [fluxo](docs/development-workflow.md)
-e o [estado desta implantação](docs/sdd-implementation.md) antes de iniciar.
+Quando houver spec, inclua também `Spec: 00027`. O check `SDD PR contract`
+valida esse contrato em PRs para `develop`, mas não substitui a revisão humana.
+Solicite revisão de outro gdev. Use **Create a merge commit**; squash e rebase
+ficam desabilitados neste repo para preservar a rastreabilidade de release.
+Consulte o [fluxo](docs/development-workflow.md) e o
+[estado desta implantação](docs/sdd-implementation.md) antes de iniciar.
 
 As proteções exigem PR, uma aprovação atualizada e conversas resolvidas também
 para admins. O team `gdevs-admins` tem Admin no repo; `gdevs-team` mantém Write.
@@ -39,3 +43,16 @@ Validação do tooling: `node scripts/sdd/test.mjs`.
 A [suíte sandbox](docs/sdd-sandbox.md) usa Git/PowerShell reais e GitHub simulado,
 sem credenciais ou rede, com fixtures descartáveis e limpeza após falhas.
 Comandos do frontend permanecem no [README](README.md).
+
+Comandos SDD finais de rotina:
+
+```sh
+node scripts/sdd/pr-check.mjs 123
+node scripts/sdd/pr-sync.mjs 123
+node scripts/sdd/release-sync.mjs 456
+```
+
+O check é automático e read-only em PRs para `develop`. `pr-sync` e
+`release-sync` são automação assistida: um agente de IA pode executá-los, ou um
+gdev pode rodar os mesmos comandos manualmente. GitHub continua sendo a fonte
+da verdade; gates humanos de spec, plan, review e release continuam humanos.

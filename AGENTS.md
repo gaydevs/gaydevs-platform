@@ -42,7 +42,12 @@ Não interpretar falha de rede como credencial inválida sem verificar a causa.
 - Mantenha Status via `status.mjs`. `--without-project` exige relatar a pendência;
   não diga que sincronizou se a API falhar. Consulte o registro de implantação.
 - PR de trabalho usa `Refs #N`, nunca `Closes #N`, e aponta para develop.
-  Não automatizar aprovação/review/merge/release nem converter tasks em Issues.
+  Se houver spec, use também `Spec: NNNNN`. PR para develop usa Create a merge
+  commit; squash/rebase não fazem parte do workflow SDD deste repo. O check
+  `sdd-pr-check` valida o contrato sem mover Project. Use `pr-sync.mjs` para
+  sincronizar PR de trabalho e `release-sync.mjs` para finalizar release
+  develop -> main quando solicitado, sempre relendo GitHub real antes. Não
+  automatizar aprovação/review/merge nem converter tasks em Issues.
 - Antes de retomar, consulte novamente Issue e dependências e procure branch/spec
   pelo ID existente. Erros parciais podem deixar branch, arquivos ou card criados.
 - Helpers resolvem a spec pela branch Git do worktree e exigem uma única pasta
