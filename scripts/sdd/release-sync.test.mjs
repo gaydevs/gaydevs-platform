@@ -111,6 +111,16 @@ test('release-sync: terminal states are idempotent no-ops', t => {
   noWrites(s);
 });
 
+test('release-sync: rerun completes an open Issue already marked Done', t => {
+  const s = sandbox(t);
+  setupRelease(s, { statuses: ['Done'] });
+  ok(s.cli('release-sync', [200]));
+  assert.equal(s.state().items.I_27.status, 'Done');
+  assert.equal(s.state().issues[27].state, 'closed');
+  assert.equal(s.state().issues[27].state_reason, 'completed');
+  assert.equal(s.mutations().filter(call => call.method === 'PATCH').length, 1);
+});
+
 test('release-sync: incompatible states fail before mutation', t => {
   const s = sandbox(t);
   setupRelease(s, { statuses: ['Review'] });

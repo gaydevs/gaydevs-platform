@@ -7,6 +7,7 @@ import {
   main,
   parsePrContract,
   project,
+  readIssue,
   readPullRequest,
   setStatusIfNeeded,
   terminalStatuses,
@@ -62,6 +63,14 @@ main(() => {
 
   let changed = 0;
   for (const entry of candidates) {
+    if (entry.status === 'Done') {
+      const latest = readIssue(entry.context.issue.number).issue;
+      if (latest.state !== 'closed' || latest.state_reason !== 'completed') {
+        closeCompleted(latest);
+        changed += 1;
+      }
+      continue;
+    }
     if (entry.status !== 'Ready for Release') continue;
     const status = setStatusIfNeeded(entry.context.issue, 'Done', board);
     closeCompleted(entry.context.issue);
