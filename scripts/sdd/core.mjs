@@ -64,7 +64,10 @@ export function readPullRequest(number) {
 export function listPullRequests({ base, state = 'closed' } = {}) {
   const query = new URLSearchParams({ state, per_page: '100' });
   if (base) query.set('base', base);
-  return api(`repos/${config.repository}/pulls?${query}`, { paginate: true });
+  const endpoint = `repos/${config.repository}/pulls?${query}`;
+  const pulls = api(endpoint, { paginate: true });
+  if (!pulls.some(pull => pull.merged_at && !pull.merge_commit_sha)) return pulls;
+  return api(endpoint, { paginate: true, version: '2022-11-28' });
 }
 export function listPullRequestFiles(number) {
   return api(`repos/${config.repository}/pulls/${issueNumber(number)}/files?per_page=100`, { paginate: true });
