@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -85,12 +85,21 @@ export function prFilesIncludeSpec(files, number) {
   const id = specIdForIssue(number);
   return files.some(file => file.filename?.startsWith(`specs/${id}-`) && file.filename.endsWith('/spec.md'));
 }
+export function localSpecExists(number) {
+  const specs = path.join(root, 'specs');
+  if (!existsSync(specs)) return false;
+  const id = specIdForIssue(number);
+  const matches = readdirSync(specs, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && entry.name.startsWith(`${id}-`) && existsSync(path.join(specs, entry.name, 'spec.md')));
+  if (matches.length > 1) throw new Error(`Mais de uma spec encontrada para ${id}.`);
+  return matches.length === 1;
+}
 export function validatePrContract(pr, { files, requireBase = config.baseBranch } = {}) {
   if (requireBase && pr.base?.ref !== requireBase) throw new Error(`PR deve apontar para ${requireBase}.`);
   const contract = parsePrContract(pr.body || '');
   const context = readIssue(contract.issueNumber);
   const identity = sddIdentity(context.issue, { requireOpen: false });
-  const hasSpec = files ? prFilesIncludeSpec(files, contract.issueNumber) : Boolean(contract.specId);
+  const hasSpec = localSpecExists(contract.issueNumber) || (files ? prFilesIncludeSpec(files, contract.issueNumber) : Boolean(contract.specId));
   const requiresSpec = identity.type === 'Feature' || hasSpec;
   if (requiresSpec && !contract.specId) throw new Error('Trabalho com spec exige exatamente um Spec: NNNNN.');
   if (!requiresSpec && contract.specId) throw new Error('Spec: NNNNN só deve ser informado quando houver spec.');

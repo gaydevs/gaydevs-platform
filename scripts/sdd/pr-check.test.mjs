@@ -27,6 +27,32 @@ test('pr-check: valid manual PR to develop is read-only', t => {
   noWrites(s);
 });
 
+test('pr-check: existing local spec requires Spec even when PR does not change spec.md', t => {
+  const s = sandbox(t, { specs: ['00028-existing-bug-spec'] });
+  s.change(v => {
+    v.pulls[101] = pullRequest(101, 28, { body: 'Refs #28' });
+    v.pullFiles[101] = [{ filename: 'docs/fix.md' }];
+  });
+  fail(s.cli('pr-check', [101]), /exige exatamente um Spec/);
+  noWrites(s);
+
+  s.change(v => {
+    v.pulls[101].body = 'Spec: 00028\nRefs #28';
+  });
+  assert.match(ok(s.cli('pr-check', [101])), /Spec: 00028/);
+  noWrites(s);
+});
+
+test('pr-check: Spec remains invalid for non-Feature work without an actual spec', t => {
+  const s = sandbox(t);
+  s.change(v => {
+    v.pulls[101] = pullRequest(101, 28, { body: 'Spec: 00028\nRefs #28' });
+    v.pullFiles[101] = [{ filename: 'docs/fix.md' }];
+  });
+  fail(s.cli('pr-check', [101]), /só deve ser informado quando houver spec/);
+  noWrites(s);
+});
+
 for (const [label, body, pattern] of [
   ['missing Refs', 'Spec: 00027', /exatamente um Refs/],
   ['multiple Refs', 'Spec: 00027\nRefs #27\nRefs #28', /exatamente um Refs/],
