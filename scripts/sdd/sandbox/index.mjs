@@ -57,7 +57,7 @@ export function snapshot(directory, relative = '') {
     return entry.isDirectory() ? [[name, 'directory'], ...snapshot(file, name)] : [[name, readFileSync(file).toString('base64')]];
   });
 }
-export function sandbox(t, { specs = [], state = initialState() } = {}) {
+export function sandbox(t, { specs = [], state = initialState(), branch, published = true } = {}) {
   const base = mkdtempSync(path.join(tmpdir(), 'gdevs-sdd-sandbox-'));
   const repo = path.join(base, 'repo with spaces');
   const remote = path.join(base, 'remote.git');
@@ -140,8 +140,10 @@ export function sandbox(t, { specs = [], state = initialState() } = {}) {
     s.git('config', 'user.name', 'SDD sandbox');
     s.git('config', 'user.email', 'sandbox@example.invalid');
     s.git('add', '.'); s.git('commit', '-m', 'sandbox baseline');
+    if (branch && published) { s.git('branch', branch); s.git('switch', branch); }
     s.git('clone', '--bare', repo, remote);
     s.git('remote', 'add', 'origin', 'https://github.com/gaydevs/gaydevs-platform.git');
+    if (branch && !published) { s.git('branch', branch); s.git('switch', branch); }
     s.git('fetch', 'origin', 'develop');
     return s;
   } catch (error) { cleanup(); throw error; }

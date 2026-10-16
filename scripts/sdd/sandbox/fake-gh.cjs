@@ -92,6 +92,22 @@ function serve() {
       const pulls = version.endsWith('2022-11-28') ? { ...state.pulls, ...state.legacyPulls } : state.pulls;
       const values = Object.values(pulls).filter(pr => (!base || pr.base?.ref === base) && (prState === 'all' || pr.state === prState));
       return output(pages(values));
+    } else if (method === 'POST' && !suffix) {
+      assert.equal(body.base, 'develop');
+      assert.equal(typeof body.title, 'string');
+      assert.equal(typeof body.head, 'string');
+      assert.equal(typeof body.body, 'string');
+      const prNumber = Math.max(100, ...Object.keys(state.pulls).map(Number)) + 1;
+      const pull = {
+        number: prNumber, state: 'open', merged: false, merged_at: null, merge_commit_sha: null,
+        base: { ref: body.base, sha: `base-${prNumber}` },
+        head: { ref: body.head, sha: `head-${prNumber}` },
+        title: body.title, body: body.body,
+        html_url: `https://github.com/gaydevs/gaydevs-platform/pull/${prNumber}`,
+      };
+      state.pulls[prNumber] = pull;
+      save();
+      return output(pull);
     }
     throw new Error(`Unexpected pull endpoint: ${method} ${endpoint}`);
   }

@@ -114,6 +114,16 @@ export function localSpecExists(number) {
   if (matches.length > 1) throw new Error(`Mais de uma spec encontrada para ${id}.`);
   return matches.length === 1;
 }
+export function currentSddBranch() {
+  const branch = git('branch', '--show-current');
+  const match = branch.match(/^(feat|fix|refactor|techdebt)\/(\d{5,})-[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  if (!match) throw new Error('Branch atual inválida: use prefixo SDD, ID com ao menos cinco dígitos e slug.');
+  const number = Number(match[2]);
+  return { branch, prefix: match[1], issueNumber: issueNumber(number) };
+}
+export function publishedBranch(branch) {
+  return git('ls-remote', '--heads', 'origin', `refs/heads/${branch}`).length > 0;
+}
 export function validatePrContract(pr, { files, requireBase = config.baseBranch } = {}) {
   if (requireBase && pr.base?.ref !== requireBase) throw new Error(`PR deve apontar para ${requireBase}.`);
   const contract = parsePrContract(pr.body || '');
