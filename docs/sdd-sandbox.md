@@ -6,8 +6,8 @@ Na raiz do checkout:
 node scripts/sdd/test.mjs
 ```
 
-Use Node.js, Git e PowerShell 7 instalados. A execução atual da Rodada 2C passou
-com **81 testes, 81 pass, 0 fail, 0 skipped**. Foi validada no Windows
+Use Node.js, Git e PowerShell 7 instalados. A validação de baseline da Rodada 2C
+passou com **81 testes, 81 pass, 0 fail, 0 skipped**. Foi executada no Windows
 com Node 24.15.0 e PowerShell 7.6.6. Não exige gh instalado, login, token,
 dependência npm, Pester ou conexão com GitHub. No Windows, o harness usa os
 caminhos padrão de Git e PowerShell 7; `PWSH_BIN` permite selecionar o PowerShell.
@@ -28,13 +28,13 @@ incluindo acentos, setas e emoji, sem sanitizar ou reparar o JSON recebido.
 | Issue / blockers | Tipos elegíveis, fechada, sem tipo/marcador, Team Access, Task, PR, paginação de comentários/campos e ambas as direções de dependência, blocker aberto/fechado |
 | Priority / dependências | High/Medium/Low no campo nativo, add/remove com ID nativo, releitura, repetição idempotente, erros e chamadas com método/endpoint/body verificados |
 | Project / gates | Status ativos desta fase, encerramento Not planned, transições assistidas Review/Ready for Release/Done, opção/campo/Project inválidos, indisponibilidade explícita, erros HTTP/GraphQL/JSON, declaração humana obrigatória e blockers |
-| PR / release | Parser `Refs`/`Spec`, closing keywords proibidas, check read-only, PR manual válido, PR aberto/fechado/mergeado para develop, release develop → main com body vazio, descoberta por `merge_commit_sha`, múltiplas Issues, deduplicação, estados terminais e idempotência |
+| PR / release | Criação de PR SDD com branch/Issue/spec/body validados, POST e contrato verificados, erros sem criação, PR manual read-only, parser `Refs`/`Spec`, closing keywords proibidas, PR aberto/fechado/mergeado para develop, release develop → main com body vazio, descoberta por `merge_commit_sha`, múltiplas Issues, deduplicação, estados terminais e idempotência |
 | Fluxo integrado | Consulta → blockers → from-issue --start → branch/spec → Specifying → decisões externas fictícias → plan → tasks → In Progress |
 | Segurança / limpeza | gh real, subprocessos não permitidos e rede bloqueados; teste deliberadamente falho comprova remoção de checkout, remoto bare e worktree |
 
 Scripts executados: `issue.mjs`, `from-issue.mjs`, `status.mjs`,
 `priority.mjs`, `dependency.mjs`, `pr-check.mjs`, `pr-sync.mjs`,
-`release-sync.mjs` e funções compartilhadas de `core.mjs`
+`pr-create.mjs`, `release-sync.mjs` e funções compartilhadas de `core.mjs`
 (diretamente e por seus consumidores).
 
 Helpers PowerShell executados: `common.ps1`, `check-prerequisites.ps1`,

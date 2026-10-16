@@ -24,11 +24,19 @@ altamente recomendável. O processo também funciona executando os comandos manu
 5. Sintetize a spec; o rascunho não é uma spec pronta. Um gdev aprova spec antes
    do plan e plan antes das tasks/implementação. Registre a aprovação e sua origem
    nos artefatos. Tasks ficam em `tasks.md`, sem Issues automáticas por task.
-6. PR para `develop`: resumo, testes, critérios de aceite, riscos relevantes,
-   `Refs #27` e, quando houver spec, `Spec: 00027`. Não use `Closes`, `Fixes`
-   ou `Resolves` para a Issue SDD nesse PR. O check `SDD PR contract` valida
-   automaticamente esse contrato, mas a revisão de outro gdev continua sendo
-   o gate humano antes do merge. Use **Create a merge commit**.
+6. Publique a branch SDD e crie o PR para `develop` pelo comando:
+
+   ```sh
+   node scripts/sdd/pr-create.mjs --title "Resumo do trabalho" --body "Resumo, testes e riscos relevantes."
+   ```
+
+   O título é opcional (por padrão usa o da Issue), assim como o texto adicional.
+   O comando resolve `Refs #ID` e `Spec: NNNNN` pela branch/Issue/spec e falha
+   diante de conteúdo conflitante; não faz push. PR manual continua permitido,
+   desde que informe as mesmas referências. Não use `Closes`, `Fixes` ou
+   `Resolves` para a Issue SDD nesse PR. O check `SDD PR contract` valida o
+   contrato, mas a revisão de outro gdev continua sendo o gate humano antes do
+   merge. Use **Create a merge commit**.
 7. Depois do PR aberto, mergeado ou fechado, um agente/gdev executa
    `node scripts/sdd/pr-sync.mjs PR_NUMERO` para sincronizar o Project.
    Merge em `develop` deixa a Issue aberta em `Ready for Release`.
@@ -114,6 +122,7 @@ Comandos finais de PR/release:
 
 ```sh
 node scripts/sdd/pr-check.mjs 123      # valida contrato SDD do PR
+node scripts/sdd/pr-create.mjs --title "Resumo" --body "Contexto adicional" # cria PR da branch atual
 node scripts/sdd/pr-sync.mjs 123       # PR de trabalho -> Review/In Progress/Ready for Release
 node scripts/sdd/release-sync.mjs 456  # release develop -> main -> Done + completed
 ```
