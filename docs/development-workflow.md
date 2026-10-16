@@ -36,8 +36,18 @@ altamente recomendável. O processo também funciona executando os comandos manu
 O contexto local vem da branch Git; Issue, comentários, Priority e dependências
 devem ser relidos do GitHub. Não há ponteiro global nem cache de Issue. Resíduos
 antigos de `.specify/feature.json` e `.specify/context/` são ignorados e nunca
-consultados ou atualizados. Use worktrees separados para trabalhos simultâneos:
-trocar a branch de um checkout muda o HEAD para todos os processos nele.
+consultados ou atualizados.
+
+Para um único trabalho, use o checkout existente e sua branch SDD; não crie um
+worktree auxiliar. Crie outro worktree somente quando trabalhos simultâneos
+exigirem checkouts em branches diferentes, pois trocar a branch de um checkout
+muda o HEAD para todos os processos nele. Antes de criar, use `git worktree list`
+e procure a branch/spec da Issue para retomar o trabalho existente.
+
+Após merge ou abandono, confira o worktree com `git -C CAMINHO status --short`.
+Preserve, faça commit ou descarte conscientemente qualquer alteração necessária;
+somente então use `git worktree remove CAMINHO`. A limpeza é uma ação explícita
+do gdev e nunca deve remover automaticamente um checkout com trabalho pendente.
 
 Para automação/CI, `SPECIFY_FEATURE_DIRECTORY` aceita uma pasta existente, absoluta
 ou relativa à raiz do projeto, somente no ambiente da execução. Nunca use `setx`,
