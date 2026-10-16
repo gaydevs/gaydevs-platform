@@ -54,8 +54,11 @@ Não interpretar falha de rede como credencial inválida sem verificar a causa.
   `specs/NNNNN-*`. Não use ponteiros ou snapshots locais como contexto. Releia
   Issue, comentários, Priority e dependências via `issue.mjs` quando necessários.
   `SPECIFY_FEATURE_DIRECTORY` só pode ser fornecido ao processo da execução;
-  nunca persista esse override. `SPECIFY_FEATURE` é recusado. Use worktrees
-  separados para agentes/features simultâneos.
+  nunca persista esse override. `SPECIFY_FEATURE` é recusado. Para um único
+  trabalho, use o checkout existente. Use worktrees separados somente quando
+  agentes/features simultâneos exigirem checkouts distintos; procure e retome
+  branch/spec existentes antes de criar outro. Após merge ou abandono, verifique
+  alterações locais e remova o worktree que não for mais necessário.
 
 ## Validação
 
