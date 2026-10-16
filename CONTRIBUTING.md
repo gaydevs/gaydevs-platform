@@ -24,11 +24,14 @@ node scripts/sdd/from-issue.mjs 27 --start # iniciar após verificar contexto
 
 Feature sempre exige spec; Bug/Refactor/Tech Debt triviais aceitam `--trivial`.
 Aprovar spec → elaborar plan → aprovar plan → tasks → código. Não pular gates.
-PRs de trabalho apontam para `develop`, com `Refs #27` (não `Closes #27`).
-Quando houver spec, inclua também `Spec: 00027`. O check `SDD PR contract`
-valida esse contrato em PRs para `develop`, mas não substitui a revisão humana.
-Solicite revisão de outro gdev. Use **Create a merge commit**; squash e rebase
-ficam desabilitados neste repo para preservar a rastreabilidade de release.
+Após publicar a branch, `node scripts/sdd/pr-create.mjs` cria o PR para
+`develop` com `Refs #ID` e `Spec: NNNNN` quando houver spec. `--title` e `--body`
+são opcionais; o comando valida o texto adicional e não faz push. PRs manuais
+continuam permitidos com as mesmas referências. Não use `Closes`, `Fixes` ou
+`Resolves` para fechar Issues SDD. O check `SDD PR contract` valida o contrato,
+mas não substitui a revisão humana: solicite revisão de outro gdev. Use
+**Create a merge commit**; squash e rebase ficam desabilitados neste repo para
+preservar a rastreabilidade de release.
 Consulte o [fluxo](docs/development-workflow.md) e o
 [estado desta implantação](docs/sdd-implementation.md) antes de iniciar.
 
