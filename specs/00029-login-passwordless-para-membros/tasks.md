@@ -6,6 +6,10 @@
 
 **Regra de execução**: concluir e validar cada fase antes da próxima. O agente
 não adiciona arquivos ao stage nem cria commit sem pedido explícito do gdev.
+Até o encerramento desta spec, cada checkpoint de testes do backend deve executar
+a suíte completa tanto em SQLite quanto no MySQL local 8.4.11, configurado no
+arquivo não versionado `backend/.env.mysql`. Execuções paralela e aleatória são
+complementares e não substituem essas duas execuções.
 
 ## Phase 1: Ambiente e esqueleto
 
