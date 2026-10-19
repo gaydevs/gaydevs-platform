@@ -54,11 +54,12 @@ não adiciona arquivos ao stage nem cria commit sem pedido explícito do gdev.
   execução paralela e aleatória da suíte SQLite.
 - [x] T016 Concluir `backend-lint.yml`, `backend-audit.yml`,
   `backend-test.yml`, `backend-deploy.yml` e a action de cache Composer;
-  validar a matriz SQLite/MySQL 8.4.
-- [ ] T017 Executar migrations e testes de fundação em SQLite e MySQL; parar
-  para a validação do gdev da Fase 2.
+  preparar a matriz SQLite/MySQL 8.4 para a validação final.
+- [x] T017 Executar migrations e testes de fundação em SQLite; parar para a
+  validação do gdev da Fase 2.
   - [x] SQLite local: migrations e 36 testes/125 asserções nas execuções normal,
     paralela (4 processos) e aleatória.
-  - [ ] MySQL 8.4: aguarda execução do workflow após publicação.
-  - [ ] Validação manual do gdev.
+  - [x] Revisão manual e aprovação do gdev em 2026-10-19.
 
+**Fase 2 aprovada pelo gdev em 2026-10-19.** A execução MySQL 8.4 foi movida
+para a validação final, quando todas as migrations e histórias estarão prontas.
