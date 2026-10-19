@@ -62,7 +62,7 @@ test('authentication visits are derived from their exact observations', function
             ->distinct()
             ->pluck('visit_id'))->toContain($visits[1]->id)
         ->and($user->authenticatedSessions)->toHaveCount(1)
-        ->and(Schema::getColumnType('personal_access_tokens', 'tokenable_id'))->toBe('varchar');
+        ->and($token->tokenable_id)->toBe($user->id);
 });
 
 test('otp attempts preserve already used events and authenticated context', function () {
