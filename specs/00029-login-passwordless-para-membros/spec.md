@@ -151,8 +151,9 @@ ao membro, e a interface pública nunca mostra endereços completos.
 Na consulta ao GitHub em 2026-10-18, a Issue #29 não tem blockers e bloqueia a
 Issue #30 (Polls).
 
-Ambiente (consultado em 2026-10-16): PHP 8.3.30 (FastCGI), cliente
-MySQL 8.0.46, com `pdo_mysql`, `mbstring`, `openssl`, `intl`, `sodium` e as
+Ambiente (consultado em 2026-10-16): PHP 8.3.30 (FastCGI), servidor MySQL
+8.4.11 e cliente MySQL 8.0.46, com `pdo_mysql`, `mbstring`, `openssl`, `intl`,
+`sodium` e as
 demais extensões exigidas pelo Laravel. `sendmail` em `/usr/sbin/sendmail`;
 `composer` não está no servidor. O plan deve escolher Laravel compatível com
 PHP 8.3 e fixar `config.platform.php`.
