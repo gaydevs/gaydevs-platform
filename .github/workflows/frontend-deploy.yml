@@ -7,7 +7,7 @@ on:
       - master
     paths:
       - 'frontend/**'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/frontend-deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -26,9 +26,9 @@ jobs:
         working-directory: frontend
 
     env:
-      REMOTE_ROOT: /home/dh_jirb5e/vettoretti.dev
-      REMOTE_APP: /home/dh_jirb5e/vettoretti.dev/gaydevs
-      REMOTE_TMP: /home/dh_jirb5e/vettoretti.dev_gaydevs_tmp
+      REMOTE_ROOT: /home/dh_jirb5e/vettoretti.dev/gaydevs
+      REMOTE_APP: /home/dh_jirb5e/vettoretti.dev/gaydevs/platform
+      REMOTE_TMP: /home/dh_jirb5e/vettoretti.dev_gaydevs_platform_tmp
 
     steps:
       - name: Checkout code
@@ -81,6 +81,9 @@ jobs:
           port: 22
           script: |
             mkdir -p "${{ env.REMOTE_ROOT }}"
+            # Remove restos do layout antigo (frontend direto em /gaydevs/)
+            find "${{ env.REMOTE_ROOT }}" -mindepth 1 -maxdepth 1 ! -name platform ! -name api ! -name .htaccess -exec rm -rf {} +
+            printf 'RedirectMatch 302 ^/gaydevs/?$ /gaydevs/platform/\n' > "${{ env.REMOTE_ROOT }}/.htaccess"
             rm -rf "${{ env.REMOTE_APP }}_old"
             mv "${{ env.REMOTE_APP }}" "${{ env.REMOTE_APP }}_old" 2>/dev/null || true
             mv "${{ env.REMOTE_TMP }}" "${{ env.REMOTE_APP }}"

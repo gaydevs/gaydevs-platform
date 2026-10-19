@@ -7,8 +7,11 @@ e o [fluxo de trabalho](docs/development-workflow.md).
 
 ```text
 frontend/  aplicação React/Vite
-backend/   reservado para a futura API/backend
+backend/   API Laravel
 ```
+
+Antes de instalar ou mover a API para outro servidor, consulte os
+[requisitos de hospedagem do backend](docs/backend-hosting-requirements.md).
 
 ## Executar o frontend
 

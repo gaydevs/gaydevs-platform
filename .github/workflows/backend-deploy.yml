@@ -1,0 +1,104 @@
+name: Deploy Backend to DreamHost
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dreamhost-gaydevs-backend-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      REMOTE_APP: /home/dh_jirb5e/vettoretti.dev/gaydevs/api
+      REMOTE_TMP: /home/dh_jirb5e/vettoretti.dev_gaydevs_api_tmp
+      REMOTE_ENV: /home/dh_jirb5e/vettoretti.dev_envs/gaydevs_api.env
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, exif, pcntl, bcmath, gd
+          coverage: none
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-dev --optimize-autoloader
+
+      - name: Create temp directory on server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
+          script: |
+            rm -rf "${{ env.REMOTE_TMP }}"
+            mkdir -p "${{ env.REMOTE_TMP }}"
+
+      - name: Deploy Laravel via SFTP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
+          source: "backend/"
+          target: "${{ env.REMOTE_TMP }}"
+          strip_components: 1
+
+      - name: Swap temp into place, migrate and cache
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
+          script: |
+            set -e
+            cd "${{ env.REMOTE_TMP }}"
+
+            rm -rf .env* README* LICENSE* *.md tests docs Dockerfile* docker-compose.yml
+            rm -f storage/logs/*.log
+
+            cp "${{ env.REMOTE_ENV }}" .env
+
+            # O app inteiro vive em /gaydevs/api; o .htaccess da raiz joga todo
+            # pedido para public/, então nada fora dela é servido
+            printf '%s\n' \
+              'Options -Indexes' \
+              'RewriteEngine On' \
+              'RewriteRule ^(.*)$ public/$1 [L]' > .htaccess
+
+            mkdir -p "$(dirname "${{ env.REMOTE_APP }}")"
+            rm -rf "${{ env.REMOTE_APP }}_old"
+            mv "${{ env.REMOTE_APP }}" "${{ env.REMOTE_APP }}_old" 2>/dev/null || true
+            mv "${{ env.REMOTE_TMP }}" "${{ env.REMOTE_APP }}"
+
+            cd "${{ env.REMOTE_APP }}"
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            rm -rf "${{ env.REMOTE_APP }}_old"
