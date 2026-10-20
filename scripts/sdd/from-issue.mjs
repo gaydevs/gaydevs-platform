@@ -32,7 +32,7 @@ main(() => {
   const remoteBranches = git('ls-remote', '--heads', 'origin', `*/${work.id}-*`);
   if (local || remoteBranches) throw new Error('Já existe branch para esta Issue. Retome o trabalho existente.');
   // Preflight complete. Further failures leave explicit recoverable local work.
-  git('switch', '-c', work.branch, `origin/${config.baseBranch}`);
+  git('switch', '--no-track', '-c', work.branch, `origin/${config.baseBranch}`);
   if (work.needsSpec) {
     const directory = path.join(root, work.directory);
     mkdirSync(directory, { recursive: true });
@@ -41,6 +41,7 @@ main(() => {
     writeFileSync(path.join(directory, 'spec.md'), template.replace(/\{\{(TITLE|ISSUE|ID)\}\}/g, (_, key) => values[key]));
   }
   if (board) setStatus(context.issue, work.needsSpec ? 'Specifying' : 'In Progress', board);
-  api(`repos/${config.repository}/issues/${context.issue.number}/comments`, { method: 'POST', body: { body: `Trabalho iniciado localmente em \`${work.branch}\`.\n\n${work.needsSpec ? `Spec: \`${work.directory}/spec.md\` (rascunho; aprovação humana pendente).` : 'Trabalho declarado trivial; sem spec.'}\n\n${withoutProject ? 'Project: sincronização pendente por limitação de acesso/configuração.' : 'Project sincronizado.'}\nA branch/spec ainda precisa ser publicada para ter link remoto.` } });
+  api(`repos/${config.repository}/issues/${context.issue.number}/comments`, { method: 'POST', body: { body: `Trabalho iniciado localmente em \`${work.branch}\`.\n\n${work.needsSpec ? `Spec: \`${work.directory}/spec.md\` (rascunho; aprovação humana pendente).` : 'Trabalho declarado trivial; sem spec.'}\n\n${withoutProject ? 'Project: sincronização pendente por limitação de acesso/configuração.' : 'Project sincronizado.'}\nA branch/spec ainda precisa ser publicada. No primeiro push, use \`git push -u origin HEAD\` para criar e rastrear a branch remota de mesmo nome.` } });
+  console.error('Branch criada sem upstream. No primeiro push, use: git push -u origin HEAD');
   console.log(JSON.stringify(work, null, 2));
 });
