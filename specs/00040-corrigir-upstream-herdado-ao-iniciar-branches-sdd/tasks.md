@@ -27,7 +27,7 @@ Aprovação do plan: Luciano, 20/10/2026, aprovação explícita nesta conversa 
 - [x] T007 [P] Atualizar `docs/development-workflow.md` para separar criação local, primeiro push com `git push -u origin HEAD` e criação do PR.
 - [x] T008 Revisar a implementação contra `spec.md`, `plan.md` e `contracts/from-issue-cli.md`, garantindo que não exista sugestão de primeiro `git push` sem `-u origin HEAD`.
 - [ ] T009 Executar `node scripts/sdd/test.mjs` com timeout ampliado e exigir sucesso integral da suíte SDD. **Evidência:** 107/108 passaram; a única falha (`release-sync: falls back only for merged work PRs without merge_commit_sha in the list`) foi reproduzida isoladamente também em `origin/develop` limpo, portanto é baseline preexistente do ambiente Survivor e não regressão da #40.
-- [ ] T010 Confirmar no checkout real da Issue #40 que não existe upstream antes da publicação, publicar com `git push -u origin HEAD` e verificar tracking para `origin/fix/00040-corrigir-upstream-herdado-ao-iniciar-branches-sdd`.
+- [x] T010 Confirmar no checkout real da Issue #40 que não existe upstream antes da publicação, publicar com `git push -u origin HEAD` e verificar tracking para `origin/fix/00040-corrigir-upstream-herdado-ao-iniciar-branches-sdd`. **Evidência:** antes do primeiro push `@{upstream}` não existia; após a publicação, o upstream ficou exatamente `origin/fix/00040-corrigir-upstream-herdado-ao-iniciar-branches-sdd`.
 
 ## Dependencies
 
