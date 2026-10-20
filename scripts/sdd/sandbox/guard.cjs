@@ -29,8 +29,17 @@ function guarded(command, args = [], options = {}) {
     actualArgs = [path.join(__dirname, 'fake-gh.cjs'), ...args];
   } else if (command === 'git' || command === env.SDD_GIT_BIN) {
     executable = env.SDD_GIT_BIN;
-    if (!['init', 'config', 'add', 'commit', 'clone', 'switch', 'rev-parse', 'remote', 'fetch',
+    if (!['init', 'config', 'add', 'commit', 'clone', 'switch', 'rev-parse', 'remote', 'fetch', 'push',
       'ls-remote', 'status', 'branch', 'worktree', 'update-ref', 'ls-tree', 'cat-file', 'log', 'diff', 'rm'].includes(args[0])) deny(`Git operation: ${args[0]}`);
+    if (args[0] === 'push') {
+      if (args.length !== 4 || args[1] !== '-u' || args[2] !== 'origin' || args[3] !== 'HEAD') deny('Git push outside first-publication contract');
+      if (!inside(base, env.SDD_BARE_REMOTE)) deny('remote outside sandbox');
+      const configFile = path.join(options.cwd || process.cwd(), '.git', 'config');
+      const configText = fs.readFileSync(configFile, 'utf8');
+      const originSection = configText.match(/\[remote \"origin\"\]([\s\S]*?)(?=\n\[|$)/)?.[1] || '';
+      const originUrl = originSection.match(/^\s*url\s*=\s*(.+?)\s*$/m)?.[1];
+      if (!originUrl || path.resolve(originUrl) !== path.resolve(env.SDD_BARE_REMOTE)) deny('push remote is not sandbox bare remote');
+    }
     if (['fetch', 'ls-remote'].includes(args[0])) {
       // The repo URL stays canonical for production preflight. Only the real
       // transport is redirected to the sandbox's own local bare repository.
