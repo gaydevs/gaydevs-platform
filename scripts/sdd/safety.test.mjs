@@ -32,6 +32,9 @@ test('No external network: Node fetch/HTTP/HTTPS/DNS/TCP/TLS/UDP/WebSocket and s
   ]) fail(s.node(code), /SDD SANDBOX BLOCKED/);
   assert.throws(() => s.run('git', ['ls-remote', 'https://github.com/example/forbidden.git']), /external Git URL/);
   assert.throws(() => s.run('git', ['push', '-u', 'origin', 'HEAD']), /push remote is not sandbox bare remote/);
+  s.git('remote', 'set-url', 'origin', s.remote);
+  s.git('remote', 'set-url', '--add', '--push', 'origin', 'https://github.com/example/forbidden.git');
+  assert.throws(() => s.run('git', ['push', '-u', 'origin', 'HEAD']), /push remote is not sandbox bare remote/);
   s.git('remote', 'add', 'forbidden', 'https://github.com/example/forbidden.git');
   fail(s.run('git', ['fetch', 'forbidden']), /transport 'https' not allowed/);
   assert.deepEqual(s.calls(), []);

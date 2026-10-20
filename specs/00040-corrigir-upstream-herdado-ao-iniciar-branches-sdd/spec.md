@@ -1,7 +1,7 @@
 # 00040 — Corrigir upstream herdado ao iniciar branches SDD
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/40
-Estado: rascunho — aprovação humana pendente.
+Estado: aprovada por Luciano em 20/10/2026.
 
 ## Problema e objetivo
 

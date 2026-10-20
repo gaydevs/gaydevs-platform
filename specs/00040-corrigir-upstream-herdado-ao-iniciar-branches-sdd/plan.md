@@ -48,7 +48,7 @@ Alternativas rejeitadas:
 - Escopo aprovado preservado: nenhuma mudança de requisito foi introduzida no plan.
 - Blockers: nenhum blocker aberto registrado para a Issue #40.
 - Fonte de verdade: GitHub foi consultado pelo helper/gh no início do trabalho.
-- Gate atual: este plan precisa de aprovação humana antes de tasks/implementação.
+- Gate atual: plan aprovado por Luciano em 20/10/2026; tasks e implementação autorizadas.
 - Gate posterior: PR para `develop` continua exigindo revisão de outro gdev; este trabalho não automatiza aprovação ou merge.
 - Pós-design: nenhum conflito com a constitution identificado.
 

@@ -34,11 +34,16 @@ function guarded(command, args = [], options = {}) {
     if (args[0] === 'push') {
       if (args.length !== 4 || args[1] !== '-u' || args[2] !== 'origin' || args[3] !== 'HEAD') deny('Git push outside first-publication contract');
       if (!inside(base, env.SDD_BARE_REMOTE)) deny('remote outside sandbox');
-      const configFile = path.join(options.cwd || process.cwd(), '.git', 'config');
-      const configText = fs.readFileSync(configFile, 'utf8');
-      const originSection = configText.match(/\[remote \"origin\"\]([\s\S]*?)(?=\n\[|$)/)?.[1] || '';
-      const originUrl = originSection.match(/^\s*url\s*=\s*(.+?)\s*$/m)?.[1];
-      if (!originUrl || path.resolve(originUrl) !== path.resolve(env.SDD_BARE_REMOTE)) deny('push remote is not sandbox bare remote');
+      const cwd = options.cwd || process.cwd();
+      const resolved = spawn(executable, ['remote', 'get-url', '--push', '--all', 'origin'], {
+        cwd, env, encoding: 'utf8', timeout: options.timeout || 30000, shell: false,
+      });
+      if (resolved.error || resolved.status !== 0) deny('cannot resolve push remote');
+      const pushUrls = String(resolved.stdout || '').trim().split(/\r?\n/).filter(Boolean);
+      const expected = path.resolve(env.SDD_BARE_REMOTE);
+      if (!pushUrls.length || pushUrls.some(url => /^(?:[a-z][a-z0-9+.-]*:\/\/|git@|\\\\)/i.test(url) || path.resolve(cwd, url) !== expected)) {
+        deny('push remote is not sandbox bare remote');
+      }
     }
     if (['fetch', 'ls-remote'].includes(args[0])) {
       // The repo URL stays canonical for production preflight. Only the real
