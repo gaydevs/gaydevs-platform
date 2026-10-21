@@ -13,9 +13,10 @@ altamente recomendável. O processo também funciona executando os comandos manu
    `node scripts/sdd/from-issue.mjs 27` também permite consultar Issues bloqueadas,
    sem alterar arquivos, branches ou Project. Blockers impedem início, não leitura.
 3. Inicie com `node scripts/sdd/from-issue.mjs 27 --start`. O checkout deve estar
-   limpo. O comando verifica blockers, busca `origin/develop`, cria branch e
-   rascunho da spec, atualiza Project e comenta a Issue. Não publica a branch.
-   Se falhar após criar a branch, inspecione os efeitos e retome; não recrie IDs.
+   limpo. O comando verifica blockers, busca `origin/develop`, cria a branch nesse
+   commit **sem upstream**, gera o rascunho da spec, atualiza Project e comenta a
+   Issue. Não publica a branch. Se falhar após criar a branch, inspecione os
+   efeitos e retome; não recrie IDs.
 4. `#27` vira `00027`. Branches: `feat/00027-slug`, `fix/00027-slug`,
    `refactor/00027-slug`, `techdebt/00027-slug`. Uma pasta `specs/00027-slug/`
    atende frontend e backend. Ao retomar, entre na branch existente e releia a
@@ -24,13 +25,17 @@ altamente recomendável. O processo também funciona executando os comandos manu
 5. Sintetize a spec; o rascunho não é uma spec pronta. Um gdev aprova spec antes
    do plan e plan antes das tasks/implementação. Registre a aprovação e sua origem
    nos artefatos. Tasks ficam em `tasks.md`, sem Issues automáticas por task.
-6. Publique a branch SDD e crie o PR para `develop` pelo comando:
+6. A branch criada por `from-issue --start` ainda não possui upstream. Faça a
+   primeira publicação explicitamente e só depois crie o PR para `develop`:
 
    ```sh
+   git push -u origin HEAD
    node scripts/sdd/pr-create.mjs --title "Resumo do trabalho" --body "Resumo, testes e riscos relevantes."
    ```
 
-   O título é opcional (por padrão usa o da Issue), assim como o texto adicional.
+   O primeiro comando cria a branch remota de mesmo nome e passa a rastreá-la.
+   Não use `git push` sem destino para tentar publicar uma branch SDD inédita.
+   O título do PR é opcional (por padrão usa o da Issue), assim como o texto adicional.
    O comando resolve `Refs #ID` e `Spec: NNNNN` pela branch/Issue/spec e falha
    diante de conteúdo conflitante; não faz push. PR manual continua permitido,
    desde que informe as mesmas referências. Não use `Closes`, `Fixes` ou
