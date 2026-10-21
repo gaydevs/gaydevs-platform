@@ -5,7 +5,7 @@ Aprovação do plan: Luciano, 2026-10-20, conversa com o agente e registro na Is
 
 ## Execução
 
-- [x] T001 Formalizar fast-track no helper SDD e preservar `--trivial` como alias.
+- [x] T001 Formalizar fast-track com spec/plan/tasks sucintos e preservar `--trivial` como alias.
 - [x] T002 Cobrir gates e rastreabilidade na sandbox.
 - [x] T003 Atualizar constitution e documentação do fluxo.
 

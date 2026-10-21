@@ -4,4 +4,4 @@
 
 - permitido: Bug, Refactor, Tech Debt;
 - recusado: Feature, blockers abertos ou ausência de `--human-approved`;
-- resultado: branch + In Progress, sem spec/plan/tasks.
+- resultado: branch + spec/plan/tasks sucintos + In Progress, sem aprovações intermediárias.

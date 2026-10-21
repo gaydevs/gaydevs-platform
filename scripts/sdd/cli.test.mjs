@@ -120,21 +120,35 @@ test('Human gates: fast-track requires explicit approval and rejects approval fl
   fail(start(s, 27, '--human-approved'), /só é válido com/); noWrites(s);
 });
 
-for (const type of ['Bug', 'Refactor', 'Tech Debt']) test(`from-issue fast-track: ${type} creates branch without spec/cache`, t => {
+for (const type of ['Bug', 'Refactor', 'Tech Debt']) test(`from-issue fast-track: ${type} creates branch with succinct spec/plan/tasks`, t => {
   const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, type); });
-  const before = snapshot(s.repo);
+  const before = new Map(snapshot(s.repo));
   const work = JSON.parse(ok(start(s, 27, '--fast-track', '--human-approved')));
   assert.equal(work.needsSpec, false);
   assert.equal(s.git('branch', '--show-current'), work.branch);
-  assert.deepEqual(snapshot(s.repo), before);
+  const dir = path.join(s.repo, work.directory);
+  assert.deepEqual(readdirSync(dir).sort(), ['plan.md', 'spec.md', 'tasks.md']);
+  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /fast-track aprovado/i);
+  assert.match(readFileSync(path.join(dir, 'plan.md'), 'utf8'), /menor alteração necessária/i);
+  assert.match(readFileSync(path.join(dir, 'tasks.md'), 'utf8'), /T001.*Technical fixture 27/i);
+  const after = new Map(snapshot(s.repo));
+  for (const [name, value] of before) { assert.equal(after.get(name), value, name); after.delete(name); }
+  assert.deepEqual([...after.keys()].sort(), [
+    path.normalize(work.directory),
+    path.join(work.directory, 'plan.md'),
+    path.join(work.directory, 'spec.md'),
+    path.join(work.directory, 'tasks.md'),
+  ].sort());
   assert.equal(s.state().items.I_27.status, 'In Progress');
-  assert.match(s.state().comments[27][0].body, /Fast-track trivial.*--human-approved/); s.noPointer();
+  assert.match(s.state().comments[27][0].body, /spec\.md.*plan\.md.*tasks\.md.*sucintos/s); s.noPointer();
 });
 
 test('from-issue --trivial remains a compatible fast-track alias', t => {
   const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
   const work = JSON.parse(ok(start(s, 27, '--trivial', '--human-approved')));
   assert.equal(work.needsSpec, false);
+  const dir = path.join(s.repo, work.directory);
+  assert.deepEqual(readdirSync(dir).sort(), ['plan.md', 'spec.md', 'tasks.md']);
   assert.equal(s.state().items.I_27.status, 'In Progress');
 });
 

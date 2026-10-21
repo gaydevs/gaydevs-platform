@@ -7,7 +7,7 @@ Aprovação da spec: Luciano, 2026-10-20, conversa com o agente e registro na Is
 
 - Reaproveitar o fluxo atual de trabalho trivial (`--trivial`) e formalizá-lo como fast-track.
 - Adicionar `--fast-track` como opção explícita; ao iniciar, exigir também `--human-approved`. Manter `--trivial` como alias compatível, sujeito ao mesmo gate.
-- Fast-track cria branch, move para In Progress e não cria spec/plan/tasks; a Issue recebe comentário registrando o modo e a declaração de aprovação humana.
+- Fast-track cria branch, gera spec/plan/tasks sucintos, move para In Progress e registra na Issue o modo e a declaração de aprovação humana.
 - Feature continua recusada. AGENTS/constitution/workflow passam a listar os limites da Issue #46 e obrigar o agente a abandonar fast-track e voltar ao SDD normal se o escopo crescer.
 - Não alterar o contrato de PR/review/merge.
 
@@ -17,7 +17,7 @@ Somente tooling/documentação SDD. Sem API de produto, dados, migrations ou inf
 
 ## Validação
 
-Sandbox cobre: Feature recusada; ausência de aprovação recusada; Bug/Refactor/Tech Debt aceitos; nenhum artefato SDD intermediário; comentário/status corretos; compatibilidade do alias; PR continua válido sem spec.
+Sandbox cobre: Feature recusada; ausência de aprovação recusada; Bug/Refactor/Tech Debt aceitos; spec/plan/tasks sucintos gerados; comentário/status corretos; compatibilidade do alias; PR rastreável com spec.
 
 ## Constitution check
 

@@ -38,12 +38,14 @@ Não interpretar falha de rede como credencial inválida sem verificar a causa.
   da implementação; use `--fast-track --human-approved` (`--trivial` é alias legado).
   Fast-track é proibido para arquitetura relevante, autenticação/autorização,
   segurança/privacidade, migrations destrutivas, contratos de API ou escopo incerto.
-  Se qualquer desses sinais surgir, pare o código, crie a spec na branch atual,
-  mova a Issue para Specifying e retome o SDD normal. Não incrementar IDs, não
-  executar gerador sequencial, não criar uma spec separada por camada.
+  Fast-track ainda gera `spec.md`, `plan.md` e `tasks.md`, porém de forma sucinta.
+  Se qualquer desses sinais surgir, pare o código, expanda esses artefatos na mesma
+  branch, mova a Issue para Specifying e retome o SDD normal. Não incrementar IDs,
+  não executar gerador sequencial, não criar uma spec separada por camada.
 - No fluxo normal, após elaborar spec, pare para aprovação; depois elabore plan e
   pare novamente. Registre gdev/data/referência sem inventar aprovação. Só então
-  tasks e código. No fast-track, a aprovação inicial substitui apenas esses gates.
+  tasks e código. No fast-track, a aprovação inicial substitui apenas esses gates;
+  os três artefatos continuam obrigatórios.
 - Templates e instruções do Spec Kit estão em `.specify/`; leia os comandos como
   Markdown se o agente não possuir integração de slash commands.
 - Mantenha Status via `status.mjs`. `--without-project` exige relatar a pendência;

@@ -5,7 +5,7 @@ Estado: spec aprovada.
 
 ## Problema e objetivo
 
-Permitir que Bug, Refactor e Tech Debt realmente triviais possam ir de Issue até PR sem aprovações intermediárias de spec/plan, desde que um gdev autorize explicitamente o fast-track antes da implementação.
+Permitir que Bug, Refactor e Tech Debt realmente triviais possam ir de Issue até PR sem aprovações intermediárias, desde que um gdev autorize explicitamente o fast-track antes da implementação. Spec, plan e tasks continuam existindo, mas devem ser sucintos.
 
 ## Escopo e comportamento
 
@@ -13,13 +13,14 @@ Permitir que Bug, Refactor e Tech Debt realmente triviais possam ir de Issue at�
 - Feature é sempre recusada nesse modo.
 - A autorização humana deve ficar registrada antes da implementação.
 - Mudanças de arquitetura, autenticação/autorização, segurança/privacidade, migrations destrutivas, contratos de API ou escopo incerto não podem usar fast-track.
-- Se o trabalho deixar de ser trivial, o fluxo para e volta ao SDD normal.
+- Fast-track gera spec, plan e tasks sucintos antes da implementação.
+- Se o trabalho deixar de ser trivial, os artefatos são expandidos e o fluxo volta ao SDD normal.
 - Review e merge do PR continuam com os gates atuais.
 
 ## Requisitos verificáveis
 
 - REQ-001: existir um modo explícito de iniciar fast-track e validar tipo, autorização e limites.
-- REQ-002: fast-track pular spec/plan e permitir seguir até testes e PR.
+- REQ-002: fast-track gerar spec/plan/tasks sucintos e permitir seguir até testes e PR sem aprovações intermediárias.
 - REQ-003: detectar perda de trivialidade e interromper o fast-track.
 - REQ-004: constitution, documentação e sandbox cobrirem o comportamento.
 

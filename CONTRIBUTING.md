@@ -22,10 +22,12 @@ node scripts/sdd/from-issue.mjs 27         # consultar, sem alterar
 node scripts/sdd/from-issue.mjs 27 --start # iniciar após verificar contexto
 ```
 
-Feature sempre exige spec. Bug/Refactor/Tech Debt realmente triviais podem usar
-`--fast-track --human-approved`; `--trivial` permanece como alias compatível e exige
-a mesma aprovação explícita. Fora do fast-track: aprovar spec → elaborar plan →
-aprovar plan → tasks → código. Se o escopo crescer, voltar a Specifying na mesma branch.
+Feature sempre usa o fluxo normal. Bug/Refactor/Tech Debt realmente triviais podem
+usar `--fast-track --human-approved`; `--trivial` permanece como alias compatível e
+exige a mesma aprovação explícita. O fast-track ainda gera `spec.md`, `plan.md` e
+`tasks.md`, mas sucintos e sem aprovações intermediárias. Fora dele: aprovar spec →
+elaborar plan → aprovar plan → tasks → código. Se o escopo crescer, expandir os
+artefatos e voltar a Specifying na mesma branch.
 Após publicar a branch, `node scripts/sdd/pr-create.mjs` cria o PR para
 `develop` com `Refs #ID` e `Spec: NNNNN` quando houver spec. `--title` e `--body`
 são opcionais; o comando valida o texto adicional e não faz push. PRs manuais
