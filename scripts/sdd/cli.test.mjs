@@ -88,7 +88,7 @@ test('from-issue: IDs above 99999 are not truncated', t => {
 
 for (const [label, changes, pattern] of [
   ['closed', { state: 'closed' }, /aberta/], ['no native type', { type: null }, /fora do SDD/],
-  ['no marker', { body: '' }, /fora do SDD/], ['Team Access', { type: { name: 'Team Access' } }, /fora do SDD/],
+  ['Team Access', { type: { name: 'Team Access' } }, /fora do SDD/],
   ['Task', { type: { name: 'Task' } }, /fora do SDD/], ['PR number', { pull_request: {} }, /pertence a um PR/],
 ]) test(`Issue eligibility: ${label} refuses mutation`, t => {
   const s = sandbox(t); s.change(v => Object.assign(v.issues[27], changes));
@@ -96,6 +96,13 @@ for (const [label, changes, pattern] of [
   read(s); fail(start(s), pattern); noWrites(s);
   assert.equal(s.git('branch', '--show-current'), 'develop');
   assert.deepEqual(snapshot(s.repo), before);
+});
+
+test('Issue eligibility: native SDD type works without form marker', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27].body = 'Conteúdo sem marcador técnico'; });
+  const work = JSON.parse(ok(start(s)));
+  assert.equal(work.type, 'Feature');
+  assert.equal(s.state().items.I_27.status, 'Specifying');
 });
 
 test('Blockers: open permits reading only; closed permits start', t => {

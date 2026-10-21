@@ -22,7 +22,7 @@ Não interpretar falha de rede como credencial inválida sem verificar a causa.
 - `node scripts/sdd/issue.mjs NUMERO` consulta Issue, tipo, prioridade, comentários
   e dependências nativas, com paginação. Falhas de API interrompem a operação.
 - Criação por agente: leia o form em `.github/ISSUE_TEMPLATE/`, use seus campos e
-  marcador `<!-- gaydevs-sdd:TIPO -->` no body e `type` nativo no POST de
+  defina o `type` nativo no POST de
   `gh api repos/gaydevs/gaydevs-platform/issues --input ARQUIVO.json`.
   Consulte tipos existentes antes de criar. Não invente fallback silencioso para label.
 - Obtenha o número retornado pelo GitHub; defina Priority com `priority.mjs`.
