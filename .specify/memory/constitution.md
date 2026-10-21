@@ -1,9 +1,13 @@
 # Constitution — gaydevs-platform
 
-Versão 1.0.0 · ratificada em 2026-09-30 para a fase inicial autorizada.
+Versão 1.1.0 · ratificada em 2026-09-30; fast-track trivial aprovado em 2026-10-20 pela Issue #46.
 
-1. SDD é o processo padrão. Toda Feature exige spec; Bug, Refactor e Tech Debt
-   exigem spec quando não triviais. Team Access e entradas fora desses forms ficam fora.
+1. SDD é o processo padrão. Toda Feature usa o fluxo normal; Bug, Refactor e
+   Tech Debt realmente triviais podem usar fast-track. Mesmo no fast-track,
+   `spec.md`, `plan.md` e `tasks.md` são obrigatórios, porém sucintos, e uma única
+   aprovação humana explícita cobre os gates intermediários. Fast-track nunca vale para arquitetura relevante,
+   autenticação/autorização, segurança/privacidade, migrations destrutivas,
+   contratos de API ou escopo incerto. Team Access e entradas fora desses forms ficam fora.
 2. A Issue deve existir antes da branch/spec. Seu número, preenchido até cinco
    dígitos, é o ID central. Nunca reservar IDs ou renumerar por colisão.
 3. Uma feature = uma spec, mesmo envolvendo frontend e backend.
@@ -11,8 +15,13 @@ Versão 1.0.0 · ratificada em 2026-09-30 para a fase inicial autorizada.
 5. `spec.md` define o quê; decisões técnicas ficam em `plan.md`; `tasks.md`
    decompõe a execução, sem criar automaticamente novas Issues.
 6. Alterações de escopo atualizam a spec e exigem nova aprovação do que mudou.
-7. Um gdev aprova a spec antes do plan e o plan antes das tasks/implementação.
-   Agentes não aprovam seus próprios artefatos nem inventam evidência de aprovação.
+7. No fluxo normal, um gdev aprova a spec antes do plan e o plan antes das
+   tasks/implementação. No fast-track trivial, uma aprovação explícita anterior à
+   implementação substitui apenas esses gates intermediários; spec, plan e tasks
+   continuam existindo em versão sucinta. Se o escopo deixar de ser trivial, o agente
+   interrompe o fast-track, expande os artefatos na branch atual e volta a Specifying
+   antes de continuar. Agentes não aprovam seus próprios artefatos nem
+   inventam evidência de aprovação.
 8. O processo é agnóstico de agente e utilizável sem IA. GitHub real, consultado
    por gh, é a fonte de verdade para Issue, tipo, prioridade, dependências e Status.
 9. Respeitar blocked by / blocking. Blockers abertos impedem normalmente Ready
