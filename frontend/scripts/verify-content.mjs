@@ -40,7 +40,7 @@ try {
   assert.equal(events.length, 5)
   assert.equal(community.length, 4)
 
-  if (!approved) {
+  if (approved === null) {
     console.log(`PASS: baseline de conteúdo — ${timeline.length} entradas na timeline, ${lore.length} perfis, ${photos.length} fotos, ${events.length} formatos, ${community.length} espaços, nove seções e um h1.`)
   } else {
     const contentStart = approved.indexOf('## 1. Hero')
