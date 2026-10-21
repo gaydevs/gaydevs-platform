@@ -5,20 +5,20 @@ use App\Services\NameMasker;
 test('reveals the searched prefix only in matching name parts', function () {
     $masker = app(NameMasker::class);
 
-    expect($masker->mask('Luciano Vettoretti', 'Lu'))
-        ->toBe('Lu***** V*********')
-        ->and($masker->mask('Luciano Vettoretti', 'Ve'))
-        ->toBe('L****** Ve********')
-        ->and($masker->mask('Luciano Vettoretti', 'Vettoretti'))
-        ->toBe('L****** Vettoretti')
-        ->and($masker->mask('Luciano Vettoretti', 'Luciano V'))
-        ->toBe('Luciano V*********')
-        ->and($masker->mask('Luciano Vettoretti', 'Luciano Vettoretti'))
-        ->toBe('Luciano Vettoretti')
-        ->and($masker->mask('Luciano Vettoretti', 'luciano.v'))
-        ->toBe('Luciano V*********')
-        ->and($masker->mask('Luciano Vettoretti', 'luciano.vettoretti'))
-        ->toBe('Luciano Vettoretti')
-        ->and($masker->mask('Luciano Vettoretti', 'luciano.vett'))
-        ->toBe('Luciano Vett******');
+    expect($masker->mask('Roberto Souza', 'Ro'))
+        ->toBe('Ro***** S****')
+        ->and($masker->mask('Roberto Souza', 'So'))
+        ->toBe('R****** So***')
+        ->and($masker->mask('Roberto Souza', 'Souza'))
+        ->toBe('R****** Souza')
+        ->and($masker->mask('Roberto Souza', 'Roberto S'))
+        ->toBe('Roberto S****')
+        ->and($masker->mask('Roberto Souza', 'Roberto Souza'))
+        ->toBe('Roberto Souza')
+        ->and($masker->mask('Roberto Souza', 'roberto.s'))
+        ->toBe('Roberto S****')
+        ->and($masker->mask('Roberto Souza', 'roberto.souza'))
+        ->toBe('Roberto Souza')
+        ->and($masker->mask('Roberto Souza', 'roberto.souz'))
+        ->toBe('Roberto Souz*');
 });

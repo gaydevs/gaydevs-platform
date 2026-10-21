@@ -70,3 +70,38 @@ complementares e não substituem essas duas execuções.
 **Fase 2 aprovada pelo gdev em 2026-10-19.** A fundação foi validada em SQLite
 e MySQL 8.4.11; a matriz completa será repetida na validação final, quando todas
 as migrations e histórias estiverem prontas.
+
+## Phase 3: Busca e pedido de OTP — MVP
+
+**Objetivo**: um membro localiza seu registro sem expor o diretório e recebe um
+OTP no e-mail cadastrado, sem criar sessão.
+
+- [x] T018 [P] [US1] Escrever testes de busca sem termo, por prefixo de qualquer
+  parte do nome ou do e-mail, máscara contextual, limite de cinco itens e
+  e-mail nunca exposto integralmente em `backend/tests/Feature`.
+- [x] T019 [P] [US1] Escrever testes de pedido de OTP, `Mail::fake()`, assunto
+  com código, corpo copiável, expiração, ausência de sessão e dois pedidos
+  concorrentes para o mesmo user produzindo somente um OTP pendente.
+- [x] T020 [US1] Implementar `GET /users?q=` com limite de taxa, mínimo de um
+  caractere, máximo de cinco resultados e busca pelo início do e-mail ou de
+  qualquer parte do nome, com máscara contextual ao prefixo digitado.
+- [x] T021 [US1] Implementar o service para a prova OTP sobre as migrations e
+  models já preparados: seis dígitos inéditos por membro, hash, expiração de
+  dez minutos, uso único e cinco falhas permitidas; serializar por user em
+  transação e marcar o pedido pendente anterior com `superseded_at` e
+  `superseded_by_id`.
+- [x] T022 [US1] Implementar `POST /auth/otp`, limites de cinco pedidos/hora
+  por membro e vinte/hora por IP, persistindo visitante e resultado do pedido.
+- [x] T023 [US1] Criar Mailable do OTP usando Mail do Laravel, remetente de
+  `MAIL_FROM_ADDRESS`, código no assunto e em linha isolada no corpo.
+- [x] T024 [US1] Executar a suíte completa do backend em SQLite e MySQL 8.4.11;
+  parar para a validação do gdev da Fase 3.
+  - [x] SQLite: 55 testes/272 asserções nas execuções normal e paralela com
+    ordem aleatória (16 processos) em 2026-10-20.
+  - [x] MySQL local 8.4.11: schema recriado pelas migrations e suíte completa
+    com 55 testes/272 asserções em 2026-10-20.
+  - [x] Revisão e finalização solicitadas pelo gdev em 2026-10-20.
+
+**Fase 3 aprovada pelo gdev em 2026-10-20.** A busca mascarada e o pedido de
+OTP foram validados em SQLite e MySQL 8.4.11, sem criar sessão autenticada.
+
