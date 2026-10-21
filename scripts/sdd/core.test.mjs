@@ -14,8 +14,12 @@ test('todos os tipos possuem prefixo e Feature não pode ser trivial', () => {
   assert.throws(() => identity(issue(), true), /sempre exige/);
   assert.equal(identity(issue('Bug'), true).needsSpec, false);
 });
-test('Team Access, sem form, sem tipo, fechadas e PRs são recusados', () => {
-  for (const value of [issue('Team Access'), issue('Task'), issue('Feature', { body: '' }), issue('Feature', { type: null }), issue('Feature', { state: 'closed' }), issue('Feature', { pull_request: {} })]) assert.throws(() => identity(value));
+test('marcador no body é opcional e conteúdo legado continua válido', () => {
+  assert.doesNotThrow(() => identity(issue('Feature', { body: '' })));
+  assert.doesNotThrow(() => identity(issue('Feature')));
+});
+test('tipos não suportados, sem tipo, fechadas e PRs são recusados', () => {
+  for (const value of [issue('Team Access'), issue('Task'), issue('Feature', { type: null }), issue('Feature', { state: 'closed' }), issue('Feature', { pull_request: {} })]) assert.throws(() => identity(value));
 });
 test('blockers abertos interrompem; blockers fechados permitem', () => {
   assert.throws(() => assertUnblocked({ blockedBy: [{ state: 'open', html_url: 'https://github.com/test/1' }] }), /Blockers abertos/);

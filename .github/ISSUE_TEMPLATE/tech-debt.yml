@@ -6,8 +6,7 @@ body:
     id: context
     attributes:
       label: Dívida técnica e impacto
-      value: '<!-- gaydevs-sdd:Tech Debt -->'
-      description: Descreva o problema acumulado, evidências e o custo ou risco de adiá-lo. Preserve o marcador acima.
+      description: Descreva o problema acumulado, evidências e o custo ou risco de adiá-lo.
     validations:
       required: true
   - type: textarea

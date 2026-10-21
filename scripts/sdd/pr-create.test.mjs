@@ -86,9 +86,9 @@ for (const args of [
   noWrites(s);
 });
 
-test('pr-create: rejects Issues without the SDD type/form marker', t => {
-  const s = sandbox(t, { branch: 'fix/00028-non-sdd' });
+test('pr-create: accepts Issue without marker when native SDD type is valid', t => {
+  const s = sandbox(t, { branch: 'fix/00028-no-marker' });
   s.change(v => { v.issues[28] = issue(28, 'Bug', { body: 'No form marker' }); });
-  fail(s.cli('pr-create'), /fora do SDD/);
-  noWrites(s);
+  assert.match(ok(s.cli('pr-create')), /PR #101 criado/);
+  assert.equal(s.state().pulls[101].body, 'Refs #28');
 });

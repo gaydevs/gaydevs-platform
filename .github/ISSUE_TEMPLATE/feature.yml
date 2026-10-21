@@ -6,8 +6,7 @@ body:
     id: context
     attributes:
       label: Problema ou oportunidade
-      value: '<!-- gaydevs-sdd:Feature -->'
-      description: Quem se beneficia e qual necessidade esta Feature atende? Preserve o marcador acima.
+      description: Quem se beneficia e qual necessidade esta Feature atende?
     validations:
       required: true
   - type: textarea
