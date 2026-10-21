@@ -106,18 +106,36 @@ test('Blockers: open permits reading only; closed permits start', t => {
   ok(start(s)); assert.equal(s.state().items.I_27.status, 'Specifying');
 });
 
-test('Human gates: Feature refuses --trivial', t => {
-  const s = sandbox(t); fail(start(s, 27, '--trivial'), /Feature sempre exige spec/); noWrites(s);
+test('Human gates: Feature refuses fast-track and legacy trivial alias', t => {
+  for (const flag of ['--fast-track', '--trivial']) {
+    const s = sandbox(t); fail(start(s, 27, flag, '--human-approved'), /Feature sempre exige spec/); noWrites(s);
+  }
 });
-for (const type of ['Bug', 'Refactor', 'Tech Debt']) test(`from-issue trivial: ${type} creates branch without spec/cache`, t => {
+
+test('Human gates: fast-track requires explicit approval and rejects approval flag alone', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
+  const preview = JSON.parse(ok(s.cli('from-issue', [27, '--fast-track'])));
+  assert.equal(preview.fastTrack, true); assert.equal(preview.needsSpec, false); noWrites(s);
+  fail(start(s, 27, '--fast-track'), /aprovação humana explícita/); noWrites(s);
+  fail(start(s, 27, '--human-approved'), /só é válido com/); noWrites(s);
+});
+
+for (const type of ['Bug', 'Refactor', 'Tech Debt']) test(`from-issue fast-track: ${type} creates branch without spec/cache`, t => {
   const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, type); });
   const before = snapshot(s.repo);
-  const work = JSON.parse(ok(start(s, 27, '--trivial')));
+  const work = JSON.parse(ok(start(s, 27, '--fast-track', '--human-approved')));
   assert.equal(work.needsSpec, false);
   assert.equal(s.git('branch', '--show-current'), work.branch);
   assert.deepEqual(snapshot(s.repo), before);
   assert.equal(s.state().items.I_27.status, 'In Progress');
-  assert.match(s.state().comments[27][0].body, /declarado trivial/); s.noPointer();
+  assert.match(s.state().comments[27][0].body, /Fast-track trivial.*--human-approved/); s.noPointer();
+});
+
+test('from-issue --trivial remains a compatible fast-track alias', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
+  const work = JSON.parse(ok(start(s, 27, '--trivial', '--human-approved')));
+  assert.equal(work.needsSpec, false);
+  assert.equal(s.state().items.I_27.status, 'In Progress');
 });
 
 for (const scenario of ['dirty', 'local branch', 'remote branch', 'existing spec', 'incorrect remote', 'missing infrastructure']) {

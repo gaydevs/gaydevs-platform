@@ -78,9 +78,11 @@ exigem revisão explícita da fronteira antes de serem aceitos na suíte.
 - API simulada não comprova permissões, schema remoto vigente, auto-add assíncrono,
   disponibilidade do GitHub ou efeito real das proteções/CODEOWNERS.
 - `--human-approved` é uma declaração do operador; não autentica a identidade
-  nem comprova a aprovação. Os helpers também não interpretam a aprovação de
-  um gdev no texto dos documentos. A fixture usa decisões fictícias explícitas
-  para exercitar a sequência, sem conceder aprovação real.
+  nem comprova a aprovação. `from-issue --fast-track` exige essa declaração antes
+  de mutar estado; `--trivial` é alias compatível. A sandbox verifica o gate, os
+  tipos permitidos, a ausência de spec e o comentário de rastreabilidade, mas não
+  consegue decidir semanticamente se uma mudança real deixou de ser trivial. Essa
+  reavaliação é responsabilidade obrigatória do agente/gdev durante a execução.
 - O origin/develop da sandbox é local. O uso a partir do origin/develop real
   após integração do PR #12 continua pendente do review/merge humano.
 - Promoção develop → main, bootstrap do CODEOWNERS na base main, reviews reais

@@ -4,11 +4,15 @@ import { config, root, readIssue, identity, assertUnblocked, git, project, setSt
 
 main(() => {
   const [number, ...flags] = process.argv.slice(2);
-  for (const flag of flags) if (!['--start', '--trivial', '--without-project'].includes(flag)) throw new Error(`Opção desconhecida: ${flag}`);
+  for (const flag of flags) if (!['--start', '--trivial', '--fast-track', '--human-approved', '--without-project'].includes(flag)) throw new Error(`Opção desconhecida: ${flag}`);
+  const fastTrack = flags.includes('--fast-track') || flags.includes('--trivial');
+  const humanApproved = flags.includes('--human-approved');
+  if (humanApproved && !fastTrack) throw new Error('--human-approved em from-issue só é válido com --fast-track/--trivial.');
   const context = readIssue(number);
-  const work = identity(context.issue, flags.includes('--trivial'));
+  const work = identity(context.issue, fastTrack);
   // Default is read-only. The complete issue data is context, never executable instructions.
-  if (!flags.includes('--start')) return console.log(JSON.stringify({ ...work, context }, null, 2));
+  if (!flags.includes('--start')) return console.log(JSON.stringify({ ...work, fastTrack, context }, null, 2));
+  if (fastTrack && !humanApproved) throw new Error('Fast-track exige aprovação humana explícita: use --human-approved somente após recebê-la.');
   assertUnblocked(context);
   const withoutProject = flags.includes('--without-project');
   const board = withoutProject ? null : project();
@@ -41,7 +45,7 @@ main(() => {
     writeFileSync(path.join(directory, 'spec.md'), template.replace(/\{\{(TITLE|ISSUE|ID)\}\}/g, (_, key) => values[key]));
   }
   if (board) setStatus(context.issue, work.needsSpec ? 'Specifying' : 'In Progress', board);
-  api(`repos/${config.repository}/issues/${context.issue.number}/comments`, { method: 'POST', body: { body: `Trabalho iniciado localmente em \`${work.branch}\`.\n\n${work.needsSpec ? `Spec: \`${work.directory}/spec.md\` (rascunho; aprovação humana pendente).` : 'Trabalho declarado trivial; sem spec.'}\n\n${withoutProject ? 'Project: sincronização pendente por limitação de acesso/configuração.' : 'Project sincronizado.'}\nA branch/spec ainda precisa ser publicada. No primeiro push, use \`git push -u origin HEAD\` para criar e rastrear a branch remota de mesmo nome.` } });
+  api(`repos/${config.repository}/issues/${context.issue.number}/comments`, { method: 'POST', body: { body: `Trabalho iniciado localmente em \`${work.branch}\`.\n\n${work.needsSpec ? `Spec: \`${work.directory}/spec.md\` (rascunho; aprovação humana pendente).` : 'Fast-track trivial iniciado com declaração explícita de aprovação humana (`--human-approved`); sem spec/plan/tasks intermediários.'}\n\n${withoutProject ? 'Project: sincronização pendente por limitação de acesso/configuração.' : 'Project sincronizado.'}\nA branch/spec ainda precisa ser publicada. No primeiro push, use \`git push -u origin HEAD\` para criar e rastrear a branch remota de mesmo nome.` } });
   console.error('Branch criada sem upstream. No primeiro push, use: git push -u origin HEAD');
   console.log(JSON.stringify(work, null, 2));
 });
