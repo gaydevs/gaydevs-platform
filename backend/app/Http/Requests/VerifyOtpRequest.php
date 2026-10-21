@@ -15,7 +15,7 @@ class VerifyOtpRequest extends FormRequest
     {
         return [
             'otp_request_id' => ['required', 'uuid'],
-            'code' => ['required', 'digits:6'],
+            'code' => ['required', 'digits:'.(int) config('passwordless.otp.digits')],
         ];
     }
 }

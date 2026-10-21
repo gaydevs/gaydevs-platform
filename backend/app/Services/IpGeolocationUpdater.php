@@ -58,11 +58,15 @@ class IpGeolocationUpdater
 
     private function cacheIsFresh(IpGeolocation $geolocation): bool
     {
-        $minutes = in_array($geolocation->geo_status, ['unavailable', 'error', 'stale'], true)
-            ? (int) config('geoip.retry_minutes', 60)
-            : (int) config('geoip.lookup_ttl_hours', 24) * 60;
+        if (in_array($geolocation->geo_status, ['unavailable', 'error', 'stale'], true)) {
+            return $geolocation->last_verified_at->gte(
+                now()->subMinutes((int) config('geoip.retry_minutes')),
+            );
+        }
 
-        return $geolocation->last_verified_at->gte(now()->subMinutes($minutes));
+        return $geolocation->last_verified_at->gte(
+            now()->subHours((int) config('geoip.lookup_ttl_hours')),
+        );
     }
 
     /** @param array<string, mixed> $geo */

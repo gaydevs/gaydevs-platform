@@ -45,6 +45,8 @@ permite encerrá-la. O frontend existente consome a API.
 
 Aprovado pelo gdev em 2026-10-17, nesta sessão. Esta aprovação libera a
 elaboração das tasks e a implementação; não substitui os gates de revisão e PR.
+O refinamento técnico da busca por nome ou e-mail e da máscara contextual foi
+solicitado e aprovado por luvittor em 2026-10-20, nesta sessão.
 
 ## Decisões
 
@@ -74,9 +76,12 @@ elaboração das tasks e a implementação; não substitui os gates de revisão 
    20/hora por IP; confirmações limitadas pelas 5 tentativas por prova e por
    IP.
 3. **Busca mascarada**: `GET /users?q=` exige ao menos 1 caractere,
-   casa pelo início do nome, devolve no máximo 5 itens com `id`, nome e e-mail
-   mascarados, nunca o endereço completo (REQ-006), e tem limite de taxa por
-   IP. Sem `q`, devolve vazio. O pedido usa o `id` (UUID).
+   casa pelo início do e-mail ou de qualquer parte do nome, devolve no máximo
+   5 itens com `id`, nome e e-mail mascarados, nunca o endereço completo
+   (REQ-006), e tem limite de taxa por IP. A máscara revela somente o prefixo
+   coincidente já digitado; as demais partes revelam apenas a inicial, os
+   separadores e o sufixo do domínio. Sem `q`, devolve vazio. O pedido usa o
+   `id` (UUID).
 4. **Users**: tabela `users`, que representa os gdevs e é populada manualmente
    após o deploy (REQ-011); sem cadastro pela aplicação (REQ-001). O campo `status` aceita
    `active` ou `inactive`; somente membros ativos podem iniciar o login.
@@ -96,8 +101,13 @@ elaboração das tasks e a implementação; não substitui os gates de revisão 
    identificam visitantes.
    `visits` delimita uma janela de atividade de 30 minutos. Cada chamada cria
    uma linha append-only
-   em `visitor_observations`, com User-Agent integral, derivados, idioma,
-   referer, método, caminho e horário. `otp_requests` e `otp_attempts` apontam
+   em `visitor_observations`, com um `request_id` UUID v7 gerado antes da
+   observação, User-Agent integral, derivados, idioma, referer, método, caminho
+   e horário. O mesmo identificador completo é devolvido no header
+   `X-Request-ID`. Falhas operacionais conhecidas respondem com mensagem genérica
+   e esse identificador em `reference`, enquanto detalhes técnicos e IDs completos
+   são gravados no canal diário `operational`, sem OTP, hash, e-mail, cookie,
+   token ou segredo de sessão. `otp_requests` e `otp_attempts` apontam
    para sua observação exata. Cada chamada autenticada aponta diretamente para
    `authenticated_sessions` ou `personal_access_tokens`; as visitas de uma
    credencial são obtidas pelos `visit_id` distintos dessas observações, sem

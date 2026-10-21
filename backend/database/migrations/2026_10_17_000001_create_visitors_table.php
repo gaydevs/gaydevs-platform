@@ -59,6 +59,7 @@ return new class extends Migration
 
         Schema::create('visitor_observations', function (Blueprint $table): void {
             $table->id();
+            $table->uuid('request_id')->unique();
             $table->foreignId('visit_id')->constrained('visits')->restrictOnDelete();
             $table->foreignId('ip_geolocation_id')->nullable()->constrained('ip_geolocations')->restrictOnDelete();
             $table->text('user_agent')->nullable();

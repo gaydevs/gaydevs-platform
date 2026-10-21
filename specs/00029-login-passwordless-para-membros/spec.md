@@ -11,11 +11,14 @@ ao membro, e a interface pública nunca mostra endereços completos.
 
 ## Escopo e comportamento
 
-- O membro começa a digitar o nome (a inicial já basta) e a busca mostra só as
-  correspondências, com nome e e-mail mascarados; por exemplo, ao digitar `M`
-  aparece `M**** S****** <m****.*****@e*****.c**>` para um membro fictício
-  `Mario Souza <mario.souza@example.com>`. Ele escolhe o seu item;
-  não digita e-mail. Sem digitação, nada é listado. Só membros cadastrados
+- O membro começa a digitar o nome ou o início do e-mail e a busca mostra só as
+  correspondências, com nome e e-mail mascarados. A parte do nome ou o início
+  do e-mail que coincide com o texto digitado permanece visível; nas demais
+  partes aparece somente a inicial, preservando separadores e o sufixo do
+  domínio. Para `Roberto Souza <roberto.sousa@example.com>`, digitar
+  `Ro` mostra `Ro***** S**** <ro*****.s****@e******.com>` e digitar
+  `Souz` mostra `R****** Souz* <r******.s****@e******.com>`. Ele escolhe
+  o seu item. Sem digitação, nada é listado. Só membros cadastrados
   aparecem.
 - O banco é populado manualmente com os dados dos gdevs após o deploy; não há
   cadastro pela aplicação.
@@ -71,7 +74,7 @@ ao membro, e a interface pública nunca mostra endereços completos.
 - REQ-001: Apenas membros existentes e elegíveis podem obter autenticação; não
   há fluxo de cadastro público.
 - REQ-002: O pedido identifica o membro escolhido nos resultados da busca
-  mascarada, nunca por e-mail digitado. A prova vai somente ao e-mail
+  mascarada por nome ou início do e-mail. A prova vai somente ao e-mail
   cadastrado desse membro.
 - REQ-003: A solicitação não cria uma sessão autenticada. Uma sessão só é
   criada após confirmação de prova válida.
@@ -80,7 +83,9 @@ ao membro, e a interface pública nunca mostra endereços completos.
 - REQ-005: Uma sessão autenticada pode ser usada por funcionalidades protegidas
   e pode ser encerrada pelo membro.
 - REQ-006: A busca só devolve resultados para texto digitado (sem listagem
-  completa) e expõe apenas nome e e-mail mascarados, nunca o endereço completo.
+  completa), casa o início do e-mail ou de qualquer parte do nome e expõe
+  apenas nome e e-mail mascarados. Somente o prefixo coincidente já informado
+  pela pessoa fica visível; o endereço completo nunca é exposto.
 - REQ-007: O assunto do e-mail contém o OTP; o corpo traz um único código em
   linha própria, em destaque e copiável.
 - REQ-008: O envio usa o Mail do Laravel.
@@ -113,8 +118,9 @@ ao membro, e a interface pública nunca mostra endereços completos.
 
 ## Critérios de aceite
 
-- Dado um membro que digita a inicial do nome, quando a busca responde, então
-  vê o seu item com nome e e-mail mascarados; ao escolhê-lo e solicitar
+- Dado um membro que digita o início do nome, sobrenome ou e-mail, quando a
+  busca responde, então vê o seu item com o prefixo coincidente visível e o
+  restante do nome e e-mail mascarado; ao escolhê-lo e solicitar
   acesso, recebe no e-mail cadastrado um OTP temporário de uso único, com o
   código no assunto.
 - Dado um pedido de OTP, então é possível consultar a observação de origem, o
@@ -177,3 +183,5 @@ pelo Git); o arquivo de exemplo versionado mantém o valor vazio.
 ## Aprovação humana
 
 Aprovada por luvittor em 2026-10-16, em revisão na sessão com o agente.
+O refinamento da busca por nome ou e-mail e da máscara contextual foi solicitado
+e aprovado por luvittor em 2026-10-20, nesta sessão.

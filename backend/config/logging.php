@@ -81,6 +81,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'operational' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/operational.log'),
+            'level' => 'error',
+            'days' => (int) env('LOG_OPERATIONAL_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

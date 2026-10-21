@@ -28,7 +28,7 @@ class TrackVisitor
         $response->headers->setCookie(Cookie::create(
             VisitorIdentifier::VISITOR_COOKIE,
             Crypt::encryptString($observation->visit->visitor_id),
-            now()->addYears(5),
+            now()->addYears((int) config('visitors.cookie_lifetime_years')),
             config('session.path', '/'),
             config('session.domain'),
             (bool) config('session.secure', false),

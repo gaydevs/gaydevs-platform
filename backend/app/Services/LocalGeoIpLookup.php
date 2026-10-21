@@ -105,7 +105,7 @@ class LocalGeoIpLookup implements GeoIpLookup
 
     private function isTooOld(CarbonImmutable $builtAt): bool
     {
-        return $builtAt->lt(now()->subDays((int) config('geoip.max_age_days', 30)));
+        return $builtAt->lt(now()->subDays((int) config('geoip.max_age_days')));
     }
 
     /** @param list<string> $statuses */

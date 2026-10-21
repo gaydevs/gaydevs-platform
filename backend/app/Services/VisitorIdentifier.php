@@ -6,6 +6,8 @@ use App\Models\IpAddress;
 use App\Models\Visit;
 use App\Models\Visitor;
 use App\Models\VisitorObservation;
+use App\Support\RequestCorrelation;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -29,16 +31,25 @@ class VisitorIdentifier
         $userAgent = (string) $request->userAgent() ?: null;
 
         $observation = VisitorObservation::query()->create([
+            'request_id' => RequestCorrelation::id($request),
             'visit_id' => $visit->id,
             'ip_geolocation_id' => $ipAddress === null
                 ? null
                 : $this->geolocation->update($ipAddress)->id,
             'user_agent' => $userAgent,
             ...$this->userAgents->parse($userAgent),
-            'language' => mb_substr((string) $request->header('Accept-Language'), 0, 64) ?: null,
+            'language' => mb_substr(
+                (string) $request->header('Accept-Language'),
+                0,
+                (int) config('visitors.observation.language_max_characters'),
+            ) ?: null,
             'referer' => $request->headers->get('referer'),
             'method' => $request->getMethod(),
-            'path' => mb_substr($request->path(), 0, 512),
+            'path' => mb_substr(
+                $request->path(),
+                0,
+                (int) config('visitors.observation.path_max_characters'),
+            ),
             'observed_at' => $now,
         ]);
 
@@ -48,7 +59,7 @@ class VisitorIdentifier
         return $observation;
     }
 
-    private function visitor(Request $request, mixed $now): Visitor
+    private function visitor(Request $request, CarbonInterface $now): Visitor
     {
         $id = null;
         $cookie = $request->cookie(self::VISITOR_COOKIE);
@@ -70,11 +81,13 @@ class VisitorIdentifier
         return $visitor;
     }
 
-    private function visit(Visitor $visitor, mixed $now): Visit
+    private function visit(Visitor $visitor, CarbonInterface $now): Visit
     {
         $query = Visit::query()
             ->whereBelongsTo($visitor)
-            ->where('last_seen_at', '>=', now()->subMinutes(30));
+            ->where('last_seen_at', '>=', now()->subMinutes(
+                (int) config('visitors.visit_window_minutes'),
+            ));
 
         $visit = $query->latest('last_seen_at')->first();
         $visit ??= new Visit([
@@ -87,7 +100,7 @@ class VisitorIdentifier
         return $visit;
     }
 
-    private function ipAddress(?string $ip, mixed $now): ?IpAddress
+    private function ipAddress(?string $ip, CarbonInterface $now): ?IpAddress
     {
         if ($ip === null || filter_var($ip, FILTER_VALIDATE_IP) === false) {
             return null;

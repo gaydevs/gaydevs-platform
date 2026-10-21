@@ -1,12 +1,15 @@
 <?php
 
+use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\TrackVisitor;
+use App\Support\RequestCorrelation;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: '',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prependToGroup('api', AssignRequestId::class);
         $middleware->appendToGroup('api', TrackVisitor::class);
         $middleware->alias([
             'track.visitor' => TrackVisitor::class,
@@ -25,6 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('auth/*') || $request->expectsJson()) {
                 return response()->json(['message' => 'Não autenticado.'], 401);
             }
+        });
+        $exceptions->respond(function (Response $response): Response {
+            $requestId = request()->attributes->get(RequestCorrelation::ATTRIBUTE);
+            if (is_string($requestId)) {
+                $response->headers->set(RequestCorrelation::HEADER, $requestId);
+            }
+
+            return $response;
         });
     })
     ->withSchedule(function (Schedule $schedule): void {

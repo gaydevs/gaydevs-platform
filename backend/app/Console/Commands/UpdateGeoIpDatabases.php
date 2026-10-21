@@ -12,6 +12,10 @@ use Throwable;
 
 class UpdateGeoIpDatabases extends Command
 {
+    private const BATCH_SIZE = 100;
+
+    private const PROCESS_TIMEOUT_SECONDS = 300;
+
     protected $signature = 'geoip:update';
 
     protected $description = 'Atualiza e valida as bases locais GeoIP configuradas';
@@ -31,7 +35,7 @@ class UpdateGeoIpDatabases extends Command
         }
 
         $process = new Process([$binary, '-f', $configuration, '-d', $directory]);
-        $process->setTimeout(300);
+        $process->setTimeout(self::PROCESS_TIMEOUT_SECONDS);
         $process->run();
 
         if (! $process->isSuccessful()) {
@@ -62,13 +66,13 @@ class UpdateGeoIpDatabases extends Command
             }
 
             $age = $builtAt->diffInDays(now());
-            if ($age > (int) config('geoip.max_age_days', 30)) {
+            if ($age > (int) config('geoip.max_age_days')) {
                 $this->error("Base GeoIP {$label} excede a idade máxima ({$age} dias).");
 
                 return self::FAILURE;
             }
 
-            if ($age > (int) config('geoip.warning_age_days', 7)) {
+            if ($age > (int) config('geoip.warning_age_days')) {
                 $this->warn("Base GeoIP {$label} está com {$age} dias.");
             }
 
@@ -78,7 +82,7 @@ class UpdateGeoIpDatabases extends Command
         $updated = 0;
         IpAddress::query()
             ->whereNull('ip_anonymized_at')
-            ->chunkById(100, function ($addresses) use ($geolocation, &$updated): void {
+            ->chunkById(self::BATCH_SIZE, function ($addresses) use ($geolocation, &$updated): void {
                 foreach ($addresses as $address) {
                     /** @var IpAddress $address */
                     $geolocation->update($address, force: true);

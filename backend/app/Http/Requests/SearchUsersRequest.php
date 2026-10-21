@@ -13,6 +13,12 @@ class SearchUsersRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['q' => ['nullable', 'string', 'max:100']];
+        return [
+            'q' => [
+                'nullable',
+                'string',
+                'max:'.(int) config('passwordless.search.query_max_characters'),
+            ],
+        ];
     }
 }
