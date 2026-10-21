@@ -1,7 +1,9 @@
 # Fluxo de trabalho
 
-Issue → spec (o quê) → plan (como) → tasks (execução) → código → PR para develop
-→ release para main → produção. Cada gdev escolhe seu agente; IA é opcional e
+Fluxo normal: Issue → spec (o quê) → plan (como) → tasks (execução) → código →
+PR para develop → release para main → produção. Fast-track trivial mantém a mesma
+rastreabilidade, mas gera spec/plan/tasks sucintos e usa uma única aprovação humana
+antes da implementação, sem gates intermediários. Cada gdev escolhe seu agente; IA é opcional e
 altamente recomendável. O processo também funciona executando os comandos manualmente.
 
 1. Crie a Issue na interface com o form correto ou peça ao agente. Feature exige
@@ -12,25 +14,38 @@ altamente recomendável. O processo também funciona executando os comandos manu
    comentários, Priority e relações blocked by / blocking vêm do GitHub atual.
    `node scripts/sdd/from-issue.mjs 27` também permite consultar Issues bloqueadas,
    sem alterar arquivos, branches ou Project. Blockers impedem início, não leitura.
-3. Inicie com `node scripts/sdd/from-issue.mjs 27 --start`. O checkout deve estar
-   limpo. O comando verifica blockers, busca `origin/develop`, cria branch e
-   rascunho da spec, atualiza Project e comenta a Issue. Não publica a branch.
-   Se falhar após criar a branch, inspecione os efeitos e retome; não recrie IDs.
+3. Inicie o fluxo normal com `node scripts/sdd/from-issue.mjs 27 --start`. Para
+   Bug/Refactor/Tech Debt realmente trivial e já aprovado por um gdev, use
+   `node scripts/sdd/from-issue.mjs 27 --start --fast-track --human-approved`.
+   `--trivial` é alias legado do fast-track e exige o mesmo gate. O checkout deve
+   estar limpo. O helper verifica blockers, parte de `origin/develop` sem upstream,
+   atualiza Project e comenta a Issue; no normal cria o rascunho da spec, enquanto
+   no fast-track cria `spec.md`, `plan.md` e `tasks.md` sucintos. Não publica a branch.
 4. `#27` vira `00027`. Branches: `feat/00027-slug`, `fix/00027-slug`,
    `refactor/00027-slug`, `techdebt/00027-slug`. Uma pasta `specs/00027-slug/`
    atende frontend e backend. Ao retomar, entre na branch existente e releia a
    Issue via `issue.mjs`. Os helpers usam o ID da branch deste worktree para
    localizar exatamente uma pasta `specs/NNNNN-*`; ausência ou ambiguidade é erro.
-5. Sintetize a spec; o rascunho não é uma spec pronta. Um gdev aprova spec antes
-   do plan e plan antes das tasks/implementação. Registre a aprovação e sua origem
-   nos artefatos. Tasks ficam em `tasks.md`, sem Issues automáticas por task.
-6. Publique a branch SDD e crie o PR para `develop` pelo comando:
+5. No fluxo normal, sintetize a spec; o rascunho não é uma spec pronta. Um gdev
+   aprova spec antes do plan e plan antes das tasks/implementação. No fast-track,
+   a aprovação inicial substitui esses gates intermediários, mas os três artefatos
+   continuam obrigatórios e concisos. Fast-track não vale para Feature, arquitetura
+   relevante, autenticação/autorização, segurança/privacidade, migrations destrutivas,
+   contratos de API ou escopo incerto. Se o trabalho deixar de ser trivial, pare a
+   implementação, expanda `spec.md`, `plan.md` e `tasks.md` na pasta atual, mova a
+   Issue para Specifying e retome os gates normais. Tasks ficam em `tasks.md`, sem
+   Issues automáticas.
+6. A branch criada por `from-issue --start` ainda não possui upstream. Faça a
+   primeira publicação explicitamente e só depois crie o PR para `develop`:
 
    ```sh
+   git push -u origin HEAD
    node scripts/sdd/pr-create.mjs --title "Resumo do trabalho" --body "Resumo, testes e riscos relevantes."
    ```
 
-   O título é opcional (por padrão usa o da Issue), assim como o texto adicional.
+   O primeiro comando cria a branch remota de mesmo nome e passa a rastreá-la.
+   Não use `git push` sem destino para tentar publicar uma branch SDD inédita.
+   O título do PR é opcional (por padrão usa o da Issue), assim como o texto adicional.
    O comando resolve `Refs #ID` e `Spec: NNNNN` pela branch/Issue/spec e falha
    diante de conteúdo conflitante; não faz push. PR manual continua permitido,
    desde que informe as mesmas referências. Não use `Closes`, `Fixes` ou
@@ -106,8 +121,11 @@ node scripts/sdd/status.mjs 27 Canceled
 
 `--human-approved` declara aprovação recebida; não a concede nem a verifica em
 um sistema de identidade. Blockers abertos impedem início/Ready/In Progress.
-O agente não deve usar a opção sem evidência humana. Um trabalho trivial não
-precisa dos gates de spec/plan; sua classificação e início precisam estar acordados.
+O agente não deve usar a opção sem evidência humana. Em `from-issue`, fast-track
+exige essa flag, registra o modo na Issue e gera spec/plan/tasks sucintos. A aprovação
+inicial permite seguir até PR sem aprovações intermediárias, mas não substitui review
+ou merge. Se a mudança deixar de ser trivial, os artefatos devem ser expandidos e o
+fluxo normal retomado.
 
 Nesta rodada, `status.mjs` opera Backlog, Specifying, Ready, In Progress,
 Rejected e Canceled. Rejected registra uma demanda analisada e decidida como

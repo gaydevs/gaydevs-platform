@@ -6,8 +6,7 @@ body:
     id: context
     attributes:
       label: Comportamento atual e impacto
-      value: '<!-- gaydevs-sdd:Bug -->'
-      description: O que acontece de errado e quem é afetado? Inclua evidências disponíveis e preserve o marcador acima.
+      description: O que acontece de errado e quem é afetado? Inclua evidências disponíveis.
     validations:
       required: true
   - type: textarea

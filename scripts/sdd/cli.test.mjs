@@ -42,9 +42,13 @@ for (const [type, prefix] of [['Feature', 'feat'], ['Bug', 'fix'], ['Refactor', 
     const preview = JSON.parse(ok(s.cli('from-issue', [27])));
     assert.equal(preview.branch, `${prefix}/00027-technical-fixture-27`); noWrites(s);
     s.clearCalls();
-    const work = JSON.parse(ok(start(s)));
+    const started = start(s);
+    const work = JSON.parse(ok(started));
+    assert.match(started.stderr, /git push -u origin HEAD/);
     assert.equal(s.git('branch', '--show-current'), preview.branch);
     assert.equal(s.git('rev-parse', 'HEAD'), s.git('rev-parse', 'origin/develop'));
+    const upstreamBeforePush = s.run('git', ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}']);
+    assert.notEqual(upstreamBeforePush.status, 0, 'new SDD branch must not inherit origin/develop as upstream');
     const dir = path.join(s.repo, work.directory);
     assert.deepEqual(readdirSync(dir), ['spec.md']);
     assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /pendente/i);
@@ -59,8 +63,11 @@ for (const [type, prefix] of [['Feature', 'feat'], ['Bug', 'fix'], ['Refactor', 
     assert.deepEqual(mutations[0].body.variables, { project: 'P_1', issue: 'I_27' });
     assert.deepEqual(mutations[1].body.variables, { project: 'P_1', item: 'ITEM_I_27', field: 'STATUS', option: 'S_1' });
     assert.deepEqual(request(mutations[2]), { method: 'POST', endpoint: endpoint(27) + '/comments', body: {
-      body: `Trabalho iniciado localmente em \`${work.branch}\`.\n\nSpec: \`${work.directory}/spec.md\` (rascunho; aprovação humana pendente).\n\nProject sincronizado.\nA branch/spec ainda precisa ser publicada para ter link remoto.`
+      body: `Trabalho iniciado localmente em \`${work.branch}\`.\n\nSpec: \`${work.directory}/spec.md\` (rascunho; aprovação humana pendente).\n\nProject sincronizado.\nA branch/spec ainda precisa ser publicada. No primeiro push, use \`git push -u origin HEAD\` para criar e rastrear a branch remota de mesmo nome.`
     } });
+    s.git('remote', 'set-url', 'origin', s.remote);
+    s.git('push', '-u', 'origin', 'HEAD');
+    assert.equal(s.git('rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'), `origin/${preview.branch}`);
   });
 }
 
@@ -81,7 +88,7 @@ test('from-issue: IDs above 99999 are not truncated', t => {
 
 for (const [label, changes, pattern] of [
   ['closed', { state: 'closed' }, /aberta/], ['no native type', { type: null }, /fora do SDD/],
-  ['no marker', { body: '' }, /fora do SDD/], ['Team Access', { type: { name: 'Team Access' } }, /fora do SDD/],
+  ['Team Access', { type: { name: 'Team Access' } }, /fora do SDD/],
   ['Task', { type: { name: 'Task' } }, /fora do SDD/], ['PR number', { pull_request: {} }, /pertence a um PR/],
 ]) test(`Issue eligibility: ${label} refuses mutation`, t => {
   const s = sandbox(t); s.change(v => Object.assign(v.issues[27], changes));
@@ -89,6 +96,13 @@ for (const [label, changes, pattern] of [
   read(s); fail(start(s), pattern); noWrites(s);
   assert.equal(s.git('branch', '--show-current'), 'develop');
   assert.deepEqual(snapshot(s.repo), before);
+});
+
+test('Issue eligibility: native SDD type works without form marker', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27].body = 'Conteúdo sem marcador técnico'; });
+  const work = JSON.parse(ok(start(s)));
+  assert.equal(work.type, 'Feature');
+  assert.equal(s.state().items.I_27.status, 'Specifying');
 });
 
 test('Blockers: open permits reading only; closed permits start', t => {
@@ -99,18 +113,50 @@ test('Blockers: open permits reading only; closed permits start', t => {
   ok(start(s)); assert.equal(s.state().items.I_27.status, 'Specifying');
 });
 
-test('Human gates: Feature refuses --trivial', t => {
-  const s = sandbox(t); fail(start(s, 27, '--trivial'), /Feature sempre exige spec/); noWrites(s);
+test('Human gates: Feature refuses fast-track and legacy trivial alias', t => {
+  for (const flag of ['--fast-track', '--trivial']) {
+    const s = sandbox(t); fail(start(s, 27, flag, '--human-approved'), /Feature sempre exige spec/); noWrites(s);
+  }
 });
-for (const type of ['Bug', 'Refactor', 'Tech Debt']) test(`from-issue trivial: ${type} creates branch without spec/cache`, t => {
+
+test('Human gates: fast-track requires explicit approval and rejects approval flag alone', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
+  const preview = JSON.parse(ok(s.cli('from-issue', [27, '--fast-track'])));
+  assert.equal(preview.fastTrack, true); assert.equal(preview.needsSpec, false); noWrites(s);
+  fail(start(s, 27, '--fast-track'), /aprovação humana explícita/); noWrites(s);
+  fail(start(s, 27, '--human-approved'), /só é válido com/); noWrites(s);
+});
+
+for (const type of ['Bug', 'Refactor', 'Tech Debt']) test(`from-issue fast-track: ${type} creates branch with succinct spec/plan/tasks`, t => {
   const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, type); });
-  const before = snapshot(s.repo);
-  const work = JSON.parse(ok(start(s, 27, '--trivial')));
+  const before = new Map(snapshot(s.repo));
+  const work = JSON.parse(ok(start(s, 27, '--fast-track', '--human-approved')));
   assert.equal(work.needsSpec, false);
   assert.equal(s.git('branch', '--show-current'), work.branch);
-  assert.deepEqual(snapshot(s.repo), before);
+  const dir = path.join(s.repo, work.directory);
+  assert.deepEqual(readdirSync(dir).sort(), ['plan.md', 'spec.md', 'tasks.md']);
+  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /fast-track aprovado/i);
+  assert.match(readFileSync(path.join(dir, 'plan.md'), 'utf8'), /menor alteração necessária/i);
+  assert.match(readFileSync(path.join(dir, 'tasks.md'), 'utf8'), /T001.*Technical fixture 27/i);
+  const after = new Map(snapshot(s.repo));
+  for (const [name, value] of before) { assert.equal(after.get(name), value, name); after.delete(name); }
+  assert.deepEqual([...after.keys()].sort(), [
+    path.normalize(work.directory),
+    path.join(work.directory, 'plan.md'),
+    path.join(work.directory, 'spec.md'),
+    path.join(work.directory, 'tasks.md'),
+  ].sort());
   assert.equal(s.state().items.I_27.status, 'In Progress');
-  assert.match(s.state().comments[27][0].body, /declarado trivial/); s.noPointer();
+  assert.match(s.state().comments[27][0].body, /spec\.md.*plan\.md.*tasks\.md.*sucintos/s); s.noPointer();
+});
+
+test('from-issue --trivial remains a compatible fast-track alias', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
+  const work = JSON.parse(ok(start(s, 27, '--trivial', '--human-approved')));
+  assert.equal(work.needsSpec, false);
+  const dir = path.join(s.repo, work.directory);
+  assert.deepEqual(readdirSync(dir).sort(), ['plan.md', 'spec.md', 'tasks.md']);
+  assert.equal(s.state().items.I_27.status, 'In Progress');
 });
 
 for (const scenario of ['dirty', 'local branch', 'remote branch', 'existing spec', 'incorrect remote', 'missing infrastructure']) {

@@ -32,8 +32,7 @@ export function issueNumber(value) {
 export function sddIdentity(issue, { trivial = false, requireOpen = true } = {}) {
   const type = issue.type?.name;
   const prefix = config.types[type];
-  // The form marker also allows agents to create an equivalent issue through the API.
-  if (!prefix || !issue.body?.includes(`<!-- gaydevs-sdd:${type} -->`)) throw new Error('Issue fora do SDD: exige tipo nativo e marcador do form correspondente.');
+  if (!prefix) throw new Error('Issue fora do SDD: exige tipo nativo suportado.');
   if (issue.pull_request) throw new Error('O número pertence a um PR.');
   if (requireOpen && issue.state !== 'open') throw new Error('A Issue precisa estar aberta para iniciar trabalho.');
   if (trivial && type === 'Feature') throw new Error('Feature sempre exige spec.');

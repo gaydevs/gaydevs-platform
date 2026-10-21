@@ -6,8 +6,7 @@ body:
     id: context
     attributes:
       label: Estrutura atual e motivação
-      value: '<!-- gaydevs-sdd:Refactor -->'
-      description: Qual parte interna precisa mudar e por quê? Preserve o marcador acima.
+      description: Qual parte interna precisa mudar e por quê?
     validations:
       required: true
   - type: textarea
