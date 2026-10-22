@@ -20,6 +20,7 @@ test('passwordless policy centralizes the approved otp and rate limits', functio
         'expires_in_minutes' => 10,
         'max_verification_attempts' => 5,
         'max_generation_attempts' => 100,
+        'superseded_code_lookup_limit' => 5,
     ])->and(config('passwordless.search'))->toBe([
         'query_max_characters' => 100,
         'max_results' => 5,
@@ -27,6 +28,7 @@ test('passwordless policy centralizes the approved otp and rate limits', functio
         'request_per_user' => ['max_attempts' => 5, 'decay_seconds' => 3600],
         'request_per_ip' => ['max_attempts' => 20, 'decay_seconds' => 3600],
         'search_per_ip' => ['max_attempts' => 60, 'decay_seconds' => 60],
+        'verify_per_ip' => ['max_attempts' => 20, 'decay_seconds' => 3600],
     ]);
 });
 

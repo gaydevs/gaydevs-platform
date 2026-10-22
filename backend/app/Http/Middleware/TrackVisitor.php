@@ -43,7 +43,7 @@ class TrackVisitor
     private function attributeAuthentication(Request $request, VisitorObservation $observation): void
     {
         $token = $request->user()?->currentAccessToken();
-        if ($token instanceof PersonalAccessToken) {
+        if ($token instanceof PersonalAccessToken && $token->exists) {
             $observation->personalAccessToken()->associate($token);
             $observation->save();
 

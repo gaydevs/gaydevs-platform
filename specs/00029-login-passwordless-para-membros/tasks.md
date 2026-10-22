@@ -105,3 +105,54 @@ OTP no e-mail cadastrado, sem criar sessão.
 **Fase 3 aprovada pelo gdev em 2026-10-20.** A busca mascarada e o pedido de
 OTP foram validados em SQLite e MySQL 8.4.11, sem criar sessão autenticada.
 
+## Phase 4: Confirmação, sessão e logout
+
+**Objetivo**: só uma prova válida cria sessão reutilizável; o membro pode
+revogá-la.
+
+- [x] T025 [P] [US2] Escrever testes para OTP inválido, expirado, usado,
+  tentativas excedidas e resposta genérica sem vazamento de informação;
+  comprovar que cada tentativa fica no histórico e que reapresentar o código
+  correto após o sucesso registra `already_used` sem criar outra sessão. Cobrir
+  e-mail fora de ordem: código antigo com ID antigo e com ID atual, resposta
+  `otp_superseded`, vínculo ao pedido cujo hash correspondeu e nenhuma falha
+  adicionada ao OTP atual.
+- [x] T026 [P] [US2] Escrever teste paralelo de duas confirmações do mesmo OTP,
+  verificando que uma única sessão é criada.
+- [x] T027 [P] [US2] Escrever testes da sessão stateful Sanctum por cookie,
+  CSRF, expiração deslizante centralizada em `SESSION_LIFETIME`, logout e
+  logout-all.
+- [x] T028 [US2] Implementar `POST /auth/verify` com
+  `{ otp_request_id, code }`, transação/concorrência,
+  marcos do ciclo da prova em `otp_requests`, uma linha por tentativa em
+  `otp_attempts` e tempo até a primeira confirmação aceita; após falha no hash
+  atual, testar o conjunto limitado de hashes substituídos recentes do mesmo
+  user e registrar `matched_otp_request_id` quando houver correspondência.
+- [x] T029 [US2] Criar a sessão Laravel de banco por cookie `HttpOnly`, com 90
+  dias deslizantes definidos apenas por `SESSION_LIFETIME`; criar e encerrar a
+  `authenticated_session` durável no login/logout e gravar seu ID no payload da
+  sessão; marcar expirações pelo `last_seen_at` usando a mesma duração. Preservar
+  PAT e `tokenable_type` somente para futuros clientes externos.
+- [x] T030 [US2] Implementar `POST /auth/logout` e `POST /auth/logout-all`
+  protegidos por middleware Sanctum.
+- [x] T031 [US2] Executar a suíte completa do backend em SQLite e MySQL 8.4.11,
+  além das execuções paralela e aleatória; parar para a validação do gdev da
+  Fase 4.
+  - [x] SQLite: 67 testes aprovados, 1 teste exclusivo de MySQL ignorado e 411
+    asserções nas execuções normal e paralela com ordem aleatória (16 processos)
+    em 2026-10-21.
+  - [x] MySQL local 8.4.11: schema recriado pelas migrations e suíte completa
+    com 68 testes/414 asserções em 2026-10-21.
+  - [x] Concorrência real no MySQL: duas confirmações em processos separados
+    produziram exatamente uma sessão autenticada.
+- [x] T031A [US2] Verificar em toda chamada autenticada que o gdev continua
+  ativo; ao detectar um gdev não ativo, negar o acesso e encerrar todas as suas
+  sessões web, preservando PATs para que também sejam recusados enquanto o status
+  permanecer não ativo. Cobrir sessões stateful e PATs com testes automatizados.
+  Validado em 2026-10-22 nas suítes completas: SQLite normal e paralela/aleatória
+  com 69 testes aprovados, 1 exclusivo de MySQL ignorado e 431 asserções; MySQL
+  8.4.11 com 70 testes/434 asserções.
+
+**Implementação da Fase 4 concluída em 2026-10-22 e aguardando validação do
+gdev.**
+

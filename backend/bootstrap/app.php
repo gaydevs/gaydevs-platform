@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\ExpireAuthenticatedSessions;
 use App\Http\Middleware\TrackVisitor;
 use App\Support\RequestCorrelation;
 use Illuminate\Auth\AuthenticationException;
@@ -18,7 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: '',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->statefulApi();
         $middleware->prependToGroup('api', AssignRequestId::class);
+        $middleware->appendToGroup('api', ExpireAuthenticatedSessions::class);
         $middleware->appendToGroup('api', TrackVisitor::class);
         $middleware->alias([
             'track.visitor' => TrackVisitor::class,

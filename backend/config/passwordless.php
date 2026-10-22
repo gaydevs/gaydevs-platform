@@ -6,6 +6,7 @@ return [
         'expires_in_minutes' => 10,
         'max_verification_attempts' => 5,
         'max_generation_attempts' => 100,
+        'superseded_code_lookup_limit' => 5,
     ],
 
     'search' => [
@@ -25,6 +26,10 @@ return [
         'search_per_ip' => [
             'max_attempts' => 60,
             'decay_seconds' => 60,
+        ],
+        'verify_per_ip' => [
+            'max_attempts' => 20,
+            'decay_seconds' => 3600,
         ],
     ],
 ];
