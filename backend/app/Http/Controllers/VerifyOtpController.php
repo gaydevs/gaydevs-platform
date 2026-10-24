@@ -19,7 +19,12 @@ class VerifyOtpController extends Controller
             throw new MissingVisitorObservationException;
         }
 
-        abort_unless($request->hasSession(), Response::HTTP_UNPROCESSABLE_ENTITY);
+        if (! $request->hasSession()) {
+            return response()->json([
+                'message' => 'Não foi possível iniciar uma sessão segura. Atualize a página e tente novamente.',
+                'reason' => 'session_unavailable',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $verification = $verifyLoginOtp->handle(
             $request->validated('otp_request_id'),

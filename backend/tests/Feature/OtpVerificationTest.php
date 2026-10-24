@@ -45,8 +45,8 @@ function issueLoginOtp($test, User $user): array
 function statefulHeaders(): array
 {
     return [
-        'Origin' => 'http://localhost',
-        'Referer' => 'http://localhost/',
+        'Origin' => 'http://127.0.0.1:5173',
+        'Referer' => 'http://127.0.0.1:5173/gaydevs/platform/',
     ];
 }
 
@@ -96,6 +96,15 @@ test('a valid otp creates one stateful database session and an accepted audit ev
     $response->assertCookie((string) config('session.cookie'), null, false);
     $this->assertAuthenticatedAs($user);
     $this->withHeaders(statefulHeaders())
+        ->getJson('/auth/session')
+        ->assertOk()
+        ->assertExactJson([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+            ],
+        ]);
+    $this->withHeaders(statefulHeaders())
         ->getJson('/_test/passwordless-protected')
         ->assertOk()
         ->assertExactJson(['ok' => true]);
@@ -108,6 +117,22 @@ test('a valid otp creates one stateful database session and an accepted audit ev
         ->and($attempt->visitorObservation->authenticated_session_id)->toBe($authenticatedSession->id)
         ->and($authenticatedSession->user_id)->toBe($user->id)
         ->and(DB::table('sessions')->where('user_id', $user->id)->count())->toBe(1);
+});
+
+test('verification without a stateful frontend session returns a descriptive error', function () {
+    $user = User::factory()->create();
+    [$requestId, $code] = issueLoginOtp($this, $user);
+
+    $this->withHeaders([
+        'Origin' => 'https://untrusted.example',
+        'Referer' => 'https://untrusted.example/',
+    ])->postJson('/auth/verify', [
+        'otp_request_id' => $requestId,
+        'code' => $code,
+    ])->assertUnprocessable()->assertExactJson([
+        'message' => 'Não foi possível iniciar uma sessão segura. Atualize a página e tente novamente.',
+        'reason' => 'session_unavailable',
+    ]);
 });
 
 test('invalid codes are generic and the final allowed failure locks the request', function () {
@@ -296,6 +321,9 @@ test('logout ends only the current durable session and invalidates its web sessi
 
     $this->assertGuest('web');
     $this->withHeaders(statefulHeaders())
+        ->getJson('/auth/session')
+        ->assertUnauthorized();
+    $this->withHeaders(statefulHeaders())
         ->getJson('/_test/passwordless-protected')
         ->assertUnauthorized();
 
@@ -401,8 +429,11 @@ test('a personal access token is denied while its user is inactive', function ()
 
 test('stale durable sessions expire using the same sliding session lifetime', function () {
     $this->freezeTime();
+    $configuredLifetimeMinutes = 37;
+    config()->set('session.lifetime', $configuredLifetimeMinutes);
+
     $stale = AuthenticatedSession::factory()->create([
-        'last_seen_at' => now()->subMinutes((int) config('session.lifetime'))->subSecond(),
+        'last_seen_at' => now()->subMinutes($configuredLifetimeMinutes)->subSecond(),
     ]);
     $active = AuthenticatedSession::factory()->create([
         'last_seen_at' => now(),

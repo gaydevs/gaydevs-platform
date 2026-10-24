@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\OperationalException;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\ExpireAuthenticatedSessions;
 use App\Http\Middleware\TrackVisitor;
@@ -10,7 +11,9 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -28,6 +31,22 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->report(function (Throwable $exception): void {
+            $request = request();
+            $isServerError = ! ($exception instanceof HttpExceptionInterface)
+                || $exception->getStatusCode() >= Response::HTTP_INTERNAL_SERVER_ERROR;
+
+            if (! $request->expectsJson() || ! $isServerError || $exception instanceof OperationalException) {
+                return;
+            }
+
+            Log::channel('operational')->error('api.unhandled_exception', [
+                'request_id' => RequestCorrelation::id($request),
+                'method' => $request->method(),
+                'path' => $request->path(),
+                'exception' => $exception,
+            ]);
+        });
         $exceptions->render(function (AuthenticationException $exception, Request $request) {
             if ($request->is('auth/*') || $request->expectsJson()) {
                 return response()->json(['message' => 'Não autenticado.'], 401);
@@ -35,6 +54,15 @@ return Application::configure(basePath: dirname(__DIR__))
         });
         $exceptions->respond(function (Response $response): Response {
             $requestId = request()->attributes->get(RequestCorrelation::ATTRIBUTE);
+            if ($response->getStatusCode() >= Response::HTTP_INTERNAL_SERVER_ERROR
+                && request()->expectsJson()
+                && is_string($requestId)) {
+                $response = response()->json([
+                    'message' => 'Erro interno do servidor.',
+                    'reference' => $requestId,
+                ], $response->getStatusCode());
+            }
+
             if (is_string($requestId)) {
                 $response->headers->set(RequestCorrelation::HEADER, $requestId);
             }

@@ -6,16 +6,20 @@ use App\Mail\LoginOtpMail;
 use App\Models\OtpRequest;
 use App\Models\User;
 use App\Models\VisitorObservation;
+use App\Services\EmailRateLimiter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Mail::fake();
+    RateLimiter::clear('otp-request:global');
+    RateLimiter::clear(EmailRateLimiter::KEY);
 });
 
 test('requesting an otp sends a six digit code without authenticating', function () {
@@ -137,6 +141,49 @@ test('otp request ip rate limit applies across users and does not affect another
         ->assertAccepted();
 
     expect(OtpRequest::query()->count())->toBe(3);
+});
+
+test('otp request global rate limit applies across users and ips', function () {
+    config([
+        'passwordless.rate_limits.request_per_user.max_attempts' => 10,
+        'passwordless.rate_limits.request_per_ip.max_attempts' => 10,
+        'passwordless.rate_limits.request_global.max_attempts' => 2,
+        'passwordless.rate_limits.email_global.max_attempts' => 10,
+    ]);
+    [$first, $second, $third] = User::factory()->count(3)->create();
+
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.11'])
+        ->postJson('/auth/otp', ['user_id' => $first->id])
+        ->assertAccepted();
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.12'])
+        ->postJson('/auth/otp', ['user_id' => $second->id])
+        ->assertAccepted();
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.13'])
+        ->postJson('/auth/otp', ['user_id' => $third->id])
+        ->assertTooManyRequests();
+
+    expect(OtpRequest::query()->count())->toBe(2);
+    Mail::assertSent(LoginOtpMail::class, 2);
+});
+
+test('global email rate limit blocks a new otp before persistence and delivery', function () {
+    config([
+        'passwordless.rate_limits.request_per_user.max_attempts' => 10,
+        'passwordless.rate_limits.request_per_ip.max_attempts' => 10,
+        'passwordless.rate_limits.request_global.max_attempts' => 10,
+        'passwordless.rate_limits.email_global.max_attempts' => 1,
+    ]);
+    [$first, $second] = User::factory()->count(2)->create();
+
+    $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.11'])
+        ->postJson('/auth/otp', ['user_id' => $first->id])
+        ->assertAccepted();
+    $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.12'])
+        ->postJson('/auth/otp', ['user_id' => $second->id])
+        ->assertTooManyRequests();
+
+    expect(OtpRequest::query()->count())->toBe(1);
+    Mail::assertSent(LoginOtpMail::class, 1);
 });
 
 test('otp request rate limit expires after its configured window', function () {

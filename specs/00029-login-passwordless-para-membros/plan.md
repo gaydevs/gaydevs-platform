@@ -47,6 +47,9 @@ Aprovado pelo gdev em 2026-10-17, nesta sessão. Esta aprovação libera a
 elaboração das tasks e a implementação; não substitui os gates de revisão e PR.
 O refinamento técnico da busca por nome ou e-mail e da máscara contextual foi
 solicitado e aprovado por luvittor em 2026-10-20, nesta sessão.
+Os limites globais de geração de OTP e envio de e-mails foram solicitados e
+aprovados por luvittor em 2026-10-24, nesta sessão, para implementação nesta
+Issue.
 
 ## Decisões
 
@@ -73,8 +76,13 @@ solicitado e aprovado por luvittor em 2026-10-20, nesta sessão.
    O pedido do OTP é auditado como evento separado. Status e resultados são
    enums PHP próprios, usados também pelos casts dos models.
 2. **Limites de taxa** (`RateLimiter`): pedidos de OTP, 5/hora por membro e
-   20/hora por IP; confirmações limitadas pelas 5 tentativas por prova e por
-   IP.
+   20/hora por IP; além de limites globais independentes de 100 OTPs/hora e
+   100 e-mails/hora, todos configuráveis por ambiente e compartilhados pelo
+   cache. Confirmações permanecem limitadas pelas 5 tentativas por prova e por
+   IP. A janela global de e-mail é contabilizada antes da emissão para impedir
+   que um pedido bloqueado gere um OTP sem possibilidade de entrega. O envio
+   fica centralizado em `EmailSender`, que expõe a exceção específica de cota
+   excedida para os demais módulos e registra o bloqueio no log operacional.
 3. **Busca mascarada**: `GET /users?q=` exige ao menos 1 caractere,
    casa pelo início do e-mail ou de qualquer parte do nome, devolve no máximo
    5 itens com `id`, nome e e-mail mascarados, nunca o endereço completo
@@ -133,8 +141,8 @@ solicitado e aprovado por luvittor em 2026-10-20, nesta sessão.
 6. **Sessão**: a SPA própria usa a autenticação stateful do Sanctum sobre a
    sessão e o cookie `HttpOnly` do Laravel; PAT permanece disponível para
    futuros clientes externos e mantém o `tokenable_type` nativo. A duração
-   deslizante de 90 dias da sessão web tem uma única fonte de verdade:
-   `SESSION_LIFETIME=129600`. O Laravel renova a atividade no uso; não existe
+   deslizante de 1 ano da sessão web tem uma única fonte de verdade:
+   `SESSION_LIFETIME=525600`. O Laravel renova a atividade no uso; não existe
    um segundo `expires_at` de PAT para a mesma sessão web. Logout revoga a
    sessão atual e "sair de todos os dispositivos" revoga todas as sessões do
    membro (REQ-005). A tabela efêmera `sessions` permanece no formato esperado
@@ -176,6 +184,8 @@ solicitado e aprovado por luvittor em 2026-10-20, nesta sessão.
   reconhecido como pertencente a pedido substituído responde
   `{ message, reason: "otp_superseded" }`; as demais falhas permanecem
   genéricas.
+- `GET /auth/session` (autenticado) → `{ user: { id, name } }`, usado pelo
+  frontend para restaurar o estado da sessão sem expor e-mail.
 - `POST /auth/logout` (autenticado) → 204.
 - `POST /auth/logout-all` (autenticado) → 204; revoga todas as sessões.
 
@@ -303,3 +313,26 @@ API de mesma origem diretamente.
 Popup de login (REQ-013) e estado logado no cabeçalho (nome e "sair"). "Sair
 de todos os dispositivos" existe só como endpoint da API; sem página
 "Minhas sessões" nesta feature.
+
+### Organização da feature de autenticação
+
+Após a implementação inicial da Phase 5, o fluxo do popup passou a concentrar
+busca, solicitação do código, confirmação do OTP, foco dos campos e animações em
+um único componente. A refatoração aprovada pelo gdev em 2026-10-23 preserva
+rotas, hash, contrato HTTP, armazenamento temporário, acessibilidade e aparência,
+mas organiza o frontend por feature:
+
+```text
+frontend/src/features/auth/
+├── api.ts
+├── useAuth.ts
+├── useLoginHash.ts
+├── LoginDialog.tsx              # coordena abertura, etapas e fechamento
+├── UserSearchStep.tsx           # busca, autocomplete e pedido de OTP
+└── OtpVerificationStep.tsx      # seis dígitos, confirmação e recuperação de erro
+```
+
+Os hooks e o cliente HTTP continuam sem estado visual. As duas etapas recebem
+apenas estado e callbacks necessários; o coordenador mantém o contexto do OTP e
+as transições entre etapas. A separação não introduz nova rota, variável de
+ambiente, biblioteca ou mudança de contrato com a API.

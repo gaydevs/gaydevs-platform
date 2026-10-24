@@ -128,8 +128,8 @@ revogá-la.
   `otp_attempts` e tempo até a primeira confirmação aceita; após falha no hash
   atual, testar o conjunto limitado de hashes substituídos recentes do mesmo
   user e registrar `matched_otp_request_id` quando houver correspondência.
-- [x] T029 [US2] Criar a sessão Laravel de banco por cookie `HttpOnly`, com 90
-  dias deslizantes definidos apenas por `SESSION_LIFETIME`; criar e encerrar a
+- [x] T029 [US2] Criar a sessão Laravel de banco por cookie `HttpOnly`, com 1
+  ano deslizante definido apenas por `SESSION_LIFETIME`; criar e encerrar a
   `authenticated_session` durável no login/logout e gravar seu ID no payload da
   sessão; marcar expirações pelo `last_seen_at` usando a mesma duração. Preservar
   PAT e `tokenable_type` somente para futuros clientes externos.
@@ -155,4 +155,47 @@ revogá-la.
 
 **Implementação da Fase 4 concluída em 2026-10-22 e aguardando validação do
 gdev.**
+
+## Phase 5: Modal e integração do frontend
+
+**Objetivo**: o login ocorre sobre a página atual e conserva seu estado.
+
+- [x] T032 [P] [US3] Criar cliente HTTP do frontend cuja base deriva
+  `../api/` de `import.meta.env.BASE_URL`, sem variável de ambiente.
+- [x] T033 [P] [US3] Escrever testes de interface para abrir/fechar o modal,
+  sincronizar `#login`, buscar resultados mascarados e avançar para o OTP.
+- [x] T034 [US3] Implementar modal com overlay, busca incremental, seleção do
+  usuário, solicitação e confirmação do OTP em `frontend/src`.
+- [x] T035 [US3] Implementar estado autenticado no cabeçalho, restauração de
+  sessão e ação de logout sem trocar de página.
+- [x] T036 [US3] Garantir que a URL reabra o modal/etapa correta e que a página
+  de origem permaneça intacta após autenticar.
+- [x] T037 [US3] Executar lint, typecheck, build e testes do frontend; parar
+  para a validação do gdev da Fase 5.
+  - [x] Frontend: 4 arquivos e 11 testes aprovados; lint, typecheck e build de
+    produção aprovados em 2026-10-22.
+  - [x] Auditoria npm completa, incluindo dependências de desenvolvimento, sem
+    vulnerabilidades conhecidas após atualizações patch do lockfile.
+  - [x] Validação visual no Chrome em desktop e viewport móvel de 390 × 844:
+    modal, overlay, fechamento, preservação de `#sobre`, abertura direta por
+    `#login` e retorno seguro de `#login/otp` sem contexto confirmados.
+  - [x] Suíte completa do backend em SQLite: 70 testes aprovados, 1 exclusivo
+    de MySQL ignorado e 443 asserções.
+- [x] T037A [US3] Garantir que falhas inesperadas da API retornem mensagem
+  genérica com referência correlacionável, preservem o diagnóstico completo no
+  log diário `operational` e exibam essa referência no modal sem vazar detalhes.
+- [x] T037B [US3] Disponibilizar seed idempotente com usuários fictícios para
+  desenvolvimento local, sem popular o ambiente de produção.
+- [x] T037C [US3] Refatorar o frontend de autenticação em uma feature isolada,
+  com `LoginDialog` coordenando `UserSearchStep` e `OtpVerificationStep`, sem
+  alterar a experiência, URL, contrato HTTP ou política de sessão. Aprovação
+  explícita do gdev em 2026-10-23; 14 testes, typecheck, lint e build aprovados
+  em 2026-10-23.
+
+**Implementação da Fase 5 concluída em 2026-10-22 e aguardando validação do
+gdev.**
+
+**Escopo adicional dos limites globais aprovado pelo gdev em 2026-10-24 e
+incorporado à Issue #29; a Issue #56 permanece focada nas demais proteções
+contra abuso distribuído.**
 

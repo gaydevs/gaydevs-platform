@@ -14,6 +14,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Users (gdevs) are populated manually after deployment.
+        if (! config('development.seed_enabled')) {
+            return;
+        }
+
+        $this->call(DevelopmentUserSeeder::class);
     }
 }

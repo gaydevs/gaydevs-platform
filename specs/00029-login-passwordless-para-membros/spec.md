@@ -24,6 +24,10 @@ ao membro, e a interface pública nunca mostra endereços completos.
   cadastro pela aplicação.
 - O sistema envia ao endereço cadastrado um código OTP temporário e de uso
   único. A solicitação, por si só, não autentica nem cria uma sessão.
+- O fluxo possui limites globais independentes para geração de OTP e envio de
+  e-mails, somando todas as solicitações e usuários. Esses limites são
+  configuráveis por ambiente, usam cache compartilhado e impedem a criação do
+  OTP e o envio quando qualquer um deles é excedido.
 - O OTP nunca se repete para o mesmo membro: um código novo é sempre diferente
   dos emitidos antes para ele.
 - O assunto do e-mail já contém o OTP. O corpo traz um único código em linha
@@ -110,6 +114,11 @@ ao membro, e a interface pública nunca mostra endereços completos.
   pedido substituído recente do mesmo gdev, a tentativa preserva tanto o pedido
   atual quanto o pedido cujo hash correspondeu, não incrementa as falhas do
   pedido atual e responde que o código foi substituído.
+- REQ-015: A geração de OTP e o envio de e-mails possuem limites globais
+  independentes, configuráveis por ambiente e compartilhados entre instâncias.
+  O backend verifica os limites por membro, por IP, global de OTP e global de
+  e-mail antes de gerar o código; ao exceder qualquer janela, não cria outro
+  pedido nem envia e-mail e registra o bloqueio sem o código.
 - REQ-013: O login é um popup sobre a página atual, com o fundo escurecido e
   sem troca de tela; a URL reflete o estado do popup e permite reabri-lo.
 - REQ-009: O endereço do remetente é lido do ambiente, não fica em código nem
@@ -127,6 +136,9 @@ ao membro, e a interface pública nunca mostra endereços completos.
   IP quando disponível, navegador e horário, resultado da tentativa e tempo
   até a confirmação; dada uma sessão auditável, todas as chamadas e visitas em
   que foi usada, mesmo com IPs ou identificadores diferentes.
+- Dado o fluxo sob carga distribuída, quando o limite global configurado de OTP
+  ou de e-mail for atingido, então novas solicitações de qualquer usuário ou IP
+  são recusadas sem criar pedido nem enviar mensagem, até a janela expirar.
 - Dado um visitante em qualquer página, quando abre o login, então vê um popup
   com o fundo escurecido, a página permanece a mesma e a URL é atualizada; ao
   autenticar, o popup fecha e a página continua onde estava.
@@ -180,8 +192,15 @@ limites do OTP, duração/revogação de sessão e superfícies de interação.
 O ambiente local já configura `MAIL_FROM_ADDRESS` em `backend/.env` (ignorado
 pelo Git); o arquivo de exemplo versionado mantém o valor vazio.
 
+Os limites globais de geração de OTP e e-mail começam em 100 por hora por
+padrão, com os valores ajustáveis no ambiente; esse valor mantém margem abaixo
+dos limites documentados pelo DreamHost para o hosting compartilhado.
+
 ## Aprovação humana
 
 Aprovada por luvittor em 2026-10-16, em revisão na sessão com o agente.
 O refinamento da busca por nome ou e-mail e da máscara contextual foi solicitado
 e aprovado por luvittor em 2026-10-20, nesta sessão.
+Os limites globais de geração de OTP e envio de e-mails foram solicitados e
+aprovados por luvittor em 2026-10-24, nesta sessão, para implementação nesta
+Issue.

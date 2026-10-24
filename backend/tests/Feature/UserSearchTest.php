@@ -59,3 +59,26 @@ test('user search returns at most five masked results', function () {
             ->and($result['email'])->not->toContain('@example.com');
     }
 });
+
+test('user search rate limit applies across queries from the same ip', function () {
+    config([
+        'passwordless.rate_limits.search_per_ip.max_attempts' => 2,
+        'passwordless.rate_limits.search_per_ip.decay_seconds' => 60,
+    ]);
+    User::factory()->create(['name' => 'Roberto Souza']);
+
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
+        ->getJson('/users?q=R')
+        ->assertOk();
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
+        ->getJson('/users?q=Ro')
+        ->assertOk();
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
+        ->getJson('/users?q=Rob')
+        ->assertTooManyRequests()
+        ->assertExactJson(['message' => 'Muitas tentativas. Tente novamente mais tarde.']);
+
+    $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.11'])
+        ->getJson('/users?q=Rob')
+        ->assertOk();
+});

@@ -8,5 +8,5 @@ runs:
   using: composite
   steps:
     - id: cache-dir
-      run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      run: echo "dir=$(composer --working-dir=backend config cache-files-dir)" >> "$GITHUB_OUTPUT"
       shell: bash

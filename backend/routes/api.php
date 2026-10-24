@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CurrentSessionController;
 use App\Http\Controllers\LogoutAllController;
 use App\Http\Controllers\LogoutController;
 use App\Http\Controllers\RequestOtpController;
@@ -13,6 +14,7 @@ Route::get('/users', UserSearchController::class);
 Route::post('/auth/otp', RequestOtpController::class);
 Route::post('/auth/verify', VerifyOtpController::class);
 Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (): void {
+    Route::get('/auth/session', CurrentSessionController::class);
     Route::post('/auth/logout', LogoutController::class);
     Route::post('/auth/logout-all', LogoutAllController::class);
 });
