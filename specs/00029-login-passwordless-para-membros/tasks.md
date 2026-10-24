@@ -203,6 +203,26 @@ gdev.**
 incorporado à Issue #29; a Issue #56 permanece focada nas demais proteções
 contra abuso distribuído.**
 
+## Phase 6: Observabilidade, implantação e validação final
+
+- [x] T038 Confirmar auditoria de pedido, todas as tentativas append-only,
+  expiração, reutilização correta após sucesso e logout, incluindo origem,
+  horário e tempo entre pedido e primeira confirmação aceita.
+  - [x] SQLite: suíte completa aprovada com 77 testes, 518 asserções e 1
+    teste específico de MySQL ignorado.
+  - [x] MySQL 8.4.11 em `gaydevs_test`: migrations recriadas e suíte completa
+    aprovada com 78 testes e 521 asserções.
+- [x] T039 Preparar `backend-deploy.yml` para levar `vendor/`, usar o `.env`
+  externo não versionado, proteger arquivos fora de `public/` e executar
+  migrations/cache de forma segura; documentar no guia versionado os requisitos
+  do scheduler e o procedimento pós-deploy para ativar e verificar o cron de
+  `php artisan schedule:run` com PHP 8.3. A ativação real e sua evidência ficam
+  para depois do primeiro deploy e não bloqueiam a conclusão desta tarefa.
+  - [x] Preparação versionada conferida: artefato com `vendor/`, `.env`
+    externo, troca atômica, `migrate --force`, caches e rewrite para
+    `public/`; `composer lint`, `schedule:list` e `git diff --check` passaram.
+  - [x] Procedimento operacional pós-deploy definido no runbook temporário;
+    registrar a execução e os logs fora do Git quando o primeiro deploy ocorrer.
 
 ## Dependências e ordem
 
