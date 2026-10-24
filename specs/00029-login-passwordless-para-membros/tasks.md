@@ -92,6 +92,10 @@ OTP no e-mail cadastrado, sem criar sessão.
   `superseded_by_id`.
 - [x] T022 [US1] Implementar `POST /auth/otp`, limites de cinco pedidos/hora
   por membro e vinte/hora por IP, persistindo visitante e resultado do pedido.
+- [x] T022A [US1] Adicionar limites globais configuráveis e compartilhados para
+  geração de OTP e envio de e-mails, verificando-os antes da emissão para não
+  persistir nem enviar quando a janela global for excedida; cobrir usuários e
+  IPs diferentes com testes.
 - [x] T023 [US1] Criar Mailable do OTP usando Mail do Laravel, remetente de
   `MAIL_FROM_ADDRESS`, código no assunto e em linha isolada no corpo.
 - [x] T024 [US1] Executar a suíte completa do backend em SQLite e MySQL 8.4.11;
@@ -199,3 +203,12 @@ gdev.**
 incorporado à Issue #29; a Issue #56 permanece focada nas demais proteções
 contra abuso distribuído.**
 
+
+## Dependências e ordem
+
+- Fase 2 depende da Fase 1 e bloqueia todo o fluxo de autenticação.
+- US1 depende da Fase 2; US2 depende do OTP de US1; US3 depende dos endpoints
+  de US1 e US2.
+- As tarefas marcadas `[P]` podem ocorrer em paralelo quando não disputarem o
+  mesmo arquivo.
+- A Fase 6 ocorre após as três histórias estarem validadas.

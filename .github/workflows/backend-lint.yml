@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Sem backend/composer.json o check passa sem rodar (necessário para check obrigatório)
       - name: Setup PHP
@@ -33,7 +33,7 @@ jobs:
 
       - name: Cache Composer downloads
         if: hashFiles('backend/composer.json') != ''
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}

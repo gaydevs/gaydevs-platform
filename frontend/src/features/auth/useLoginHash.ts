@@ -14,7 +14,9 @@ export function loginStepFromHash(hash: string): LoginStep | null {
 
 /** Sincroniza abertura, etapa e fechamento do modal com o histórico do navegador. */
 export function useLoginHash() {
-  const [step, setStep] = useState<LoginStep | null>(() => loginStepFromHash(window.location.hash))
+  const [step, setStep] = useState<LoginStep | null>(() => (
+    typeof window === 'undefined' ? null : loginStepFromHash(window.location.hash)
+  ))
   const returnUrl = useRef<string | null>(null)
   useEffect(() => {
     // O usuário pode navegar pelo histórico; o estado acompanha hashchange/popstate.

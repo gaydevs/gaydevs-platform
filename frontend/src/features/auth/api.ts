@@ -19,7 +19,10 @@ export function messageForApiError(error: unknown): string {
 }
 
 /** Calcula a base da API a partir da base pública do frontend. */
-export function resolveApiBase(baseUrl: string, origin = window.location.origin): URL {
+export function resolveApiBase(
+  baseUrl: string,
+  origin = typeof window === 'undefined' ? 'http://localhost' : window.location.origin,
+): URL {
   // A API fica um nível acima da base do frontend: /gaydevs/platform/ -> /gaydevs/api/.
   return new URL('../api/', new URL(baseUrl, origin))
 }

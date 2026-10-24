@@ -2,6 +2,11 @@
 
 Aplicação web React/Vite do gaydevs-platform.
 
+## Versão do Node
+
+O arquivo `.nvmrc` registra a versão de referência usada no CI; com nvm, execute
+`nvm use` dentro de `frontend/` antes de instalar as dependências.
+
 ## Desenvolvimento
 
 ```powershell
@@ -33,6 +38,9 @@ npm run build
 
 `npm run test:coverage` gera o relatório em `coverage/`, que não é versionado.
 `npm run build` executa o typecheck antes de criar a build de produção.
+
+Os workflows usam Node.js 24.15.0 e os mesmos comandos: `frontend-test` executa
+`npm test`; `frontend-lint` executa lint, typecheck e verificação de conteúdo.
 
 Para validar o conteúdo e otimizar imagens, use os scripts opcionais:
 
