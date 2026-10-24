@@ -1,0 +1,100 @@
+name: Backend Test
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.database }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, mysql]
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DB_CONNECTION: ${{ matrix.database }}
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: testing
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Sem backend/composer.json o check passa sem rodar (necessário para check obrigatório)
+      - name: Setup PHP & Composer
+        if: hashFiles('backend/composer.json') != ''
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pcntl, pdo_mysql, pdo_sqlite
+          tools: composer
+
+      - name: Get Composer cache dir
+        if: hashFiles('backend/composer.json') != ''
+        id: composer-cache
+        uses: ./.github/actions/composer-cache
+
+      - name: Cache Composer downloads
+        if: hashFiles('backend/composer.json') != ''
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        if: hashFiles('backend/composer.json') != ''
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Copy .env.example to .env
+        if: hashFiles('backend/composer.json') != ''
+        run: cp .env.example .env
+
+      - name: Generate application key
+        if: hashFiles('backend/composer.json') != ''
+        run: php artisan key:generate
+
+      - name: Configure MySQL connection
+        if: hashFiles('backend/composer.json') != '' && matrix.database == 'mysql'
+        run: |
+          {
+            echo "DB_HOST=127.0.0.1"
+            echo "DB_PORT=3306"
+            echo "DB_DATABASE=testing"
+            echo "DB_USERNAME=root"
+            echo "DB_PASSWORD=root"
+          } >> "$GITHUB_ENV"
+
+      - name: Run migrations from scratch
+        if: hashFiles('backend/composer.json') != ''
+        run: php artisan migrate:fresh --force
+
+      - name: Run PHPUnit tests
+        if: hashFiles('backend/composer.json') != ''
+        run: composer test
+
+      - name: Run parallel tests randomly
+        if: hashFiles('backend/composer.json') != '' && matrix.database == 'sqlite'
+        run: php artisan test --parallel --processes=4 --order-by=random
