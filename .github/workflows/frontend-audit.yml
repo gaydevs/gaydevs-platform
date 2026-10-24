@@ -1,7 +1,7 @@
 name: Frontend Audit
 
 on:
-  push:
+  workflow_call:
   schedule:
     - cron: '0 0 * * 1'
   workflow_dispatch:

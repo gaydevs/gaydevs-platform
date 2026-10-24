@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-audit:
+    name: Backend Audit
+    uses: ./.github/workflows/backend-audit.yml
+
+  backend-lint:
+    name: Backend Lint
+    uses: ./.github/workflows/backend-lint.yml
+
+  backend-test:
+    name: Backend Test
+    uses: ./.github/workflows/backend-test.yml
+
+  frontend-audit:
+    name: Frontend Audit
+    uses: ./.github/workflows/frontend-audit.yml
+
+  frontend-lint:
+    name: Frontend Lint
+    uses: ./.github/workflows/frontend-lint.yml
+
+  frontend-test:
+    name: Frontend Test
+    uses: ./.github/workflows/frontend-test.yml
+
+  required:
+    name: CI Required
+    if: ${{ always() }}
+    needs:
+      - backend-audit
+      - backend-lint
+      - backend-test
+      - frontend-audit
+      - frontend-lint
+      - frontend-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required checks
+        env:
+          BACKEND_AUDIT: ${{ needs.backend-audit.result }}
+          BACKEND_LINT: ${{ needs.backend-lint.result }}
+          BACKEND_TEST: ${{ needs.backend-test.result }}
+          FRONTEND_AUDIT: ${{ needs.frontend-audit.result }}
+          FRONTEND_LINT: ${{ needs.frontend-lint.result }}
+          FRONTEND_TEST: ${{ needs.frontend-test.result }}
+        run: |
+          statuses=(
+            "Backend Audit=$BACKEND_AUDIT"
+            "Backend Lint=$BACKEND_LINT"
+            "Backend Test=$BACKEND_TEST"
+            "Frontend Audit=$FRONTEND_AUDIT"
+            "Frontend Lint=$FRONTEND_LINT"
+            "Frontend Test=$FRONTEND_TEST"
+          )
+
+          failed=0
+          for status in "${statuses[@]}"; do
+            name="${status%%=*}"
+            result="${status#*=}"
+            if [ "$result" != "success" ]; then
+              echo "::error title=${name}::Required check finished with result: ${result}"
+              failed=1
+            fi
+          done
+
+          exit "$failed"

@@ -4,11 +4,14 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/60 · Spec: [spec.md](
 
 ## Abordagem
 
-Aplicar a menor alteração necessária para atender a Issue, preservando os contratos existentes.
+- Manter a lógica atual de audit, lint e testes, expondo os seis workflows como reutilizáveis via `workflow_call`.
+- Criar um workflow `CI` disparado em `push` que chama esses workflows e concentra a execução obrigatória.
+- Adicionar o job estável `CI Required`, executado com `always()`, que só retorna sucesso quando todos os workflows obrigatórios terminarem com `success`; `failure`, `cancelled` e `skipped` falham o gate.
+- Documentar o status check `CI / CI Required` como o único check de build/teste a ser configurado como obrigatório na branch protection.
 
 ## Validação
 
-Executar os testes diretamente relacionados e verificações de integridade do diff.
+Validar sintaxe dos workflows, exercitar a lógica do gate com resultados de sucesso/falha/skip/cancelamento, executar `git diff --check` e os testes SDD relevantes.
 
 ## Aprovação
 

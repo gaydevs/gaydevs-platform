@@ -65,6 +65,14 @@ As bases não podem ficar na pasta substituída pelo deploy. O comando
 produz novos enriquecimentos com bases acima de 30 dias. Resultados normais são
 reutilizados por 24 horas; estados indisponíveis são tentados após 60 minutos.
 
+## Gate de CI para liberação
+
+Na regra de proteção de cada branch que recebe mudanças do backend, habilite
+**Require status checks to pass before merging** e selecione exclusivamente
+**`CI Required`**. O workflow orquestrador `CI` executa os checks obrigatórios
+do projeto; seu job final `CI Required` falha quando qualquer um deles falha,
+é cancelado ou é ignorado. Não selecione os jobs individuais.
+
 ## Validação de uma instalação ou migração
 
 Antes de considerar um host pronto, o gdev deve:
