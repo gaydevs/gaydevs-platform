@@ -39,25 +39,28 @@ class RequestLoginOtp
         $limits = [
             [
                 'key' => $userKey,
-                'config' => 'request_per_user',
+                'config' => 'passwordless.rate_limits.request_per_user',
+                'global' => false,
             ],
             [
                 'key' => $ipKey,
-                'config' => 'request_per_ip',
+                'config' => 'passwordless.rate_limits.request_per_ip',
+                'global' => false,
             ],
             [
                 'key' => 'otp-request:global',
-                'config' => 'request_global',
+                'config' => 'rate_limits.global.otp',
+                'global' => true,
             ],
         ];
 
         foreach ($limits as $limit) {
             $maxAttempts = (int) config(
-                'passwordless.rate_limits.'.$limit['config'].'.max_attempts',
+                $limit['config'].'.max_attempts',
             );
 
             if (RateLimiter::tooManyAttempts($limit['key'], $maxAttempts)) {
-                if ($limit['config'] === 'request_global') {
+                if ($limit['global']) {
                     $this->logGlobalRateLimitBlocked($limit);
                 }
 
@@ -69,10 +72,10 @@ class RequestLoginOtp
 
         foreach ($limits as $limit) {
             $decaySeconds = (int) config(
-                'passwordless.rate_limits.'.$limit['config'].'.decay_seconds',
+                $limit['config'].'.decay_seconds',
             );
 
-            if ($limit['config'] !== 'request_global') {
+            if (! $limit['global']) {
                 RateLimiter::hit($limit['key'], $decaySeconds);
 
                 continue;
@@ -81,7 +84,7 @@ class RequestLoginOtp
             $attempts = RateLimiter::hit($limit['key'], $decaySeconds);
 
             if ($attempts > (int) config(
-                'passwordless.rate_limits.'.$limit['config'].'.max_attempts',
+                $limit['config'].'.max_attempts',
             )) {
                 $this->logGlobalRateLimitBlocked($limit);
                 throw new RateLimitExceededException;
@@ -95,17 +98,17 @@ class RequestLoginOtp
         return $issued->request;
     }
 
-    /** @param array{key: string, config: string} $limit */
+    /** @param array{key: string, config: string, global: bool} $limit */
     private function logGlobalRateLimitBlocked(array $limit): void
     {
         Log::channel('operational')->error('otp.rate_limit_blocked', [
             'request_id' => RequestCorrelation::id(request()),
             'scope' => 'global',
             'max_attempts' => (int) config(
-                'passwordless.rate_limits.'.$limit['config'].'.max_attempts',
+                $limit['config'].'.max_attempts',
             ),
             'decay_seconds' => (int) config(
-                'passwordless.rate_limits.'.$limit['config'].'.decay_seconds',
+                $limit['config'].'.decay_seconds',
             ),
         ]);
     }

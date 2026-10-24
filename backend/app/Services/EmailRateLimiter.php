@@ -52,8 +52,8 @@ class EmailRateLimiter
     private function limit(): array
     {
         return [
-            'max_attempts' => (int) config('passwordless.rate_limits.email_global.max_attempts'),
-            'decay_seconds' => (int) config('passwordless.rate_limits.email_global.decay_seconds'),
+            'max_attempts' => (int) config('rate_limits.global.email.max_attempts'),
+            'decay_seconds' => (int) config('rate_limits.global.email.decay_seconds'),
         ];
     }
 

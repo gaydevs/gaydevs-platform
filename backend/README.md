@@ -36,10 +36,10 @@ O ambiente local usa SQLite e `MAIL_MAILER=log`; e-mails aparecem em
 encaminha `/gaydevs/api` para esse endereço durante `npm run dev`.
 
 O fluxo de OTP possui limites globais configuráveis além dos limites por usuário
-e por IP: `PASSWORDLESS_GLOBAL_OTP_MAX_ATTEMPTS` controla quantos OTPs podem ser
-gerados na janela `PASSWORDLESS_GLOBAL_OTP_DECAY_SECONDS`, e
-`PASSWORDLESS_GLOBAL_EMAIL_MAX_ATTEMPTS` controla quantos envios de e-mail são
-autorizados na janela `PASSWORDLESS_GLOBAL_EMAIL_DECAY_SECONDS`. Os padrões são
+e por IP: `RATE_LIMIT_GLOBAL_OTP_MAX_ATTEMPTS` controla quantos OTPs podem ser
+gerados na janela `RATE_LIMIT_GLOBAL_OTP_DECAY_SECONDS`, e
+`RATE_LIMIT_GLOBAL_EMAIL_MAX_ATTEMPTS` controla quantos envios de e-mail são
+autorizados na janela `RATE_LIMIT_GLOBAL_EMAIL_DECAY_SECONDS`. Os padrões são
 100 por hora para cada contador. O cache precisa ser compartilhado entre as
 instâncias do backend; não use um cache local por processo em produção.
 

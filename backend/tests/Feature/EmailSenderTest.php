@@ -19,8 +19,8 @@ afterEach(function () {
 
 test('email sender exposes a specific blocked exception and logs the global limit', function () {
     config([
-        'passwordless.rate_limits.email_global.max_attempts' => 1,
-        'passwordless.rate_limits.email_global.decay_seconds' => 3600,
+        'rate_limits.global.email.max_attempts' => 1,
+        'rate_limits.global.email.decay_seconds' => 3600,
     ]);
     $logPath = storage_path('logs/operational-email-rate-limit-'.Str::uuid().'.log');
     config([

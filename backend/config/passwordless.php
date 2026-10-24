@@ -23,14 +23,6 @@ return [
             'max_attempts' => 20,
             'decay_seconds' => 3600,
         ],
-        'request_global' => [
-            'max_attempts' => (int) env('PASSWORDLESS_GLOBAL_OTP_MAX_ATTEMPTS', 100),
-            'decay_seconds' => (int) env('PASSWORDLESS_GLOBAL_OTP_DECAY_SECONDS', 3600),
-        ],
-        'email_global' => [
-            'max_attempts' => (int) env('PASSWORDLESS_GLOBAL_EMAIL_MAX_ATTEMPTS', 100),
-            'decay_seconds' => (int) env('PASSWORDLESS_GLOBAL_EMAIL_DECAY_SECONDS', 3600),
-        ],
         'search_per_ip' => [
             'max_attempts' => 60,
             'decay_seconds' => 60,

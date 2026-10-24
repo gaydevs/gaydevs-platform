@@ -147,8 +147,8 @@ test('otp request global rate limit applies across users and ips', function () {
     config([
         'passwordless.rate_limits.request_per_user.max_attempts' => 10,
         'passwordless.rate_limits.request_per_ip.max_attempts' => 10,
-        'passwordless.rate_limits.request_global.max_attempts' => 2,
-        'passwordless.rate_limits.email_global.max_attempts' => 10,
+        'rate_limits.global.otp.max_attempts' => 2,
+        'rate_limits.global.email.max_attempts' => 10,
     ]);
     [$first, $second, $third] = User::factory()->count(3)->create();
 
@@ -170,8 +170,8 @@ test('global email rate limit blocks a new otp before persistence and delivery',
     config([
         'passwordless.rate_limits.request_per_user.max_attempts' => 10,
         'passwordless.rate_limits.request_per_ip.max_attempts' => 10,
-        'passwordless.rate_limits.request_global.max_attempts' => 10,
-        'passwordless.rate_limits.email_global.max_attempts' => 1,
+        'rate_limits.global.otp.max_attempts' => 10,
+        'rate_limits.global.email.max_attempts' => 1,
     ]);
     [$first, $second] = User::factory()->count(2)->create();
 

@@ -14,7 +14,7 @@ test('web session lifetime has a valid sliding configuration', function () {
         ->and(config('session.expire_on_close'))->toBeFalse();
 });
 
-test('passwordless policy centralizes the approved otp and rate limits', function () {
+test('passwordless and global rate-limit policies centralize approved settings', function () {
     expect(config('passwordless.otp'))->toBe([
         'digits' => 6,
         'expires_in_minutes' => 10,
@@ -30,13 +30,20 @@ test('passwordless policy centralizes the approved otp and rate limits', functio
     expect($limits)->toHaveKeys([
         'request_per_user',
         'request_per_ip',
-        'request_global',
-        'email_global',
         'search_per_ip',
         'verify_per_ip',
     ]);
 
     foreach ($limits as $limit) {
+        expect($limit)->toHaveKeys(['max_attempts', 'decay_seconds'])
+            ->and($limit['max_attempts'])->toBeInt()->toBeGreaterThan(0)
+            ->and($limit['decay_seconds'])->toBeInt()->toBeGreaterThan(0);
+    }
+
+    $globalLimits = config('rate_limits.global');
+    expect($globalLimits)->toHaveKeys(['otp', 'email']);
+
+    foreach ($globalLimits as $limit) {
         expect($limit)->toHaveKeys(['max_attempts', 'decay_seconds'])
             ->and($limit['max_attempts'])->toBeInt()->toBeGreaterThan(0)
             ->and($limit['decay_seconds'])->toBeInt()->toBeGreaterThan(0);
