@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
-use App\Services\GeoIpLookup;
-use App\Services\LocalGeoIpLookup;
+use App\Services\GeoIp\GeoIpDatabaseDownloader;
+use App\Services\GeoIp\GeoIpDatabaseValidator;
+use App\Services\GeoIp\GeoIpLookup;
+use App\Services\GeoIp\LocalGeoIpLookup;
+use App\Services\GeoIp\MaxMindGeoIpDatabaseDownloader;
+use App\Services\GeoIp\MaxMindGeoIpDatabaseValidator;
 use Illuminate\Console\Events\ScheduledTaskFailed;
 use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Events\ScheduledTaskSkipped;
@@ -21,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(GeoIpLookup::class, LocalGeoIpLookup::class);
+        $this->app->bind(GeoIpDatabaseDownloader::class, MaxMindGeoIpDatabaseDownloader::class);
+        $this->app->bind(GeoIpDatabaseValidator::class, MaxMindGeoIpDatabaseValidator::class);
     }
 
     /**

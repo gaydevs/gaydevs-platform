@@ -167,12 +167,21 @@ País, cidade e ASN são opcionais e consultados sem chamadas externas. Para
 ativá-los, baixe as bases MaxMind compatíveis e informe seus caminhos locais em
 `GEOIP_CITY_DATABASE` e `GEOIP_ASN_DATABASE` no `.env`. Se uma base estiver
 ausente ou não contiver o IP, esses campos permanecem vazios. Tipo e data de
-construção das bases acompanham cada resolução. `geoip:update` usa o
-`geoipupdate` externo quando provisionado; configuração local e de produção
+construção das bases acompanham cada resolução. `geoip:update` baixa e valida
+as duas bases com `GEOIP_ACCOUNT_ID` e `GEOIP_LICENSE_KEY`; essas credenciais
+ficam somente no `.env` externo e nunca no `.env.example` ou no Git.
+`GEOIP_DOWNLOAD_TIMEOUT_SECONDS` controla o timeout da transferência.
+`GEOIP_DOWNLOAD_RETRY_ATTEMPTS` e `GEOIP_DOWNLOAD_RETRY_SLEEP_MILLISECONDS`
+controlam as tentativas para falhas transitórias (429, 5xx e conexão) e o
+intervalo entre elas. `GEOIP_UPDATE_LOCK_FILE` pode apontar para um lock
+persistente; vazio usa o
+lock dentro de `GEOIP_DATABASE_DIRECTORY`. A configuração local e de produção
 deve respeitar os [requisitos de hospedagem](../docs/backend-hosting-requirements.md).
 Resoluções ficam em snapshots: o mesmo IP pode ter cidades diferentes em
 momentos diferentes. O cache normal vale 24 horas e falhas são tentadas
-novamente após 60 minutos.
+novamente após 60 minutos. A atualização usa uma área temporária e troca os
+arquivos somente depois da validação, sem registrar credenciais ou conteúdo
+baixado nos logs.
 
 A suíte contém um teste funcional com `8.8.8.8`: ele usa os arquivos reais
 quando estão instalados e é marcado como skipped em ambientes, como o CI, que

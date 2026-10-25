@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\GeoIp;
 
 use App\Models\IpAddress;
 use App\Models\IpGeolocation;

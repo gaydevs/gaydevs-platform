@@ -55,15 +55,22 @@ A aplicação funciona sem GeoIP, mas país, cidade e ASN ficam indisponíveis. 
 habilitar atualização automática, o host deve fornecer:
 
 - bases `GeoLite2-City.mmdb` e `GeoLite2-ASN.mmdb` em diretório persistente;
-- binário oficial `geoipupdate` executável pelo usuário da aplicação;
-- `GeoIP.conf` externo ao Git, protegido e com as edições City e ASN;
+- credenciais MaxMind (`GEOIP_ACCOUNT_ID` e `GEOIP_LICENSE_KEY`) no `.env`
+  externo, protegido e fora do Git;
 - caminhos `GEOIP_*` no `.env` externo;
-- saída de rede para o download da MaxMind.
+- saída de rede para o download da MaxMind;
+- timeout e tentativas de download (`GEOIP_DOWNLOAD_TIMEOUT_SECONDS`,
+  `GEOIP_DOWNLOAD_RETRY_ATTEMPTS` e
+  `GEOIP_DOWNLOAD_RETRY_SLEEP_MILLISECONDS`) compatíveis com a rede do host.
 
 As bases não podem ficar na pasta substituída pelo deploy. O comando
-`geoip:update` valida tipo e data de construção, alerta depois de 7 dias e não
-produz novos enriquecimentos com bases acima de 30 dias. Resultados normais são
-reutilizados por 24 horas; estados indisponíveis são tentados após 60 minutos.
+`geoip:update` baixa os arquivos em uma área temporária, valida tipo e data de
+construção, faz a troca atômica, alerta depois de 7 dias e não instala bases
+acima de 30 dias. Resultados normais são reutilizados por 24 horas; estados
+indisponíveis são tentados após 60 minutos. Credenciais, respostas e conteúdo
+de download não são registrados nos logs. Se o enriquecimento GeoIP falhar
+durante uma requisição, a observação continua sendo gravada sem a referência de
+geolocalização; o detalhe técnico é registrado em `operational.log`.
 
 ## Validação de uma instalação ou migração
 

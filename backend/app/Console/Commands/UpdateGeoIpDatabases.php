@@ -2,81 +2,47 @@
 
 namespace App\Console\Commands;
 
+use App\Exceptions\GeoIpUpdateException;
 use App\Models\IpAddress;
-use App\Services\IpGeolocationUpdater;
-use Carbon\CarbonImmutable;
-use GeoIp2\Database\Reader;
+use App\Services\GeoIp\GeoIpDatabaseUpdater;
+use App\Services\GeoIp\IpGeolocationUpdater;
 use Illuminate\Console\Command;
-use Symfony\Component\Process\Process;
-use Throwable;
+use Illuminate\Support\Facades\Log;
 
 class UpdateGeoIpDatabases extends Command
 {
     private const BATCH_SIZE = 100;
 
-    private const PROCESS_TIMEOUT_SECONDS = 300;
-
     protected $signature = 'geoip:update';
 
     protected $description = 'Atualiza e valida as bases locais GeoIP configuradas';
 
-    public function handle(IpGeolocationUpdater $geolocation): int
+    public function handle(IpGeolocationUpdater $geolocation, GeoIpDatabaseUpdater $updater): int
     {
-        $binary = config('geoip.update_binary');
-        $configuration = config('geoip.update_config');
-        $directory = config('geoip.database_directory');
+        if (! (bool) config('geoip.update_enabled')) {
+            $this->info('Atualização GeoIP desabilitada.');
 
-        if (! is_string($binary) || ! is_file($binary)
-            || ! is_string($configuration) || ! is_file($configuration)
-            || ! is_string($directory) || ! is_dir($directory)) {
-            $this->error('GeoIP updater não está completamente provisionado.');
+            return self::SUCCESS;
+        }
+
+        try {
+            $databases = $updater->update();
+        } catch (GeoIpUpdateException $exception) {
+            Log::channel('operational')->error('geoip.update_failed', [
+                'error' => $exception->getMessage(),
+            ]);
+            $this->error($exception->getMessage());
 
             return self::FAILURE;
         }
 
-        $process = new Process([$binary, '-f', $configuration, '-d', $directory]);
-        $process->setTimeout(self::PROCESS_TIMEOUT_SECONDS);
-        $process->run();
-
-        if (! $process->isSuccessful()) {
-            $this->error(trim($process->getErrorOutput()) ?: 'geoipupdate falhou.');
-
-            return self::FAILURE;
-        }
-
-        foreach ([
-            'City' => config('geoip.city_database'),
-            'ASN' => config('geoip.asn_database'),
-        ] as $label => $path) {
-            if (! is_string($path) || ! is_file($path)) {
-                $this->error("Base GeoIP {$label} ausente depois da atualização.");
-
-                return self::FAILURE;
-            }
-
-            try {
-                $reader = new Reader($path);
-                $metadata = $reader->metadata();
-                $builtAt = CarbonImmutable::createFromTimestampUTC($metadata->buildEpoch);
-                $reader->close();
-            } catch (Throwable $exception) {
-                $this->error("Base GeoIP {$label} inválida: {$exception->getMessage()}");
-
-                return self::FAILURE;
-            }
-
-            $age = $builtAt->diffInDays(now());
-            if ($age > (int) config('geoip.max_age_days')) {
-                $this->error("Base GeoIP {$label} excede a idade máxima ({$age} dias).");
-
-                return self::FAILURE;
-            }
-
+        foreach ($databases as $label => $database) {
+            $age = $database['built_at']->diffInDays(now());
             if ($age > (int) config('geoip.warning_age_days')) {
                 $this->warn("Base GeoIP {$label} está com {$age} dias.");
             }
 
-            $this->info("Base GeoIP {$label}: {$metadata->databaseType}, construída em {$builtAt->toIso8601String()}.");
+            $this->info("Base GeoIP {$label}: {$database['type']}, construída em {$database['built_at']->toIso8601String()}.");
         }
 
         $updated = 0;

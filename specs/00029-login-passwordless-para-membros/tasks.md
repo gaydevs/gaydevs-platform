@@ -224,6 +224,45 @@ contra abuso distribuído.**
   - [x] Procedimento operacional pós-deploy definido no runbook temporário;
     registrar a execução e os logs fora do Git quando o primeiro deploy ocorrer.
 
+## Phase 7: Atualização GeoIP nativa e validação com MaxMind
+
+**Objetivo**: atualizar as bases City/ASN pelo próprio Laravel, sem o binário
+`geoipupdate` nem o arquivo `GeoIP.conf`, mantendo credenciais somente nos
+ambientes ignorados/externos e sem interromper o uso das bases vigentes.
+
+- [x] T040 Substituir o updater GeoIP externo por um serviço PHP nativo que
+  autentique na MaxMind com credenciais do ambiente, baixe City e ASN, extraia
+  em diretório temporário, valide os `.mmdb` e faça troca atômica sem perder
+  as bases vigentes em caso de falha; manter lock, timeout, retries e logs
+  operacionais sem registrar credenciais.
+  - [x] Serviço separado em downloader, validador e updater dentro de
+  `App\\Services\\GeoIp`; lock não bloqueante, timeout/tentativas configuráveis,
+  staging e troca segura implementados.
+- [x] T041 Cobrir o updater GeoIP com mocks e fixtures: sucesso, timeout,
+  resposta inválida, arquivo corrompido, metadados incompatíveis, falha de
+  permissão, concorrência e preservação das bases anteriores; manter o teste
+  independente de rede e de credenciais reais.
+  - [x] Testes unitários independentes de rede/credenciais cobrem autenticação
+  sem vazamento, falha HTTP, retry transitório, extração/troca, arquivo inválido,
+  preservação e concorrência: 6 testes, 21 asserções.
+- [x] T042 Migrar os parâmetros necessários para os `.env` locais ignorados e
+  para o `.env` externo de produção, mantendo apenas placeholders no
+  `.env.example`; remover `GEOIPUPDATE_BINARY` e `GEOIPUPDATE_CONFIG`, fazer
+  um teste real final com a credencial local sem exibi-la e registrar apenas
+  tipo/data das bases e o resultado operacional.
+  - [x] Variáveis migradas para os ambientes locais ignorados e produção
+  externa; teste real MaxMind concluído sem expor credenciais, registrando
+  apenas tipo/data e reprocessamento dos IPs.
+- [x] T043 Atualizar documentação e runbooks para o fluxo PHP nativo e executar
+  a suíte completa em SQLite e MySQL 8.4, além do lint e da validação manual
+  de `schedule:list`/`geoip:update`.
+  - [x] Documentação, lint, `schedule:list` e `git diff --check` aprovados;
+  SQLite: 83 testes, 539 asserções e 1 teste específico de MySQL ignorado;
+  MySQL 8.4 isolado: 84 testes, 542 asserções, sem testes ignorados.
+
+**Phase 7 executada em 2026-10-24; alterações ainda não estão em commit nem
+push.**
+
 ## Dependências e ordem
 
 - Fase 2 depende da Fase 1 e bloqueia todo o fluxo de autenticação.

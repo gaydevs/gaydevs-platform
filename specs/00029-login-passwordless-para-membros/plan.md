@@ -50,6 +50,9 @@ solicitado e aprovado por luvittor em 2026-10-20, nesta sessão.
 Os limites globais de geração de OTP e envio de e-mails foram solicitados e
 aprovados por luvittor em 2026-10-24, nesta sessão, para implementação nesta
 Issue.
+A substituição do updater GeoIP externo por uma implementação PHP nativa foi
+solicitada por luvittor em 2026-10-24, nesta sessão; o plano abaixo fica
+registrado para validação antes da implementação.
 
 ## Decisões
 
@@ -138,6 +141,16 @@ Issue.
    executa `geoip:update` diariamente às 04:00 quando habilitado, mantém a
    aplicação operacional se a base faltar, alerta após 7 dias e não faz novos
    enriquecimentos com base acima de 30 dias.
+   A atualização será feita pelo próprio Laravel: um serviço HTTP autenticável
+   baixa os arquivos da MaxMind, extrai-os em um diretório temporário, valida
+   os metadados City/ASN e troca os arquivos de forma atômica. As credenciais
+   ficam somente no ambiente externo; `GEOIPUPDATE_BINARY` e
+   `GEOIPUPDATE_CONFIG` deixam de existir. O serviço terá lock, timeout,
+   retries e preservará as bases vigentes quando o download ou a validação
+   falhar. Testes de unidade usarão mocks do transporte e fixtures locais; um
+   teste real com credencial será manual e posterior à suíte automatizada. Os
+   serviços desse contexto ficam agrupados em `App\\Services\\GeoIp`, enquanto
+   o comando e a exceção permanecem nas camadas próprias.
 6. **Sessão**: a SPA própria usa a autenticação stateful do Sanctum sobre a
    sessão e o cookie `HttpOnly` do Laravel; PAT permanece disponível para
    futuros clientes externos e mantém o `tokenable_type` nativo. A duração

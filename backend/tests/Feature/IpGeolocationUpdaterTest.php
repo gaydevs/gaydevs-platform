@@ -2,8 +2,8 @@
 
 use App\Models\IpAddress;
 use App\Models\IpGeolocation;
-use App\Services\GeoIpLookup;
-use App\Services\IpGeolocationUpdater;
+use App\Services\GeoIp\GeoIpLookup;
+use App\Services\GeoIp\IpGeolocationUpdater;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);

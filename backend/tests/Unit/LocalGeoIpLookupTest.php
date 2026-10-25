@@ -1,6 +1,6 @@
 <?php
 
-use App\Services\LocalGeoIpLookup;
+use App\Services\GeoIp\LocalGeoIpLookup;
 use Tests\TestCase;
 
 uses(TestCase::class);

@@ -6,10 +6,12 @@ use App\Models\IpAddress;
 use App\Models\Visit;
 use App\Models\Visitor;
 use App\Models\VisitorObservation;
+use App\Services\GeoIp\IpGeolocationUpdater;
 use App\Support\RequestCorrelation;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -25,17 +27,29 @@ class VisitorIdentifier
     public function identify(Request $request): VisitorObservation
     {
         $now = now();
+        $requestId = RequestCorrelation::id($request);
         $visitor = $this->visitor($request, $now);
         $visit = $this->visit($visitor, $now);
         $ipAddress = $this->ipAddress($request->ip(), $now);
         $userAgent = (string) $request->userAgent() ?: null;
+        $ipGeolocationId = null;
+
+        if ($ipAddress !== null) {
+            try {
+                $ipGeolocationId = $this->geolocation->update($ipAddress)->id;
+            } catch (Throwable $exception) {
+                Log::channel('operational')->error('visitor.geoip_failed', [
+                    'request_id' => $requestId,
+                    'ip_address_id' => $ipAddress->id,
+                    'exception' => $exception,
+                ]);
+            }
+        }
 
         $observation = VisitorObservation::query()->create([
-            'request_id' => RequestCorrelation::id($request),
+            'request_id' => $requestId,
             'visit_id' => $visit->id,
-            'ip_geolocation_id' => $ipAddress === null
-                ? null
-                : $this->geolocation->update($ipAddress)->id,
+            'ip_geolocation_id' => $ipGeolocationId,
             'user_agent' => $userAgent,
             ...$this->userAgents->parse($userAgent),
             'language' => mb_substr(

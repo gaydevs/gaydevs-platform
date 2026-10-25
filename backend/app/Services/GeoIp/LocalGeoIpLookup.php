@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\GeoIp;
 
 use Carbon\CarbonImmutable;
 use GeoIp2\Database\Reader;
