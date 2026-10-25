@@ -72,6 +72,14 @@ de download não são registrados nos logs. Se o enriquecimento GeoIP falhar
 durante uma requisição, a observação continua sendo gravada sem a referência de
 geolocalização; o detalhe técnico é registrado em `operational.log`.
 
+## Gate de CI para liberação
+
+Na regra de proteção de cada branch que recebe mudanças do backend, habilite
+**Require status checks to pass before merging** e selecione exclusivamente
+**`CI Required`**. O workflow orquestrador `CI` executa os checks obrigatórios
+do projeto; seu job final `CI Required` falha quando qualquer um deles falha,
+é cancelado ou é ignorado. Não selecione os jobs individuais.
+
 ## Validação de uma instalação ou migração
 
 Antes de considerar um host pronto, o gdev deve:
