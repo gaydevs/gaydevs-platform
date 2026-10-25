@@ -7,7 +7,7 @@ on:
       - master
     paths:
       - 'frontend/**'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/frontend-deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -26,18 +26,18 @@ jobs:
         working-directory: frontend
 
     env:
-      REMOTE_ROOT: /home/dh_jirb5e/vettoretti.dev
-      REMOTE_APP: /home/dh_jirb5e/vettoretti.dev/gaydevs
-      REMOTE_TMP: /home/dh_jirb5e/vettoretti.dev_gaydevs_tmp
+      REMOTE_ROOT: /home/dh_jirb5e/vettoretti.dev/gaydevs
+      REMOTE_APP: /home/dh_jirb5e/vettoretti.dev/gaydevs/platform
+      REMOTE_TMP: /home/dh_jirb5e/vettoretti.dev_gaydevs_platform_tmp
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24.15.0'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -48,7 +48,7 @@ jobs:
         run: npm run build
 
       - name: Prepare temp directory on server
-        uses: appleboy/ssh-action@v0.1.7
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
@@ -59,7 +59,7 @@ jobs:
             mkdir -p "${{ env.REMOTE_TMP }}"
 
       - name: Upload static files via SFTP
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
@@ -70,7 +70,7 @@ jobs:
           strip_components: 2
 
       - name: Swap temp into place and clean up
-        uses: appleboy/ssh-action@v0.1.7
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
@@ -78,6 +78,9 @@ jobs:
           port: 22
           script: |
             mkdir -p "${{ env.REMOTE_ROOT }}"
+            # Remove restos do layout antigo (frontend direto em /gaydevs/)
+            find "${{ env.REMOTE_ROOT }}" -mindepth 1 -maxdepth 1 ! -name platform ! -name api ! -name .htaccess -exec rm -rf {} +
+            printf 'RedirectMatch 302 ^/gaydevs/?$ /gaydevs/platform/\n' > "${{ env.REMOTE_ROOT }}/.htaccess"
             rm -rf "${{ env.REMOTE_APP }}_old"
             mv "${{ env.REMOTE_APP }}" "${{ env.REMOTE_APP }}_old" 2>/dev/null || true
             mv "${{ env.REMOTE_TMP }}" "${{ env.REMOTE_APP }}"

@@ -1,0 +1,49 @@
+name: Backend Lint
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Sem backend/composer.json o check passa sem rodar (necessário para check obrigatório)
+      - name: Setup PHP
+        if: hashFiles('backend/composer.json') != ''
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+
+      - name: Get Composer cache dir
+        if: hashFiles('backend/composer.json') != ''
+        id: composer-cache
+        uses: ./.github/actions/composer-cache
+
+      - name: Cache Composer downloads
+        if: hashFiles('backend/composer.json') != ''
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        if: hashFiles('backend/composer.json') != ''
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run Pint for code style
+        if: hashFiles('backend/composer.json') != ''
+        run: composer lint
