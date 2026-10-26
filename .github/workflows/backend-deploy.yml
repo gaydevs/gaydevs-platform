@@ -57,7 +57,8 @@ jobs:
             set -eu
             app='${{ env.REMOTE_APP }}'
             current="$(crontab -l 2>/dev/null || true)"
-            matches="$(printf '%s\n' "$current" | awk -v app="$app" 'index($0, "artisan schedule:run") && index($0, app) { print }')"
+            # O executável PHP é configurável; o contrato verifica o comando Artisan.
+            matches="$(printf '%s\n' "$current" | awk -v app="$app" '!/^[[:space:]]*#/ && index($0, app) && $0 ~ /(^|[[:space:];&|])artisan[[:space:]]+schedule:run([[:space:]]|$)/ { print }')"
             count="$(printf '%s\n' "$matches" | awk 'NF { count += 1 } END { print count + 0 }')"
 
             if [ "$count" -eq 0 ]; then
