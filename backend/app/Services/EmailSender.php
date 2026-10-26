@@ -46,7 +46,15 @@ class EmailSender
             throw $exception;
         }
 
-        $this->state->recordAccepted();
+        try {
+            $this->state->recordAccepted();
+        } catch (Throwable $exception) {
+            Log::channel('operational')->error('email.transport_state_failed', [
+                'request_id' => $this->requestId(),
+                'mailer' => (string) config('mail.default', 'log'),
+                'exception' => $exception::class,
+            ]);
+        }
     }
 
     private function requestId(): ?string

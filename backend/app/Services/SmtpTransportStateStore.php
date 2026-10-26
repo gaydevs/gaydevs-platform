@@ -15,9 +15,17 @@ class SmtpTransportStateStore
             return;
         }
 
-        SmtpTransportState::query()->updateOrCreate(
-            ['mailer' => $mailer],
-            ['last_accepted_at' => now()],
+        $timestamp = now();
+
+        SmtpTransportState::query()->upsert(
+            [[
+                'mailer' => $mailer,
+                'last_accepted_at' => $timestamp,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ]],
+            ['mailer'],
+            ['last_accepted_at', 'updated_at'],
         );
     }
 
