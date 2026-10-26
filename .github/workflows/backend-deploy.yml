@@ -29,6 +29,7 @@ jobs:
       REMOTE_APP: /home/dh_jirb5e/vettoretti.dev/gaydevs/api
       REMOTE_TMP: /home/dh_jirb5e/vettoretti.dev_gaydevs_api_tmp
       REMOTE_ENV: /home/dh_jirb5e/vettoretti.dev_envs/gaydevs_api.env
+      REMOTE_PHP: /usr/local/php83/bin/php
 
     steps:
       - name: Checkout code
@@ -83,6 +84,10 @@ jobs:
 
             cp "${{ env.REMOTE_ENV }}" .env
 
+            # O comando `php` padrão do host pode apontar para uma versão antiga.
+            # Falhe antes da troca se o runtime exigido pelo Composer não estiver disponível.
+            "${{ env.REMOTE_PHP }}" --version
+
             # O app inteiro vive em /gaydevs/api; o .htaccess da raiz joga todo
             # pedido para public/, então nada fora dela é servido
             printf '%s\n' \
@@ -90,15 +95,15 @@ jobs:
               'RewriteEngine On' \
               'RewriteRule ^(.*)$ public/$1 [L]' > .htaccess
 
+            # Valide o release antes de trocar o diretório ativo.
+            "${{ env.REMOTE_PHP }}" artisan migrate --force
+            "${{ env.REMOTE_PHP }}" artisan config:cache
+            "${{ env.REMOTE_PHP }}" artisan route:cache
+            "${{ env.REMOTE_PHP }}" artisan view:cache
+
             mkdir -p "$(dirname "${{ env.REMOTE_APP }}")"
             rm -rf "${{ env.REMOTE_APP }}_old"
             mv "${{ env.REMOTE_APP }}" "${{ env.REMOTE_APP }}_old" 2>/dev/null || true
             mv "${{ env.REMOTE_TMP }}" "${{ env.REMOTE_APP }}"
-
-            cd "${{ env.REMOTE_APP }}"
-            php artisan migrate --force
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
 
             rm -rf "${{ env.REMOTE_APP }}_old"
