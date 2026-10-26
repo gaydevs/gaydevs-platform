@@ -69,6 +69,12 @@ jobs:
             crontab_error=''
             # O caminho do PHP varia por ambiente; REMOTE_PHP só monta novas entradas.
             # Uma entrada existente é válida pelo comando Artisan, não pelo binário usado.
+            panel_marker='###--- BEGIN DREAMHOST BLOCK'
+            if printf '%s\n' "$current" | grep -Fqx "$panel_marker"; then
+              echo 'O crontab é gerenciado pelo painel DreamHost; use apenas o painel ou remova-o antes de provisionar via SSH.' >&2
+              exit 1
+            fi
+
             count="$(printf '%s\n' "$current" | awk -v app="$app" '!/^[[:space:]]*#/ && index($0, app) && $0 ~ /(^|[[:space:];&|])artisan[[:space:]]+schedule:run([[:space:]]|$)/ { count += 1 } END { print count + 0 }')"
 
             if [ "$count" -gt 1 ]; then

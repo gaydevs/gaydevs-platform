@@ -49,6 +49,8 @@ Troque os caminhos e confira com `crontab -l`. [Instruções da DreamHost](https
 
 Use caminhos absolutos, deixe o e-mail vazio se a saída for redirecionada e
 mantenha o locking habilitado quando disponível.
+Ao escolher o `crontab` via SSH, não mantenha cron gerenciado pelo painel para o
+mesmo usuário: atualizações no painel sobrescrevem personalizações do arquivo.
 O deploy verifica essa entrada antes de trocar o release. Se ela faltar, execute
 manualmente o workflow `Provision Backend Scheduler` e reexecute o deploy; o
 provisionamento é idempotente e não substitui entradas conflitantes.
