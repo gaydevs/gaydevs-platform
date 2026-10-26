@@ -69,12 +69,11 @@ blocklist/bounces com membros.
   bloqueadores e em `Backlog` antes do início.
 - Não há fast-track: a mudança envolve SMTP de produção, limites, segredo,
   persistência e agendamento.
-- A spec foi aprovada humanamente; este plan agora aguarda aprovação humana
-  antes de tasks ou implementação.
+- A spec e este plan foram aprovados humanamente; a implementação está
+  autorizada.
 - Não há migration destrutiva, alteração de contrato HTTP, geração/validação
   de OTP ou failover de provedor.
 
 ## Aprovação humana
 
-Pendente. Registrar gdev, data e referência antes de criar `tasks.md` ou
-iniciar a implementação.
+Aprovado por `luvittor` em 2026-10-26, por aprovação explícita nesta conversa.

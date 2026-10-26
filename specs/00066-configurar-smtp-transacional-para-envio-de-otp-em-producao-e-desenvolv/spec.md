@@ -1,7 +1,7 @@
 # 00066 — Configurar SMTP transacional para envio de OTP em produção e desenvolvimento
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/66
-Estado: rascunho — aprovação humana pendente.
+Estado: aprovado — aprovação humana registrada.
 
 ## Problema e objetivo
 
