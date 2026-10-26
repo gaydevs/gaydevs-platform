@@ -104,6 +104,26 @@ test('geoip updater creates the configured database directory on first run', fun
     }
 });
 
+test('geoip updater converts directory creation failures to a domain exception', function () {
+    $parentFile = tempnam(sys_get_temp_dir(), 'gaydevs-geoip-parent-file-');
+    $databaseDirectory = $parentFile.DIRECTORY_SEPARATOR.'databases';
+    config([
+        'geoip.database_directory' => $databaseDirectory,
+        'geoip.city_database' => $databaseDirectory.DIRECTORY_SEPARATOR.'GeoLite2-City.mmdb',
+        'geoip.asn_database' => $databaseDirectory.DIRECTORY_SEPARATOR.'GeoLite2-ASN.mmdb',
+    ]);
+    $downloader = Mockery::mock(GeoIpDatabaseDownloader::class);
+    $downloader->shouldReceive('download')->never();
+    app()->instance(GeoIpDatabaseDownloader::class, $downloader);
+
+    try {
+        expect(fn () => app(GeoIpDatabaseUpdater::class)->update())
+            ->toThrow(GeoIpUpdateException::class, 'Não foi possível criar o diretório das bases GeoIP.');
+    } finally {
+        @unlink($parentFile);
+    }
+});
+
 test('geoip updater rejects a database directory configured as a file', function () {
     $path = tempnam(sys_get_temp_dir(), 'gaydevs-geoip-file-');
     config([
