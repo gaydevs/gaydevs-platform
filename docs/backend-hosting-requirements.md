@@ -38,6 +38,23 @@ O host deve executar `php artisan schedule:run` a cada minuto. O Laravel usa
 - `visitors:anonymize-ips` diariamente às 03:00;
 - `geoip:update` diariamente às 04:00, quando habilitado.
 
+Na DreamHost, cadastre o cron via SSH (`crontab -e`); o formulário do painel não
+oferece a frequência de um minuto exigida pelo scheduler:
+
+```cron
+* * * * * cd /home/USUARIO/APP/backend && /usr/local/php83/bin/php artisan schedule:run >> /home/USUARIO/logs/gaydevs-scheduler.log 2>&1
+```
+
+Troque os caminhos e confira com `crontab -l`. [Instruções da DreamHost](https://help.dreamhost.com/hc/en-us/articles/215767047-Creating-a-custom-Cron-Job).
+
+Use caminhos absolutos, deixe o e-mail vazio se a saída for redirecionada e
+mantenha o locking habilitado quando disponível.
+Ao escolher o `crontab` via SSH, não mantenha cron gerenciado pelo painel para o
+mesmo usuário: atualizações no painel sobrescrevem personalizações do arquivo.
+O deploy verifica essa entrada antes de trocar o release. Se ela faltar, execute
+manualmente o workflow `Provision Backend Scheduler` e reexecute o deploy; o
+provisionamento é idempotente e não substitui entradas conflitantes.
+
 Cada instalação deve validar `php artisan schedule:list`, uma execução manual e
 o canal diário `storage/logs/scheduler-*.log`. O host também deve impedir
 execuções simultâneas do cron quando oferecer esse controle; a aplicação usa
