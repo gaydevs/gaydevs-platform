@@ -49,7 +49,7 @@ test('user search ranks exact email, name prefix, exact later word and partial m
         'email' => 'luciano@example.com.br',
     ]);
     $exactNameForEmailQuery = User::factory()->create([
-        'name' => 'Luciano@example.com Silva',
+        'name' => 'Alpha Luciano@example.com Silva',
         'email' => 'name-match@example.com',
     ]);
     $exactEmail = User::factory()->create([
