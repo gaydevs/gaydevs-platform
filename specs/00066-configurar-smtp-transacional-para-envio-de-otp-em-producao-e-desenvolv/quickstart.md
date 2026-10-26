@@ -22,9 +22,12 @@
 1. Confirme no painel a plataforma transacional habilitada, a chave SMTP ativa
    e o remetente autenticado.
 2. Confirme os valores SMTP no `.env` externo, sem exibi-los.
-3. Faça um único pedido de OTP para um destinatário controlado.
-4. Confirme recebimento, remetente e evento no painel transacional da Brevo.
-5. Registre somente ambiente, data e resultado fora do Git, sem destinatário
+3. Se o `.env` externo foi alterado depois do último deploy, execute um novo
+   deploy antes do teste para recopiá-lo e recriar o cache com
+   `php artisan config:cache`.
+4. Faça um único pedido de OTP para um destinatário controlado.
+5. Confirme recebimento, remetente e evento no painel transacional da Brevo.
+6. Registre somente ambiente, data e resultado fora do Git, sem destinatário
    completo, OTP ou credenciais.
 
 ## Keepalive

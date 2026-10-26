@@ -111,11 +111,14 @@ No desenvolvimento:
 4. confirme recebimento, remetente e evento no painel transacional da Brevo;
 5. restaure `MAIL_MAILER=log` e execute novamente `php artisan config:clear`.
 
-Em produção, confirme os mesmos pré-requisitos no `.env` externo, faça um
-único pedido de OTP para um destinatário controlado e valide recebimento,
-remetente e evento transacional. Registre fora do Git somente ambiente, data,
-resultado e referência operacional não sensível. Nunca registre chave SMTP,
-senha, OTP ou destinatário completo.
+Em produção, confirme os mesmos pré-requisitos no `.env` externo. Se esse
+arquivo foi alterado depois do último deploy, execute um novo deploy antes do
+teste para que o arquivo seja recopiado e o cache seja recriado com
+`php artisan config:cache`; sem isso, a aplicação pode continuar usando valores
+SMTP antigos. Depois, faça um único pedido de OTP para um destinatário
+controlado e valide recebimento, remetente e evento transacional. Registre fora
+do Git somente ambiente, data, resultado e referência operacional não sensível.
+Nunca registre chave SMTP, senha, OTP ou destinatário completo.
 
 ## GeoIP opcional
 
