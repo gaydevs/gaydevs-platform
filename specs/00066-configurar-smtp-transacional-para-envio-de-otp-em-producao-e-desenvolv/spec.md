@@ -48,8 +48,10 @@ reservar margem própria e evitar depender da fila de retry do provedor.
 
 ### Diagnóstico e validação
 
-- Falhas SMTP, bloqueios dos dois limites e execuções do keepalive são
-  registradas no log operacional sem OTP, credenciais ou conteúdo sensível.
+- Falhas SMTP e bloqueios dos dois limites são registrados no log operacional
+  sem OTP, credenciais ou conteúdo sensível. Execuções do keepalive concluídas
+  ou ignoradas aparecem na saída do comando, capturada pelo scheduler; apenas
+  as falhas exigem registro adicional no log operacional.
 - A validação manual cobre uma entrega controlada em desenvolvimento e outra
   em produção. Em desenvolvimento, o ambiente retorna a `MAIL_MAILER=log`
   após o teste.
