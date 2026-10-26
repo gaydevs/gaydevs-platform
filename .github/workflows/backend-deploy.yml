@@ -129,13 +129,18 @@ jobs:
 
             # Valide o release antes de trocar o diretório ativo.
             "${{ env.REMOTE_PHP }}" artisan migrate --force
-            "${{ env.REMOTE_PHP }}" artisan config:cache
-            "${{ env.REMOTE_PHP }}" artisan route:cache
-            "${{ env.REMOTE_PHP }}" artisan view:cache
 
             mkdir -p "$(dirname "${{ env.REMOTE_APP }}")"
             rm -rf "${{ env.REMOTE_APP }}_old"
             mv "${{ env.REMOTE_APP }}" "${{ env.REMOTE_APP }}_old" 2>/dev/null || true
             mv "${{ env.REMOTE_TMP }}" "${{ env.REMOTE_APP }}"
+
+            cd "${{ env.REMOTE_APP }}"
+
+            # Gere os caches no caminho final para que storage_path(), base_path()
+            # e os caminhos absolutos das views não apontem para REMOTE_TMP.
+            "${{ env.REMOTE_PHP }}" artisan config:cache
+            "${{ env.REMOTE_PHP }}" artisan route:cache
+            "${{ env.REMOTE_PHP }}" artisan view:cache
 
             rm -rf "${{ env.REMOTE_APP }}_old"
