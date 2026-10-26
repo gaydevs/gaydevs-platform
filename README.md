@@ -1,28 +1,20 @@
 # gaydevs-platform
 
-Plataforma da comunidade gaydevs. Para começar, leia [CONTRIBUTING.md](CONTRIBUTING.md)
-e o [fluxo de trabalho](docs/development-workflow.md).
+Plataforma da comunidade gaydevs.
 
 ## Estrutura
 
-```text
-frontend/  aplicação React/Vite
-backend/   reservado para a futura API/backend
-```
+- `backend/`: API e serviços da plataforma.
+- `frontend/`: aplicação web.
 
-## Executar o frontend
+## Comece
 
-```sh
-cd frontend
-npm ci
-npm run dev
-```
+1. Leia [CONTRIBUTING.md](CONTRIBUTING.md) e o [fluxo de trabalho](docs/development-workflow.md).
+2. Consulte a documentação específica do [backend](backend/README.md).
+3. Consulte a documentação específica do [frontend](frontend/README.md).
 
-## Validar o frontend
+## Regras importantes
 
-```sh
-cd frontend
-npm run lint
-npm run typecheck
-npm run build
-```
+- Não versione arquivos de ambiente, credenciais ou dados locais.
+- Testes que possam recriar o banco devem usar uma base isolada do ambiente de desenvolvimento.
+- Antes de instalar ou mover a API, consulte os [requisitos de hospedagem](docs/backend-hosting-requirements.md).

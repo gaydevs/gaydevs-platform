@@ -1,5 +1,11 @@
 node_modules/
 dist/
+frontend/coverage/
 *.local
 *.tsbuildinfo
 .verification/
+/.tmp/
+
+backend/.env
+backend/.env.*
+!backend/.env.example

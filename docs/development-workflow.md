@@ -164,6 +164,21 @@ Com Project indisponível, `--without-project` permite iniciar com aviso explíc
 de sincronização pendente. Não equivale a card criado. Depois sincronize via
 `status.mjs`; para um rascunho use `Specifying`.
 
+### Gate agregado de CI
+
+Os checks de audit, lint e testes de backend/frontend são orquestrados por
+`.github/workflows/ci.yml`. Em cada `push`, o workflow `CI` chama os workflows
+reutilizáveis e publica o job final **`CI Required`**. Esse job usa `needs` para
+aguardar todos os checks obrigatórios e falha se qualquer resultado for diferente
+de `success`, incluindo `failure`, `cancelled` ou `skipped`.
+
+Na proteção de branch, habilite **Require status checks to pass before merging**
+e selecione exclusivamente o status check **`CI Required`**. Os checks
+internos continuam visíveis para diagnóstico, mas não precisam ser cadastrados
+individualmente. CodeRabbit e `SDD PR contract` não fazem parte desse agregado,
+pois não são checks universais de `push`; se algum deles passar a ser gate de merge,
+deve ser configurado separadamente.
+
 Fluxo Git: `feat/fix/refactor/techdebt → develop → main → produção`.
 As proteções clássicas de `develop` e `main` exigem PR, uma aprovação atualizada
 e resolução das conversas, inclusive para admins. Novos diffs invalidam aprovações;

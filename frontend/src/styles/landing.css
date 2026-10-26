@@ -1,7 +1,7 @@
 /* Hero: retain the approved composition, including space for the live text. */
 .hero { position: relative; isolation: isolate; display: flex; flex-direction: column; background: #05051a; overflow: clip; }
 .hero::after { content: ''; position: absolute; bottom: 0; inset-inline: 0; height: 80px; background: linear-gradient(transparent, var(--bg)); pointer-events: none; }
-.hero-content { position: relative; z-index: 1; order: 0; padding-top: 48px; }
+.hero-content { position: relative; z-index: 1; order: 0; padding-top: 88px; }
 .hero-eyebrow { color: var(--text); font-size: .875rem; letter-spacing: .015em; }
 .hero h1 { display: flex; align-items: center; gap: clamp(7px, 1.4vw, 16px); max-width: 100%; font-size: clamp(3.05rem, 13vw, 6.5rem); line-height: 1.1; letter-spacing: -.075em; margin-top: 24px; margin-left: -.11em; font-weight: 700; }
 .hero-brand-icon { flex: 0 0 auto; width: .8em; height: .8em; object-fit: contain; transform: translateY(.105em); filter: drop-shadow(0 0 18px #20d7ff55) drop-shadow(0 0 22px #ff3ac840); }
@@ -118,7 +118,7 @@
 .footer-links a { display: inline-flex; align-items: baseline; min-height: 28px; color: var(--text-muted); font-size: .875rem; text-decoration-color: transparent; }
 
 @media (min-width: 480px) {
-  .hero-content { padding-top: 64px; }
+  .hero-content { padding-top: 88px; }
   .highlights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .terminal-body { padding: 28px; }
 }

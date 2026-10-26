@@ -1,0 +1,53 @@
+name: Backend Audit
+
+on:
+  workflow_call:
+  schedule:
+    # Every Monday at midnight (UTC)
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Sem backend/composer.json o check passa sem rodar (necessário para check obrigatório)
+      - name: Setup PHP & Composer
+        if: hashFiles('backend/composer.json') != ''
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+
+      - name: Get Composer cache dir
+        if: hashFiles('backend/composer.json') != ''
+        id: composer-cache
+        uses: ./.github/actions/composer-cache
+
+      - name: Cache Composer downloads
+        if: hashFiles('backend/composer.json') != ''
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        if: hashFiles('backend/composer.json') != ''
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts --no-dev
+
+      - name: Run Composer Audit
+        if: hashFiles('backend/composer.json') != ''
+        run: composer audit --format=json
