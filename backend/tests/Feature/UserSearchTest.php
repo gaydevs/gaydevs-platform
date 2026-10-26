@@ -43,6 +43,32 @@ test('user search treats sql wildcard characters as literal input', function () 
     $this->getJson('/users?q=_')->assertOk()->assertExactJson([]);
 });
 
+test('user search prioritizes exact email then exact name word with alphabetical tie breaking', function () {
+    $partialEmail = User::factory()->create([
+        'name' => 'Alpha Partial',
+        'email' => 'luciano@example.com.br',
+    ]);
+    $exactEmail = User::factory()->create([
+        'name' => 'Zulu Exact',
+        'email' => 'luciano@example.com',
+    ]);
+
+    $this->getJson('/users?q=luciano@example.com')
+        ->assertOk()
+        ->assertJsonPath('0.id', $exactEmail->id)
+        ->assertJsonPath('1.id', $partialEmail->id);
+
+    $partialName = User::factory()->create(['name' => 'Aline Robertoide']);
+    $firstExactName = User::factory()->create(['name' => 'Bruno Roberto Souza']);
+    $secondExactName = User::factory()->create(['name' => 'Carlos Roberto Lima']);
+
+    $this->getJson('/users?q=Roberto')
+        ->assertOk()
+        ->assertJsonPath('0.id', $firstExactName->id)
+        ->assertJsonPath('1.id', $secondExactName->id)
+        ->assertJsonPath('2.id', $partialName->id);
+});
+
 test('user search returns at most five masked results', function () {
     foreach (range(1, 6) as $number) {
         User::factory()->create([
