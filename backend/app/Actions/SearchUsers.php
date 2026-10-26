@@ -44,6 +44,24 @@ class SearchUsers
                     ->orWhereRaw("LOWER(name) LIKE LOWER(?) ESCAPE '!'", ['% '.$likeTerm.'%'])
                     ->orWhereRaw("LOWER(email) LIKE LOWER(?) ESCAPE '!'", [$likeTerm.'%']);
             })
+            ->orderByRaw(
+                "CASE
+                    WHEN LOWER(email) = LOWER(?) THEN 0
+                    WHEN LOWER(name) = LOWER(?) THEN 1
+                    WHEN LOWER(name) LIKE LOWER(?) ESCAPE '!' THEN 2
+                    WHEN LOWER(name) LIKE LOWER(?) ESCAPE '!'
+                        OR LOWER(name) LIKE LOWER(?) ESCAPE '!'
+                    THEN 3
+                    ELSE 4
+                END",
+                [
+                    $term,
+                    $term,
+                    $likeTerm.'%',
+                    '% '.$likeTerm,
+                    '% '.$likeTerm.' %',
+                ],
+            )
             ->orderBy('name')
             ->limit((int) config('passwordless.search.max_results'))
             ->get()
