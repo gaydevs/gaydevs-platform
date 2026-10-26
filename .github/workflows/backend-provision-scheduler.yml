@@ -67,7 +67,9 @@ jobs:
 
             rm -f "$crontab_error"
             crontab_error=''
-            count="$(printf '%s\n' "$current" | awk -v app="$app" 'index($0, "artisan schedule:run") && index($0, app) { count += 1 } END { print count + 0 }')"
+            # O caminho do PHP varia por ambiente; REMOTE_PHP só monta novas entradas.
+            # Uma entrada existente é válida pelo comando Artisan, não pelo binário usado.
+            count="$(printf '%s\n' "$current" | awk -v app="$app" '!/^[[:space:]]*#/ && index($0, app) && $0 ~ /(^|[[:space:];&|])artisan[[:space:]]+schedule:run([[:space:]]|$)/ { count += 1 } END { print count + 0 }')"
 
             if [ "$count" -gt 1 ]; then
               echo 'Há múltiplas entradas do scheduler para o backend; remova a duplicidade manualmente.' >&2
@@ -75,7 +77,7 @@ jobs:
             fi
 
             if [ "$count" -eq 1 ]; then
-              if printf '%s\n' "$current" | awk -v app="$app" 'index($0, "artisan schedule:run") && index($0, app) && $1 == "*" && $2 == "*" && $3 == "*" && $4 == "*" && $5 == "*" { valid = 1 } END { exit(valid ? 0 : 1) }'; then
+              if printf '%s\n' "$current" | awk -v app="$app" '!/^[[:space:]]*#/ && index($0, app) && $0 ~ /(^|[[:space:];&|])artisan[[:space:]]+schedule:run([[:space:]]|$)/ && $1 == "*" && $2 == "*" && $3 == "*" && $4 == "*" && $5 == "*" { valid = 1 } END { exit(valid ? 0 : 1) }'; then
                 echo 'Cron do backend já está configurado para cada minuto.'
                 exit 0
               fi
