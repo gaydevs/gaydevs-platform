@@ -1,0 +1,99 @@
+name: Provision Backend Scheduler
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type provision to add the production scheduler when missing
+        required: true
+        type: choice
+        options:
+          - provision
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dreamhost-gaydevs-scheduler-provision
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    if: ${{ inputs.confirm == 'provision' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      REMOTE_APP: /home/dh_jirb5e/vettoretti.dev/gaydevs/api
+      REMOTE_SCHEDULER_LOG: /home/dh_jirb5e/logs/gaydevs-scheduler.log
+      REMOTE_PHP: /usr/local/php83/bin/php
+
+    steps:
+      - name: Provision scheduler on DreamHost
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
+          script: |
+            set -eu
+
+            app='${{ env.REMOTE_APP }}'
+            log='${{ env.REMOTE_SCHEDULER_LOG }}'
+            php='${{ env.REMOTE_PHP }}'
+            mkdir -p "$(dirname "$log")"
+            marker='# gaydevs-laravel-scheduler'
+            desired="* * * * * cd $app && $php artisan schedule:run >> $log 2>&1 $marker"
+            temporary=''
+            crontab_error="$(mktemp)"
+            cleanup() {
+              [ -z "$crontab_error" ] || rm -f "$crontab_error"
+              [ -z "$temporary" ] || rm -f "$temporary"
+            }
+            trap cleanup EXIT
+
+            if current="$(crontab -l 2>"$crontab_error")"; then
+              :
+            else
+              crontab_status=$?
+              if [ "$crontab_status" -eq 1 ] && grep -qi 'no crontab' "$crontab_error"; then
+                current=''
+              else
+                echo 'Não foi possível ler o crontab com segurança; nenhum job será alterado.' >&2
+                cat "$crontab_error" >&2
+                exit 1
+              fi
+            fi
+
+            rm -f "$crontab_error"
+            crontab_error=''
+            # O caminho do PHP varia por ambiente; REMOTE_PHP só monta novas entradas.
+            # Uma entrada existente é válida pelo comando Artisan, não pelo binário usado.
+            panel_marker='###--- BEGIN DREAMHOST BLOCK'
+            if printf '%s\n' "$current" | grep -Fqx "$panel_marker"; then
+              echo 'O crontab é gerenciado pelo painel DreamHost; use apenas o painel ou remova-o antes de provisionar via SSH.' >&2
+              exit 1
+            fi
+
+            count="$(printf '%s\n' "$current" | awk -v app="$app" '!/^[[:space:]]*#/ && index($0, app) && $0 ~ /(^|[[:space:];&|])artisan[[:space:]]+schedule:run([[:space:]]|$)/ { count += 1 } END { print count + 0 }')"
+
+            if [ "$count" -gt 1 ]; then
+              echo 'Há múltiplas entradas do scheduler para o backend; remova a duplicidade manualmente.' >&2
+              exit 1
+            fi
+
+            if [ "$count" -eq 1 ]; then
+              if printf '%s\n' "$current" | awk -v app="$app" '!/^[[:space:]]*#/ && index($0, app) && $0 ~ /(^|[[:space:];&|])artisan[[:space:]]+schedule:run([[:space:]]|$)/ && $1 == "*" && $2 == "*" && $3 == "*" && $4 == "*" && $5 == "*" { valid = 1 } END { exit(valid ? 0 : 1) }'; then
+                echo 'Cron do backend já está configurado para cada minuto.'
+                exit 0
+              fi
+
+              echo 'Já existe um cron do backend, mas ele não está configurado para cada minuto; ajuste-o antes de provisionar.' >&2
+              exit 1
+            fi
+
+            temporary="$(mktemp)"
+            printf '%s\n' "$current" > "$temporary"
+            printf '%s\n' "$desired" >> "$temporary"
+            crontab "$temporary"
+            echo 'Cron do backend provisionado para cada minuto.'
