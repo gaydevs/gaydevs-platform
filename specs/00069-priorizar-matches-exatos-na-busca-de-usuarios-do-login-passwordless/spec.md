@@ -13,7 +13,10 @@ Seguir estritamente a Issue, sem ampliar o escopo.
 
 ## Critérios de aceite
 
-- O resultado pedido na Issue é atendido.
+- A relevância segue: e-mail exato, nome inteiro exato, nome iniciado pelo termo, palavra exata posterior e demais matches atuais.
+- Na busca por `Lu`, `Luciano` aparece antes de `Vagner Lu`.
+- Dentro do mesmo nível de relevância, os resultados permanecem em ordem alfabética por nome.
+- Filtro, máscara, limite de resultados, rate limiting e fluxo de OTP permanecem inalterados.
 - A mudança permanece trivial e sem impacto fora do escopo.
 
 ## Aprovação

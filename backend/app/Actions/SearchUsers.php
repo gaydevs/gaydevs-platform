@@ -47,17 +47,17 @@ class SearchUsers
             ->orderByRaw(
                 "CASE
                     WHEN LOWER(email) = LOWER(?) THEN 0
-                    WHEN LOWER(name) = LOWER(?)
+                    WHEN LOWER(name) = LOWER(?) THEN 1
+                    WHEN LOWER(name) LIKE LOWER(?) ESCAPE '!' THEN 2
+                    WHEN LOWER(name) LIKE LOWER(?) ESCAPE '!'
                         OR LOWER(name) LIKE LOWER(?) ESCAPE '!'
-                        OR LOWER(name) LIKE LOWER(?) ESCAPE '!'
-                        OR LOWER(name) LIKE LOWER(?) ESCAPE '!'
-                    THEN 1
-                    ELSE 2
+                    THEN 3
+                    ELSE 4
                 END",
                 [
                     $term,
                     $term,
-                    $likeTerm.' %',
+                    $likeTerm.'%',
                     '% '.$likeTerm,
                     '% '.$likeTerm.' %',
                 ],

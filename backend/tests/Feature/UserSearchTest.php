@@ -43,10 +43,14 @@ test('user search treats sql wildcard characters as literal input', function () 
     $this->getJson('/users?q=_')->assertOk()->assertExactJson([]);
 });
 
-test('user search prioritizes exact email then exact name word with alphabetical tie breaking', function () {
+test('user search ranks exact email, name prefix, exact later word and partial matches', function () {
     $partialEmail = User::factory()->create([
         'name' => 'Alpha Partial',
         'email' => 'luciano@example.com.br',
+    ]);
+    $exactNameForEmailQuery = User::factory()->create([
+        'name' => 'Luciano@example.com Silva',
+        'email' => 'name-match@example.com',
     ]);
     $exactEmail = User::factory()->create([
         'name' => 'Zulu Exact',
@@ -56,7 +60,16 @@ test('user search prioritizes exact email then exact name word with alphabetical
     $this->getJson('/users?q=luciano@example.com')
         ->assertOk()
         ->assertJsonPath('0.id', $exactEmail->id)
-        ->assertJsonPath('1.id', $partialEmail->id);
+        ->assertJsonPath('1.id', $exactNameForEmailQuery->id)
+        ->assertJsonPath('2.id', $partialEmail->id);
+
+    $prefixName = User::factory()->create(['name' => 'Luciano Vettoretti']);
+    $laterExactWord = User::factory()->create(['name' => 'Vagner Lu']);
+
+    $this->getJson('/users?q=Lu')
+        ->assertOk()
+        ->assertJsonPath('0.id', $prefixName->id)
+        ->assertJsonPath('1.id', $laterExactWord->id);
 
     $partialName = User::factory()->create(['name' => 'Aline Robertoide']);
     $firstExactName = User::factory()->create(['name' => 'Bruno Roberto Souza']);
