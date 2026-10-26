@@ -1,6 +1,7 @@
 # 00072 — Auto-criar diretório persistente do GeoIP
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/72
+Tipo: Bug
 Estado: fast-track aprovado.
 
 ## Objetivo
