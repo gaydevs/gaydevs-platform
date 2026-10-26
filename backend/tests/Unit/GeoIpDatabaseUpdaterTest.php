@@ -77,6 +77,66 @@ test('maxmind downloader retries transient responses with configured limits', fu
     @unlink($destination);
 });
 
+test('geoip updater creates the configured database directory on first run', function () {
+    $root = sys_get_temp_dir().DIRECTORY_SEPARATOR.'gaydevs-geoip-test-'.Str::uuid();
+    $databaseDirectory = $root.DIRECTORY_SEPARATOR.'databases';
+    $cityPath = $databaseDirectory.DIRECTORY_SEPARATOR.'GeoLite2-City.mmdb';
+    $asnPath = $databaseDirectory.DIRECTORY_SEPARATOR.'GeoLite2-ASN.mmdb';
+    config([
+        'geoip.database_directory' => $databaseDirectory,
+        'geoip.city_database' => $cityPath,
+        'geoip.asn_database' => $asnPath,
+    ]);
+    $downloader = Mockery::mock(GeoIpDatabaseDownloader::class);
+    $downloader->shouldReceive('download')->once()->andThrow(
+        new GeoIpUpdateException('download interrompido para validar bootstrap'),
+    );
+    app()->instance(GeoIpDatabaseDownloader::class, $downloader);
+
+    try {
+        expect(is_dir($databaseDirectory))->toBeFalse();
+        expect(fn () => app(GeoIpDatabaseUpdater::class)->update())
+            ->toThrow(GeoIpUpdateException::class, 'download interrompido para validar bootstrap');
+        expect(is_dir($databaseDirectory))->toBeTrue()
+            ->and(is_writable($databaseDirectory))->toBeTrue();
+    } finally {
+        File::deleteDirectory($root);
+    }
+});
+
+test('geoip updater rejects a database directory configured as a file', function () {
+    $path = tempnam(sys_get_temp_dir(), 'gaydevs-geoip-file-');
+    config([
+        'geoip.database_directory' => $path,
+        'geoip.city_database' => $path.DIRECTORY_SEPARATOR.'GeoLite2-City.mmdb',
+        'geoip.asn_database' => $path.DIRECTORY_SEPARATOR.'GeoLite2-ASN.mmdb',
+    ]);
+    $downloader = Mockery::mock(GeoIpDatabaseDownloader::class);
+    $downloader->shouldReceive('download')->never();
+    app()->instance(GeoIpDatabaseDownloader::class, $downloader);
+
+    try {
+        expect(fn () => app(GeoIpDatabaseUpdater::class)->update())
+            ->toThrow(GeoIpUpdateException::class, 'não é um diretório');
+    } finally {
+        @unlink($path);
+    }
+});
+
+test('geoip updater rejects a relative database directory before downloading', function () {
+    config([
+        'geoip.database_directory' => 'relative/geoip',
+        'geoip.city_database' => 'relative/geoip/GeoLite2-City.mmdb',
+        'geoip.asn_database' => 'relative/geoip/GeoLite2-ASN.mmdb',
+    ]);
+    $downloader = Mockery::mock(GeoIpDatabaseDownloader::class);
+    $downloader->shouldReceive('download')->never();
+    app()->instance(GeoIpDatabaseDownloader::class, $downloader);
+
+    expect(fn () => app(GeoIpDatabaseUpdater::class)->update())
+        ->toThrow(GeoIpUpdateException::class, 'caminho absoluto');
+});
+
 test('geoip updater extracts mocked archives and replaces both databases only after validation', function () {
     $root = sys_get_temp_dir().DIRECTORY_SEPARATOR.'gaydevs-geoip-test-'.Str::uuid();
     $databaseDirectory = $root.DIRECTORY_SEPARATOR.'databases';

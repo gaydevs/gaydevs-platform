@@ -134,10 +134,12 @@ habilitar atualização automática, o host deve fornecer:
   `GEOIP_DOWNLOAD_RETRY_ATTEMPTS` e
   `GEOIP_DOWNLOAD_RETRY_SLEEP_MILLISECONDS`) compatíveis com a rede do host.
 
-As bases não podem ficar na pasta substituída pelo deploy. O comando
-`geoip:update` baixa os arquivos em uma área temporária, valida tipo e data de
-construção, faz a troca atômica, alerta depois de 7 dias e não instala bases
-acima de 30 dias. Resultados normais são reutilizados por 24 horas; estados
+As bases não podem ficar na pasta substituída pelo deploy. O diretório configurado
+em `GEOIP_DATABASE_DIRECTORY` não precisa ser criado manualmente: na primeira
+execução, `geoip:update` cria esse caminho persistente quando ele ainda não existe
+e valida que é gravável. O comando baixa os arquivos em uma área temporária,
+valida tipo e data de construção, faz a troca atômica, alerta depois de 7 dias e
+não instala bases acima de 30 dias. Resultados normais são reutilizados por 24 horas; estados
 indisponíveis são tentados após 60 minutos. Credenciais, respostas e conteúdo
 de download não são registrados nos logs. Se o enriquecimento GeoIP falhar
 durante uma requisição, a observação continua sendo gravada sem a referência de

@@ -36,11 +36,7 @@ class GeoIpDatabaseUpdater
     /** @return array<string, array{path: string, type: string, built_at: CarbonImmutable, staged_path: string}> */
     public function update(): array
     {
-        $directory = config('geoip.database_directory');
-
-        if (! is_string($directory) || ! is_dir($directory)) {
-            throw new GeoIpUpdateException('O diretório das bases GeoIP não está disponível.');
-        }
+        $directory = $this->prepareDatabaseDirectory();
 
         $lockPath = config('geoip.update_lock_file')
             ?: $directory.DIRECTORY_SEPARATOR.'.geoipupdate.lock';
@@ -65,6 +61,43 @@ class GeoIpDatabaseUpdater
             flock($lock, LOCK_UN);
             fclose($lock);
         }
+    }
+
+    private function prepareDatabaseDirectory(): string
+    {
+        $directory = config('geoip.database_directory');
+
+        if (! is_string($directory) || trim($directory) === '') {
+            throw new GeoIpUpdateException('O diretório das bases GeoIP não está configurado.');
+        }
+
+        if (! $this->isAbsolutePath($directory)) {
+            throw new GeoIpUpdateException('O diretório das bases GeoIP deve usar um caminho absoluto.');
+        }
+
+        if (file_exists($directory) && ! is_dir($directory)) {
+            throw new GeoIpUpdateException('O caminho configurado para as bases GeoIP não é um diretório.');
+        }
+
+        if (! is_dir($directory) && ! mkdir($directory, 0750, true) && ! is_dir($directory)) {
+            throw new GeoIpUpdateException('Não foi possível criar o diretório das bases GeoIP.');
+        }
+
+        if (! is_writable($directory)) {
+            throw new GeoIpUpdateException('O diretório das bases GeoIP não permite escrita.');
+        }
+
+        return $directory;
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        if (DIRECTORY_SEPARATOR === '/') {
+            return str_starts_with($path, '/');
+        }
+
+        return str_starts_with($path, '\\')
+            || preg_match('/^[A-Za-z]:[\\\/]/', $path) === 1;
     }
 
     /** @return array<string, array{path: string, type: string, built_at: CarbonImmutable}> */
