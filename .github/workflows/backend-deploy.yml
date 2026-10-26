@@ -46,6 +46,29 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-dev --optimize-autoloader
 
+      - name: Verify production scheduler cron
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
+          script: |
+            set -eu
+            line="$(crontab -l 2>/dev/null | grep -F 'artisan schedule:run' | grep -F '${{ env.REMOTE_APP }}' | head -n 1 || true)"
+
+            if [ -z "$line" ]; then
+              echo 'Cron do Laravel não encontrado. Execute o workflow Provision Backend Scheduler e reexecute este deploy.' >&2
+              exit 1
+            fi
+
+            if ! printf '%s\n' "$line" | awk 'NF >= 6 && $1 == "*" && $2 == "*" && $3 == "*" && $4 == "*" && $5 == "*" { found = 1 } END { exit(found ? 0 : 1) }'; then
+              echo 'Cron do Laravel encontrado, mas não está configurado para cada minuto. Corrija-o no workflow Provision Backend Scheduler e reexecute este deploy.' >&2
+              exit 1
+            fi
+
+            echo 'Cron do Laravel configurado para cada minuto.'
+
       - name: Create temp directory on server
         uses: appleboy/ssh-action@v1.2.5
         with:
