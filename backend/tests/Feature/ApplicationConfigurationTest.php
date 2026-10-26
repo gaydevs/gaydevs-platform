@@ -6,7 +6,36 @@ test('application and scheduler use Sao Paulo time', function () {
 
     $this->artisan('schedule:list')
         ->expectsOutputToContain('visitors:anonymize-ips')
+        ->expectsOutputToContain('smtp:keepalive')
         ->assertSuccessful();
+});
+
+test('smtp mailer reads the approved environment-driven transport settings', function () {
+    config([
+        'mail.default' => 'smtp',
+        'mail.mailers.smtp.transport' => 'smtp',
+        'mail.mailers.smtp.scheme' => 'tls',
+        'mail.mailers.smtp.host' => 'smtp-relay.brevo.com',
+        'mail.mailers.smtp.port' => 587,
+        'mail.mailers.smtp.username' => 'smtp-login@example.test',
+        'mail.mailers.smtp.password' => 'test-only-secret',
+        'mail.from.address' => 'verified@example.test',
+        'mail.from.name' => 'gdevs',
+    ]);
+
+    expect(config('mail.default'))->toBe('smtp')
+        ->and(config('mail.mailers.smtp'))->toMatchArray([
+            'transport' => 'smtp',
+            'scheme' => 'tls',
+            'host' => 'smtp-relay.brevo.com',
+            'port' => 587,
+            'username' => 'smtp-login@example.test',
+            'password' => 'test-only-secret',
+        ])
+        ->and(config('mail.from'))->toBe([
+            'address' => 'verified@example.test',
+            'name' => 'gdevs',
+        ]);
 });
 
 test('web session lifetime has a valid sliding configuration', function () {
@@ -42,6 +71,14 @@ test('passwordless and global rate-limit policies centralize approved settings',
 
     $globalLimits = config('rate_limits.global');
     expect($globalLimits)->toHaveKeys(['otp', 'email']);
+
+    expect($globalLimits['email']['daily'])->toBe([
+        'max_attempts' => 250,
+        'decay_seconds' => 86400,
+    ]);
+
+    expect($globalLimits['email']['max_attempts'])->toBe(150)
+        ->and($globalLimits['email']['decay_seconds'])->toBe(3600);
 
     foreach ($globalLimits as $limit) {
         expect($limit)->toHaveKeys(['max_attempts', 'decay_seconds'])

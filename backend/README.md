@@ -39,14 +39,16 @@ O fluxo de OTP possui limites globais configuráveis além dos limites por usuá
 e por IP: `RATE_LIMIT_GLOBAL_OTP_MAX_ATTEMPTS` controla quantos OTPs podem ser
 gerados na janela `RATE_LIMIT_GLOBAL_OTP_DECAY_SECONDS`, e
 `RATE_LIMIT_GLOBAL_EMAIL_MAX_ATTEMPTS` controla quantos envios de e-mail são
-autorizados na janela `RATE_LIMIT_GLOBAL_EMAIL_DECAY_SECONDS`. Os padrões são
-100 por hora para cada contador. O cache precisa ser compartilhado entre as
-instâncias do backend; não use um cache local por processo em produção.
+autorizados na janela `RATE_LIMIT_GLOBAL_EMAIL_DECAY_SECONDS`. Os parâmetros
+`RATE_LIMIT_GLOBAL_EMAIL_DAILY_MAX_ATTEMPTS` e
+`RATE_LIMIT_GLOBAL_EMAIL_DAILY_DECAY_SECONDS` controlam o segundo contador. O
+de e-mail é 150 por hora e 250 em uma janela de 24 horas. O cache precisa ser
+compartilhado entre as instâncias do backend; não use um cache local por
+processo em produção.
 
-No hosting compartilhado, o DreamHost documenta 200 destinatários por hora para
-PHP/CGI/Sendmail no servidor compartilhado e 100 destinatários por hora por
-endereço quando se usa SMTP autenticado. O limite da aplicação fica em 100 por
-hora por padrão para manter margem e não substitui o limite do provedor.
+Em produção, o transporte SMTP usa a Brevo com TLS na porta 587. O limite da
+aplicação é deliberadamente menor que a cota Free de 300 envios diários da
+Brevo e não depende da fila de retry do provedor.
 Os módulos que precisarem enviar mensagens devem usar o serviço central
 `App\Services\EmailSender`; ele reserva a cota, lança
 `EmailRateLimitExceededException` quando o envio é bloqueado e registra o evento
@@ -114,6 +116,28 @@ Get-Content .\storage\logs\laravel.log -Wait
 
 O `.env` não é versionado. Defina `MAIL_FROM_ADDRESS` localmente e nunca grave
 o endereço real em código ou documentação versionada.
+
+### Teste SMTP controlado
+
+Para testar a entrega real localmente, mantenha as credenciais apenas no
+`backend/.env` ignorado:
+
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=tls
+MAIL_HOST=smtp-relay.brevo.com
+MAIL_PORT=587
+MAIL_USERNAME=<SMTP_LOGIN>
+MAIL_PASSWORD=<SMTP_KEY>
+MAIL_FROM_ADDRESS=<VERIFIED_SENDER>
+MAIL_FROM_NAME="gdevs"
+```
+
+Depois execute `php artisan config:clear`, inicie o backend e o frontend e
+solicite um OTP para um destinatário controlado. Confirme o recebimento e o
+remetente. Ao terminar, restaure `MAIL_MAILER=log` e execute novamente
+`php artisan config:clear`. A suíte automatizada não usa esse ambiente SMTP:
+os testes usam `Mail::fake()` ou um transporte não externo.
 
 ### Teste manual inicial
 

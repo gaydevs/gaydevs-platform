@@ -2,12 +2,19 @@
 
 namespace App\Services;
 
+use App\Support\RequestCorrelation;
 use Illuminate\Contracts\Mail\Mailable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class EmailSender
 {
-    public function __construct(private readonly EmailRateLimiter $limiter) {}
+    public function __construct(
+        private readonly EmailRateLimiter $limiter,
+        private readonly SmtpTransportStateStore $state,
+    ) {}
 
     public function ensureCapacity(): void
     {
@@ -27,6 +34,37 @@ class EmailSender
 
     public function sendReserved(string $recipient, Mailable $message): void
     {
-        Mail::to($recipient)->send($message);
+        try {
+            Mail::to($recipient)->send($message);
+        } catch (Throwable $exception) {
+            Log::channel('operational')->error('email.send_failed', [
+                'request_id' => $this->requestId(),
+                'mailer' => (string) config('mail.default', 'log'),
+                'exception' => $exception::class,
+            ]);
+
+            throw $exception;
+        }
+
+        try {
+            $this->state->recordAccepted();
+        } catch (Throwable $exception) {
+            Log::channel('operational')->error('email.transport_state_failed', [
+                'request_id' => $this->requestId(),
+                'mailer' => (string) config('mail.default', 'log'),
+                'exception' => $exception::class,
+            ]);
+        }
+    }
+
+    private function requestId(): ?string
+    {
+        if (! app()->bound('request')) {
+            return null;
+        }
+
+        $request = app('request');
+
+        return $request instanceof Request ? RequestCorrelation::id($request) : null;
     }
 }
