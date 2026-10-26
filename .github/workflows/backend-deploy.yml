@@ -55,14 +55,22 @@ jobs:
           port: 22
           script: |
             set -eu
-            line="$(crontab -l 2>/dev/null | grep -F 'artisan schedule:run' | grep -F '${{ env.REMOTE_APP }}' | head -n 1 || true)"
+            app='${{ env.REMOTE_APP }}'
+            current="$(crontab -l 2>/dev/null || true)"
+            matches="$(printf '%s\n' "$current" | awk -v app="$app" 'index($0, "artisan schedule:run") && index($0, app) { print }')"
+            count="$(printf '%s\n' "$matches" | awk 'NF { count += 1 } END { print count + 0 }')"
 
-            if [ -z "$line" ]; then
+            if [ "$count" -eq 0 ]; then
               echo 'Cron do Laravel não encontrado. Execute o workflow Provision Backend Scheduler e reexecute este deploy.' >&2
               exit 1
             fi
 
-            if ! printf '%s\n' "$line" | awk 'NF >= 6 && $1 == "*" && $2 == "*" && $3 == "*" && $4 == "*" && $5 == "*" { found = 1 } END { exit(found ? 0 : 1) }'; then
+            if [ "$count" -gt 1 ]; then
+              echo 'Há múltiplas entradas do scheduler para o backend; remova a duplicidade manualmente e reexecute este deploy.' >&2
+              exit 1
+            fi
+
+            if ! printf '%s\n' "$matches" | awk 'NF >= 6 && $1 == "*" && $2 == "*" && $3 == "*" && $4 == "*" && $5 == "*" { found = 1 } END { exit(found ? 0 : 1) }'; then
               echo 'Cron do Laravel encontrado, mas não está configurado para cada minuto. Corrija-o no workflow Provision Backend Scheduler e reexecute este deploy.' >&2
               exit 1
             fi
