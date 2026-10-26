@@ -20,6 +20,7 @@ beforeEach(function () {
     Mail::fake();
     RateLimiter::clear('otp-request:global');
     RateLimiter::clear(EmailRateLimiter::KEY);
+    RateLimiter::clear(EmailRateLimiter::DAILY_KEY);
 });
 
 test('requesting an otp sends a six digit code without authenticating', function () {
@@ -179,6 +180,27 @@ test('global email rate limit blocks a new otp before persistence and delivery',
         ->postJson('/auth/otp', ['user_id' => $first->id])
         ->assertAccepted();
     $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.12'])
+        ->postJson('/auth/otp', ['user_id' => $second->id])
+        ->assertTooManyRequests();
+
+    expect(OtpRequest::query()->count())->toBe(1);
+    Mail::assertSent(LoginOtpMail::class, 1);
+});
+
+test('global daily email rate limit blocks a new otp before persistence and delivery', function () {
+    config([
+        'passwordless.rate_limits.request_per_user.max_attempts' => 10,
+        'passwordless.rate_limits.request_per_ip.max_attempts' => 10,
+        'rate_limits.global.otp.max_attempts' => 10,
+        'rate_limits.global.email.max_attempts' => 10,
+        'rate_limits.global.email.daily.max_attempts' => 1,
+    ]);
+    [$first, $second] = User::factory()->count(2)->create();
+
+    $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.21'])
+        ->postJson('/auth/otp', ['user_id' => $first->id])
+        ->assertAccepted();
+    $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.22'])
         ->postJson('/auth/otp', ['user_id' => $second->id])
         ->assertTooManyRequests();
 

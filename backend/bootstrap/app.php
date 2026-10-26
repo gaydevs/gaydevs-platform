@@ -80,5 +80,9 @@ return Application::configure(basePath: dirname(__DIR__))
             ->dailyAt('04:00')
             ->when(fn (): bool => (bool) config('geoip.update_enabled'))
             ->withoutOverlapping();
+        $schedule->command('smtp:keepalive')
+            ->name('smtp:keepalive')
+            ->daily()
+            ->withoutOverlapping();
     })
     ->create();

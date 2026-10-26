@@ -4,57 +4,98 @@ namespace App\Services;
 
 use App\Exceptions\EmailRateLimitExceededException;
 use App\Support\RequestCorrelation;
+use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Throwable;
 
 class EmailRateLimiter
 {
-    public const KEY = 'email-send:global';
+    public const HOURLY_KEY = 'email-send:global:hourly';
+
+    public const DAILY_KEY = 'email-send:global:daily';
+
+    public const KEY = self::HOURLY_KEY;
+
+    private const LOCK_KEY = 'email-send:global:lock';
 
     public function assertAvailable(): void
     {
-        $limit = $this->limit();
+        $this->withLock(function (): void {
+            foreach ($this->limits() as $window => $limit) {
+                if (! RateLimiter::tooManyAttempts($limit['key'], $limit['max_attempts'])) {
+                    continue;
+                }
 
-        if (! RateLimiter::tooManyAttempts(self::KEY, $limit['max_attempts'])) {
-            return;
-        }
-
-        $this->logBlocked($limit);
-        throw new EmailRateLimitExceededException;
+                $this->logBlocked($window, $limit);
+                throw new EmailRateLimitExceededException;
+            }
+        });
     }
 
     public function reserve(): void
     {
-        $limit = $this->limit();
-        $attempts = RateLimiter::hit(self::KEY, $limit['decay_seconds']);
+        $this->withLock(function (): void {
+            foreach ($this->limits() as $window => $limit) {
+                if (! RateLimiter::tooManyAttempts($limit['key'], $limit['max_attempts'])) {
+                    continue;
+                }
 
-        if ($attempts <= $limit['max_attempts']) {
-            return;
-        }
+                $this->logBlocked($window, $limit);
+                throw new EmailRateLimitExceededException;
+            }
 
-        $this->logBlocked($limit);
-        throw new EmailRateLimitExceededException;
+            $reserved = [];
+
+            try {
+                foreach ($this->limits() as $limit) {
+                    RateLimiter::hit($limit['key'], $limit['decay_seconds']);
+                    $reserved[] = $limit;
+                }
+            } catch (Throwable $exception) {
+                foreach ($reserved as $limit) {
+                    RateLimiter::decrement($limit['key'], $limit['decay_seconds']);
+                }
+
+                throw $exception;
+            }
+        });
     }
 
-    /** @param array{max_attempts: int, decay_seconds: int} $limit */
-    private function logBlocked(array $limit): void
+    /** @param array{key: string, max_attempts: int, decay_seconds: int} $limit */
+    private function logBlocked(string $window, array $limit): void
     {
         Log::channel('operational')->error('email.rate_limit_blocked', [
             'request_id' => $this->requestId(),
             'scope' => 'global',
+            'window' => $window,
             'max_attempts' => $limit['max_attempts'],
             'decay_seconds' => $limit['decay_seconds'],
         ]);
     }
 
-    /** @return array{max_attempts: int, decay_seconds: int} */
-    private function limit(): array
+    /** @return array<string, array{key: string, max_attempts: int, decay_seconds: int}> */
+    private function limits(): array
     {
         return [
-            'max_attempts' => (int) config('rate_limits.global.email.max_attempts'),
-            'decay_seconds' => (int) config('rate_limits.global.email.decay_seconds'),
+            'hourly' => [
+                'key' => self::HOURLY_KEY,
+                'max_attempts' => (int) config('rate_limits.global.email.max_attempts'),
+                'decay_seconds' => (int) config('rate_limits.global.email.decay_seconds'),
+            ],
+            'daily' => [
+                'key' => self::DAILY_KEY,
+                'max_attempts' => (int) config('rate_limits.global.email.daily.max_attempts'),
+                'decay_seconds' => (int) config('rate_limits.global.email.daily.decay_seconds'),
+            ],
         ];
+    }
+
+    private function withLock(Closure $callback): void
+    {
+        Cache::lock(self::LOCK_KEY, 10)->block(5, $callback);
     }
 
     private function requestId(): ?string

@@ -36,7 +36,8 @@ O host deve executar `php artisan schedule:run` a cada minuto. O Laravel usa
 `America/Sao_Paulo` para decidir os horários e atualmente agenda:
 
 - `visitors:anonymize-ips` diariamente às 03:00;
-- `geoip:update` diariamente às 04:00, quando habilitado.
+- `geoip:update` diariamente às 04:00, quando habilitado;
+- `smtp:keepalive` diariamente às 00:00.
 
 Na DreamHost, cadastre o cron via SSH (`crontab -e`); o formulário do painel não
 oferece a frequência de um minuto exigida pelo scheduler:
@@ -62,9 +63,62 @@ execuções simultâneas do cron quando oferecer esse controle; a aplicação us
 
 ## E-mail
 
-O host deve oferecer um transporte compatível com Symfony Mailer: SMTP ou
-`sendmail`. A instalação precisa configurar `MAIL_*`, remetente, SPF e DKIM e
-validar entrega real do OTP antes de liberar autenticação em produção.
+O host deve oferecer um transporte compatível com Symfony Mailer. Para a
+integração transacional do gdevs, use SMTP da Brevo com TLS na porta 587 e
+mantenha estes valores somente no `.env` externo:
+
+```dotenv
+MAIL_MAILER=smtp
+MAIL_SCHEME=tls
+MAIL_HOST=smtp-relay.brevo.com
+MAIL_PORT=587
+MAIL_USERNAME=<SMTP_LOGIN>
+MAIL_PASSWORD=<SMTP_KEY>
+MAIL_FROM_ADDRESS=<VERIFIED_SENDER>
+MAIL_FROM_NAME="gdevs"
+```
+
+O desenvolvimento começa com `MAIL_MAILER=log`; o modo SMTP só deve ser
+ativado temporariamente para um teste controlado. O remetente/domínio precisa
+estar autenticado na Brevo.
+
+O plano Free informa cota de 300 envios por dia. Para não depender do horário
+de virada ou da fila de retry da Brevo, a aplicação reserva globalmente no
+cache compartilhado no máximo 150 envios por hora e 250 envios em uma janela
+móvel de 24 horas. Esses limites incluem o keepalive e devem ser mantidos
+abaixo da cota do provedor.
+
+O scheduler diário executa `smtp:keepalive` às 00:00. O comando não envia
+quando o mailer efetivo é `log` ou quando ainda não existe um envio SMTP aceito
+registrado. Depois de 80 dias sem envio SMTP aceito, ele envia uma mensagem
+técnica para `MAIL_FROM_ADDRESS`; o timestamp persistido fica em
+`smtp_transport_states`. A tarefa usa `withoutOverlapping`, e falhas ficam no
+log operacional sem registrar credenciais, OTP, conteúdo ou endereço completo.
+
+Antes do primeiro uso SMTP, confirme no painel da Brevo que a plataforma
+transacional está habilitada para a conta e que a chave SMTP está ativa. Isso
+é um estado da conta/provedor, não uma configuração adicional no código; o
+teste controlado de entrega confirma a ativação efetiva.
+
+### Teste manual de entrega
+
+No desenvolvimento:
+
+1. confirme `MAIL_MAILER=log` e execute `php artisan config:clear`;
+2. altere temporariamente o `.env` externo para os valores SMTP acima;
+3. execute `php artisan config:clear` e solicite um único OTP para um
+   destinatário controlado;
+4. confirme recebimento, remetente e evento no painel transacional da Brevo;
+5. restaure `MAIL_MAILER=log` e execute novamente `php artisan config:clear`.
+
+Em produção, confirme os mesmos pré-requisitos no `.env` externo. Se esse
+arquivo foi alterado depois do último deploy, execute um novo deploy antes do
+teste para que o arquivo seja recopiado e o cache seja recriado com
+`php artisan config:cache`; sem isso, a aplicação pode continuar usando valores
+SMTP antigos. Depois, faça um único pedido de OTP para um destinatário
+controlado e valide recebimento, remetente e evento transacional. Registre fora
+do Git somente ambiente, data, resultado e referência operacional não sensível.
+Nunca registre chave SMTP, senha, OTP ou destinatário completo.
 
 ## GeoIP opcional
 
@@ -108,7 +162,8 @@ Antes de considerar um host pronto, o gdev deve:
 5. validar permissões, cache, `/ping` e a indisponibilidade dos caminhos
    sensíveis;
 6. ativar e verificar o scheduler;
-7. provisionar e validar e-mail;
+7. provisionar e validar e-mail, incluindo um teste SMTP controlado em dev e
+   produção;
 8. provisionar GeoIP, quando habilitado;
 9. registrar fora do Git os valores, comandos, responsáveis, datas e evidências
    específicos daquele ambiente.
