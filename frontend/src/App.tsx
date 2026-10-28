@@ -51,7 +51,7 @@ export default function App() {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [pathname])
   const navigate = useCallback((path: string) => {
-    const target = new URL(path, window.location.origin)
+    const target = new URL(path, window.location.href)
     if (target.origin !== window.location.origin) {
       window.location.assign(path)
       return
