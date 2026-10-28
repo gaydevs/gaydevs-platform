@@ -4,6 +4,7 @@ import { api, assertUnblocked, config, currentSddBranch, currentStatus, fastTrac
 
 const riskRank = { low: 0, medium: 1, high: 2 };
 const label = risk => risk[0].toUpperCase() + risk.slice(1);
+const mediumCheckpointMarker = '<!-- gaydevs-sdd:fast-track-checkpoint:medium -->';
 
 function readRisk(number) {
   const directory = localSpecDirectory(number);
@@ -37,15 +38,23 @@ main(() => {
     if (state.risk !== 'medium') throw new Error('Checkpoint só é válido para fast-track Medium Risk.');
     assertUnblocked(context);
     const current = currentStatus(context.issue, board);
-    if (current !== 'Specifying') throw new Error(`Checkpoint Medium Risk exige Status Specifying; atual: ${current}.`);
-    setStatus(context.issue, 'In Progress', board);
-    writeFileSync(state.specPath, state.content.replace(/^Estado:.*$/mi, 'Estado: fast-track Medium Risk com checkpoint humano aprovado.'));
+    if (!['Specifying', 'In Progress'].includes(current)) throw new Error(`Checkpoint Medium Risk exige Status Specifying ou In Progress para retomada; atual: ${current}.`);
+    if (current === 'Specifying') setStatus(context.issue, 'In Progress', board);
+
+    const approvedState = 'Estado: fast-track Medium Risk com checkpoint humano aprovado.';
+    const spec = readFileSync(state.specPath, 'utf8');
+    if (!spec.includes(approvedState)) writeFileSync(state.specPath, spec.replace(/^Estado:.*$/mi, approvedState));
     const plan = path.join(state.directory, 'plan.md');
-    if (readFileSync(plan, 'utf8').includes('Implementação pendente do checkpoint Medium Risk.')) {
-      writeFileSync(plan, readFileSync(plan, 'utf8').replace('Implementação pendente do checkpoint Medium Risk.', 'Checkpoint Medium Risk aprovado; implementação autorizada.'));
+    const planContent = readFileSync(plan, 'utf8');
+    if (planContent.includes('Implementação pendente do checkpoint Medium Risk.')) {
+      writeFileSync(plan, planContent.replace('Implementação pendente do checkpoint Medium Risk.', 'Checkpoint Medium Risk aprovado; implementação autorizada.'));
     }
-    api(`repos/${config.repository}/issues/${context.issue.number}/comments`, { method: 'POST', body: { body: 'Checkpoint Medium Risk aprovado explicitamente por um gdev. Implementação autorizada; Project movido para In Progress.' } });
-    console.log(`Issue #${number}: checkpoint Medium Risk aprovado; In Progress`);
+
+    const approvalRecorded = context.comments.some(comment => comment.body?.includes(mediumCheckpointMarker));
+    if (!approvalRecorded) {
+      api(`repos/${config.repository}/issues/${context.issue.number}/comments`, { method: 'POST', body: { body: `${mediumCheckpointMarker}\nCheckpoint Medium Risk aprovado explicitamente por um gdev. Implementação autorizada; Project em In Progress.` } });
+    }
+    console.log(`Issue #${number}: checkpoint Medium Risk aprovado e registrado; In Progress`);
     return;
   }
 

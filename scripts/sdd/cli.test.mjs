@@ -162,6 +162,29 @@ test('from-issue Medium Risk pauses in Specifying until one human checkpoint', t
   assert.match(s.state().comments[27].at(-1).body, /Checkpoint Medium Risk aprovado/);
 });
 
+test('Medium Risk checkpoint retries after a partial application without duplicating approval', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Feature'); });
+  const work = JSON.parse(ok(start(s, 27, '--fast-track', '--risk', 'medium', '--human-approved')));
+  const dir = path.join(s.repo, work.directory);
+  s.change(v => { v.failures = [{ endpoint: '/comments', method: 'POST', code: 503 }]; });
+  s.clearCalls();
+  fail(s.cli('fast-track', [27, 'checkpoint', '--human-approved']), /HTTP 503/);
+  assert.equal(s.state().items.I_27.status, 'In Progress');
+  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /checkpoint humano aprovado/);
+  assert.equal(s.state().comments[27].filter(comment => comment.body.includes('fast-track-checkpoint:medium')).length, 0);
+
+  s.change(v => { v.failures = []; });
+  s.clearCalls();
+  ok(s.cli('fast-track', [27, 'checkpoint', '--human-approved']));
+  assert.equal(s.state().items.I_27.status, 'In Progress');
+  assert.equal(s.state().comments[27].filter(comment => comment.body.includes('fast-track-checkpoint:medium')).length, 1);
+  assert.match(readFileSync(path.join(dir, 'plan.md'), 'utf8'), /Checkpoint Medium Risk aprovado; implementação autorizada/);
+
+  s.clearCalls();
+  ok(s.cli('fast-track', [27, 'checkpoint', '--human-approved']));
+  assert.equal(s.state().comments[27].filter(comment => comment.body.includes('fast-track-checkpoint:medium')).length, 1);
+});
+
 test('fast-track escalation preserves branch/spec and raises governance', t => {
   const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
   const work = JSON.parse(ok(start(s, 27, '--fast-track', '--risk', 'low', '--human-approved')));
