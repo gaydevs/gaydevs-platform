@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import type { HeroContent, ImageAsset } from '../types/content'
 import { ActionLink } from '../components/ActionLink'
+import { useSectionBrandVisibility } from '../components/useSectionBrandVisibility'
 
 interface HeroProps {
   content: HeroContent
@@ -14,27 +15,7 @@ export function Hero({ content, mobile, desktop, onBrandVisibilityChange }: Hero
   const brandIconSrc = `${import.meta.env.BASE_URL}brand-icon-512.png`
   const brandIcon = useRef<HTMLImageElement>(null)
 
-  useEffect(() => {
-    const element = brandIcon.current
-    if (!element || !onBrandVisibilityChange) return
-
-    // O header muda de formato quando a marca principal deixa a viewport.
-    if (typeof window.IntersectionObserver === 'undefined') {
-      const updateVisibility = () => {
-        const bounds = element.getBoundingClientRect()
-        onBrandVisibilityChange(bounds.bottom > 0 && bounds.top < window.innerHeight)
-      }
-      updateVisibility()
-      window.addEventListener('scroll', updateVisibility, { passive: true })
-      return () => window.removeEventListener('scroll', updateVisibility)
-    }
-
-    const observer = new IntersectionObserver(([entry]) => {
-      onBrandVisibilityChange(entry.isIntersecting)
-    })
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [onBrandVisibilityChange])
+  useSectionBrandVisibility({ brandRef: brandIcon, onVisibilityChange: onBrandVisibilityChange })
 
   return <section id="inicio" className="hero" aria-labelledby="hero-title">
     <picture className="hero-art">

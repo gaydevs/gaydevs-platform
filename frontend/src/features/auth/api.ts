@@ -1,12 +1,12 @@
 export interface MaskedUser { id: string; name: string; email: string }
-export interface AuthenticatedUser { id: string; name: string }
+export interface AuthenticatedUser { id: string; name: string; member_type?: 'member' | 'admin' | string }
 export interface OtpRequest { otp_request_id: string; expires_at: string }
 
 interface SessionResponse { user: AuthenticatedUser }
-interface ErrorResponse { message?: string; reason?: string; reference?: string }
+interface ErrorResponse { message?: string; reason?: string; reference?: string; errors?: Record<string, string[]> }
 
 export class ApiError extends Error {
-  constructor(message: string, public readonly status: number, public readonly reason?: string, public readonly reference?: string) {
+  constructor(message: string, public readonly status: number, public readonly reason?: string, public readonly reference?: string, public readonly errors?: Record<string, string[]>) {
     super(message)
     this.name = 'ApiError'
   }
@@ -15,6 +15,8 @@ export class ApiError extends Error {
 /** Converte um erro da API em mensagem segura para exibição ao usuário. */
 export function messageForApiError(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Não foi possível concluir a solicitação.'
+  const validationMessage = Object.values(error.errors ?? {}).flat()[0]
+  if (validationMessage) return validationMessage
   return error.status >= 500 && error.reference ? `${error.message} Referência: ${error.reference}` : error.message
 }
 
@@ -43,7 +45,7 @@ async function csrf(): Promise<void> {
 }
 
 /** Centraliza headers, cookies, CSRF e conversão de respostas de erro. */
-async function request<T>(path: string, init: RequestInit = {}, stateChanging = false): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}, stateChanging = false): Promise<T> {
   if (stateChanging) await csrf()
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
@@ -54,7 +56,7 @@ async function request<T>(path: string, init: RequestInit = {}, stateChanging = 
   if (!response.ok) {
     // A API já filtra a mensagem pública; a referência permite correlacionar o log.
     const error = await response.json().catch((): ErrorResponse => ({})) as ErrorResponse
-    throw new ApiError(error.message ?? 'Não foi possível concluir a solicitação.', response.status, error.reason, error.reference)
+    throw new ApiError(error.message ?? 'Não foi possível concluir a solicitação.', response.status, error.reason, error.reference, error.errors)
   }
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
