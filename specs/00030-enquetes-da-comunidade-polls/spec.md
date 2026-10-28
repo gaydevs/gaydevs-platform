@@ -350,6 +350,6 @@ ordenação estável de listagem e opções, skeletons de lista/detalhe/auditori
 login protegido com redirecionamento após cancelamento, formulário com
 validação condicional de opções e inputs/ações visuais compartilhados.
 
-A refatoração estrutural de frontend descrita no plano temporário permanece uma
-proposta de manutenção e exige aprovação antes de iniciar novas alterações de
-código.
+A refatoração estrutural de frontend descrita no plano temporário foi executada
+após a aprovação do plano, preservando os contratos públicos, o comportamento
+visual e os fluxos funcionais cobertos pelos testes.

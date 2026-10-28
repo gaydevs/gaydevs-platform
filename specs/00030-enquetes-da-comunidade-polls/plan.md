@@ -84,9 +84,9 @@ completo durante envio.
 
 A implementação já possui componentes compartilhados para inputs e ações de
 campo (`FieldControl` e `FieldActionButton`), cards, marca de seção e submenu.
-Uma refatoração adicional para extrair o shell genérico de seção, hooks de
-dados e estados assíncronos será feita em fases separadas, protegida por testes,
-sem alterar contratos da API.
+A refatoração adicional extraiu o shell genérico de seção, hooks de dados e
+estados assíncronos em fases separadas, protegida por testes e sem alterar
+contratos da API.
 
 ## Impactos e dependências
 
@@ -218,13 +218,17 @@ Aditivos implementados e incorporados ao desenho técnico em 2026-10-27:
 - sugestões reutilizam o `PollCard` em modo compacto, sem slug no modal, com
   `...` sempre disponível no card sugerido e ação `não quero votar nesta
   enquete`; o card de nova opção usa o texto lowercase sem reticências;
-- o frontend recebeu testes de caracterização para o comportamento atual antes
-  da refatoração estrutural proposta.
+- o frontend recebeu testes de caracterização antes da refatoração estrutural e
+  testes de contrato para os módulos compartilhados depois da extração.
 
 ## Estado do checkpoint
 
 O estado funcional e seus testes foram registrados no commit
-`fa58751` (`feat: add community polls`). A suíte frontend tem 112 testes em
-16 arquivos; lint e typecheck direto sem incremental passam. A refatoração de
-padronização e modularização continua planejada por fases e ainda não foi
-iniciada.
+`fa58751` (`feat: add community polls`). A refatoração aprovada foi executada
+sem alterar a API pública: a rota agora coordena módulos de lista, detalhe,
+criação, opção, diálogos, loading, seção, autenticação, voto e sugestões; as
+regras puras e os tokens compartilhados foram centralizados.
+
+A validação final tem 123 testes frontend em 19 arquivos, 152 testes backend
+passando e 1 skip condicionado a locks do MySQL, além de ESLint, `tsc -b`,
+build Vite e `git diff --check` passando.

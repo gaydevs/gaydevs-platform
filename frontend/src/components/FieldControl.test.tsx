@@ -21,4 +21,13 @@ describe('FieldControl', () => {
 
     expect(screen.getByRole('textbox', { name: 'opção' }).parentElement).toHaveClass('field-control--compact')
   })
+
+  it('keeps disabled and field-level error state on the shared shell', () => {
+    render(<FieldControl aria-label="pergunta" disabled error="A pergunta é obrigatória." />)
+
+    const input = screen.getByRole('textbox', { name: 'pergunta' })
+    expect(input).toBeDisabled()
+    expect(screen.getByRole('alert')).toHaveTextContent('A pergunta é obrigatória.')
+    expect(input.parentElement).toContainElement(screen.getByRole('alert'))
+  })
 })

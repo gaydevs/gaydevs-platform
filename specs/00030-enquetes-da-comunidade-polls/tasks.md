@@ -102,6 +102,22 @@ Issue: [#30](https://github.com/gaydevs/gaydevs-platform/issues/30) · Plano:
   menu `...` visível no contexto correto e padronizar os textos de sugestão e
   de nova opção em minúsculas, sem reticências indevidas.
 
+## Refatoração frontend executada
+
+- [x] T008 Extrair o shell genérico de seção, marca, título, submenu e retorno
+  ao início, sem acoplamento à feature de polls.
+- [x] T008a Consolidar `FieldControl`, `FieldActionButton`, spinner, shake,
+  disabled e erro em primitivas com contratos acessíveis e testáveis.
+- [x] T008b Separar `PollsPage.tsx` em rota, listagem, criação, detalhe,
+  auditoria, modais e componentes de opção sem alterar a API pública.
+- [x] T008c Extrair hooks de dados e funções puras para cursor, merge,
+  ordenação, voto otimista, sugestões e tradução de erros.
+- [x] T008d Padronizar os gates de autenticação `required`/`preview` e os
+  estados assíncronos de loading, erro, rollback e sucesso.
+- [x] T008e Centralizar tokens de paleta, espaçamento, tipografia, foco e
+  movimento, mantendo suporte a `prefers-reduced-motion`.
+- [x] T008f Executar validação visual desktop/mobile, suíte completa, lint,
+  typecheck, build e `git diff --check` após cada fase.
 
 Validação executada antes do aditivo de sugestões: backend `131 passed, 1 skipped`
 (799 assertions), frontend `79 passed` em 10 arquivos, TypeScript, ESLint, Pint e
@@ -112,3 +128,13 @@ As tasks permanecem neste arquivo; não gerar Issues automaticamente.
 Validação do aditivo de sugestões: backend `152 passed, 1 skipped` (919
 assertions), frontend `106 passed` em 14 arquivos, typecheck sem incremental,
 build Vite, ESLint, Pint e `git diff --check` passaram.
+
+Validação do checkpoint de proteção da refatoração: frontend `112 passed` em
+16 arquivos, ESLint e `npx tsc -p frontend/tsconfig.app.json --noEmit`
+passaram. O plano temporário correspondente está em
+`.tmp/frontend-standardization-plan.md`; ele não substitui o plano técnico.
+
+Validação final da refatoração: frontend `123 passed` em 19 arquivos, backend
+`152 passed, 1 skipped` (919 assertions), ESLint, `tsc -b`, build Vite e
+`git diff --check` passaram. O skip do backend continua sendo o teste de
+concorrência que exige locks do MySQL.

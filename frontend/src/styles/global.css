@@ -31,13 +31,15 @@ section, article, div, li { min-width: 0; }
 .poll-create-button::before { width: 24px; height: 4px; }
 .poll-create-button::after { width: 4px; height: 24px; }
 .poll-create-button:hover { border-color: var(--cyan); transform: translateY(-2px); box-shadow: 0 0 24px #20d7ff18; }
-.field-action-button { position: relative; display: inline-grid; flex: 0 0 auto; width: 36px; height: 36px; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: #fff; color: transparent; font-size: 0; cursor: pointer; transition: transform 180ms, border-color 180ms, box-shadow 180ms; }
+.field-action-button { position: relative; display: inline-grid; flex: 0 0 auto; width: 36px; height: 36px; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: #fff; color: transparent; font-size: 0; cursor: pointer; transition: transform var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast); }
 .field-action-button::before, .field-action-button::after { position: absolute; top: 50%; left: 50%; display: block; content: ''; border-radius: var(--radius-pill); background: var(--bg); transform: translate(-50%, -50%); }
 .field-action-button::before { width: 18px; height: 3px; }
 .field-action-button::after { width: 3px; height: 18px; }
 .field-action-button--remove::before, .field-action-button--remove::after { transform: translate(-50%, -50%) rotate(45deg); }
 .field-action-button:hover { border-color: var(--cyan); transform: translateY(-1px); box-shadow: 0 0 18px #20d7ff18; }
 .field-action-button:disabled { border-color: #ffffff1f; cursor: not-allowed; opacity: .45; transform: none; box-shadow: none; }
+.field-action-button--busy::before, .field-action-button--busy::after { display: none; }
+.field-action-button__spinner { width: 16px; height: 16px; border-width: 2px; }
 .field-action-button--compact { width: 22px; height: 22px; }
 .field-action-button--compact::before { width: 12px; height: 3px; }
 .field-action-button--compact::after { width: 3px; height: 12px; }
@@ -48,8 +50,8 @@ section, article, div, li { min-width: 0; }
 .polls-brand.polls-hero-brand img { flex: 0 0 auto; width: clamp(3.4rem, 15vw, 8.5rem); height: clamp(3.4rem, 15vw, 8.5rem); object-fit: contain; transform: translateY(.105em); filter: drop-shadow(0 0 34px #20d7ffaa) drop-shadow(0 0 48px #ff3ac880); }
 .polls-brand.polls-hero-brand > span { display: inline-flex; min-width: 0; white-space: nowrap; }
 .polls-eyebrow, .poll-card__status { color: var(--cyan); font: .75rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
-.poll-card__status--open { color: var(--cyan); }
-.poll-card__status--closed { color: #ff8493; }
+.poll-card__status--open { color: var(--status-open); }
+.poll-card__status--closed { color: var(--status-closed); }
 .poll-status-trigger { appearance: none; margin: 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .poll-card__dates.poll-status-trigger, .poll-date-meta.poll-status-trigger { display: block; width: max-content; }
 .poll-list { display: grid; width: 100%; gap: 16px; }
@@ -128,7 +130,7 @@ section, article, div, li { min-width: 0; }
 .overflow-menu__popover button { width: auto; padding: 8px 10px; border: 0; border-radius: 4px; background: transparent; color: #ffb0ba; font: .75rem var(--font-mono); white-space: nowrap; cursor: pointer; }
 .overflow-menu__popover button:hover { background: #ff4f6428; }
 .field-control { position: relative; display: flex; width: 100%; min-width: 0; min-height: 52px; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg); transition: border-color 180ms, outline 180ms, box-shadow 180ms; }
-.field-control:focus-within { border-color: var(--cyan); outline: 2px solid #20d7ff35; outline-offset: 1px; }
+.field-control:focus-within { border-color: var(--cyan); outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .field-control input { width: 100%; min-width: 0; min-height: 50px; flex: 1; padding: 12px 14px; border: 0; border-radius: inherit; outline: 0; background: transparent; color: var(--text); font: inherit; }
 .field-control input:disabled { color: #ffffff70; cursor: not-allowed; opacity: .6; }
 .field-control--before input { padding-left: 64px; }

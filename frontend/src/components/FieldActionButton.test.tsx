@@ -18,4 +18,13 @@ describe('FieldActionButton', () => {
 
     expect(screen.getByRole('button', { name: 'limpar busca' })).toHaveClass('field-action-button--small')
   })
+
+  it('centralizes the busy state without exposing the action while it is pending', () => {
+    render(<FieldActionButton variant="add" busy aria-label="adicionar opção" />)
+
+    const button = screen.getByRole('button', { name: 'adicionar opção' })
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('aria-busy', 'true')
+    expect(button).toContainElement(document.querySelector('.loading-spinner'))
+  })
 })
