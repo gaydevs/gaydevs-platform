@@ -76,6 +76,32 @@ Issue: [#30](https://github.com/gaydevs/gaydevs-platform/issues/30) · Plano:
 - [x] T007z Sugerir até três enquetes abertas após um voto, com toast/modal,
   snooze sincronizado de no máximo 24 horas e recusa individual persistida no
   JSON de preferências do usuário.
+- [x] T007aa Registrar o admin que encerrou a enquete, bloquear votos e novas
+  opções após o encerramento e exibir o estado somente leitura.
+- [x] T007ab Substituir exclusão de opções por ocultação auditável, registrar
+  `hidden_at`/`hidden_by_user_id`, cancelar votos com motivo próprio e aplicar
+  o mínimo de opções visíveis.
+- [x] T007ac Completar guards de backend contra visitante, membro sem admin,
+  enquete encerrada, opção oculta, opção não permitida e referências inválidas,
+  incluindo chamadas diretas fora da interface.
+- [x] T007ad Ordenar listagem e opções de forma estável, preservar empate por
+  data de criação e manter cursor/merge durante sincronização incremental.
+- [x] T007ae Completar skeletons de listagem, detalhe e auditoria, incluindo
+  o skeleton atrás do login automático e o redirecionamento após cancelamento.
+- [x] T007af Implementar criação condicional de opções, validação por campo,
+  tooltip de erro geral, bloqueio integral durante envio, switches e controles
+  compartilhados de input/`+`/`×`.
+- [x] T007ag Manter a auditoria apenas no detalhe, ordenar todos os eventos,
+  identificar autoria/encerramento/ocultação e filtrar por opção e gdev.
+- [x] T007ah Validar preferências JSON sem cascata de exclusão, com snooze de
+  no máximo 24 horas e recusa de enquete sincronizada entre dispositivos.
+- [x] T007ai Adicionar testes de caracterização para `PollCard`, submenu,
+  transformação da marca da seção, links externos, teclado e ações compactas,
+  antes da refatoração estrutural.
+- [x] T007aj Reutilizar o `PollCard` compacto no modal de sugestões, manter o
+  menu `...` visível no contexto correto e padronizar os textos de sugestão e
+  de nova opção em minúsculas, sem reticências indevidas.
+
 
 Validação executada antes do aditivo de sugestões: backend `131 passed, 1 skipped`
 (799 assertions), frontend `79 passed` em 10 arquivos, TypeScript, ESLint, Pint e

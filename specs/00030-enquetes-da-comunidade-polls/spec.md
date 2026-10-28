@@ -163,6 +163,57 @@ moderação e funcionalidades não necessárias ao primeiro caso de uso.
 - REQ-025: “Não quero votar” registra somente o UUID da enquete na lista de
   preferências do usuário, não cria voto nem evento de auditoria e remove essa
   enquete das sugestões futuras em todos os dispositivos.
+- REQ-026: A listagem ordena primeiro enquetes abertas, depois encerradas; em
+  cada grupo, ordena da criação mais recente para a mais antiga. O detalhe
+  ordena opções pela quantidade bruta de votos decrescente e, em empate, pela
+  criação mais antiga, preservando essa ordem após atualizações otimistas e
+  sincronizações do backend.
+- REQ-027: O backend rejeita, mesmo em chamadas forjadas, votos em enquetes
+  encerradas ou opções ocultadas, votos sem autenticação, criação de enquete
+  por membro que não seja admin, criação de opção quando desabilitada e toda
+  operação administrativa sem a autorização correspondente.
+- REQ-028: Encerrar uma enquete registra `closed_at` e o admin responsável;
+  depois disso a enquete permanece visível somente para leitura e não aceita
+  voto, nova opção ou alteração administrativa incompatível.
+- REQ-029: Ocultar uma opção registra `hidden_at` e o gdev responsável,
+  mantém a opção e seus votos disponíveis para auditoria, cancela os votos
+  ativos com motivo próprio e impede novos votos nela. A operação respeita o
+  mínimo de opções visíveis: duas quando novas opções não são permitidas e uma
+  quando são permitidas.
+- REQ-030: A auditoria autenticada lista em ordem cronológica todos os eventos
+  de criação, voto, cancelamento, ocultação e encerramento, identifica o gdev
+  responsável quando houver e oferece filtros por opção/evento e por gdev.
+  A auditoria não é acessível a partir dos cards da listagem, somente do
+  detalhe da enquete.
+- REQ-031: A listagem, o detalhe e a auditoria exibem skeletons durante o
+  carregamento; o skeleton do detalhe preserva a marca da seção. A listagem
+  carrega lotes de três, usa lazy loading e remove o skeleton ao atingir o fim.
+- REQ-032: Ao entrar na seção de polls sem autenticação, o sistema mantém o
+  skeleton atrás do modal de login e retorna à home se o login for cancelado.
+  Ao abrir diretamente uma enquete, o visitante permanece na página vendo a
+  prévia pública e só recebe o login depois de tentar votar.
+- REQ-033: A criação de enquete usa a mesma interface visual de edição/votação;
+  todos os campos ficam desabilitados durante o envio, o botão mostra loading,
+  erros de campo aparecem no próprio campo e fazem o componente tremer, e
+  erros gerais aparecem em tooltip sobre o botão de submissão.
+- REQ-034: A criação exige a primeira opção; a segunda é obrigatória quando
+  novas opções não são permitidas e opcional quando são permitidas. Opções
+  adicionais podem ser removidas, exceto a primeira, e a validação de
+  duplicidade normaliza apenas para comparação, preservando o texto original.
+- REQ-035: Login, criação de enquete e sugestão de nova opção reutilizam o
+  mesmo shell de input e as ações modulares de adicionar/remover, com labels
+  acessíveis, estados disabled, spinner, foco e paleta visual compartilhados.
+- REQ-036: Preferências do usuário são armazenadas em JSON por usuário sem
+  cascata automática de exclusão; o serviço valida que o snooze nunca exceda
+  24 horas e mantém a lista de enquetes recusadas sincronizada entre
+  dispositivos.
+- REQ-037: O modal de sugestões reutiliza o mesmo card da listagem em variante
+  compacta, sem exibir o slug; cada card mantém o menu `...` visível somente no
+  modal, com a ação `não quero votar nesta enquete` em minúsculas. A listagem
+  não exibe esse menu.
+- REQ-038: O card para criação de opção usa exatamente o texto
+  `sugira uma nova opção`, em minúsculas e sem reticências, como placeholder e
+  identificação acessível.
 - REQ-015: A normalização do slug é determinística: minúsculas, sem acentos,
   separadores em hífen, sem hífens duplicados e limitada ao tamanho máximo
   definido para o identificador.
@@ -205,6 +256,21 @@ moderação e funcionalidades não necessárias ao primeiro caso de uso.
 - Dado que uma enquete esteja encerrada, quando o detalhe for aberto, então o
   sistema exibirá um texto relativo como “encerrada há 3 dias” e manterá apenas
   o marcador de encerramento, sem exibir a data exata.
+- Dado que um admin encerre uma enquete ou oculte uma opção, quando outro gdev
+  consultar a auditoria, então o evento exibirá o responsável, o momento e os
+  votos cancelados permanecerão consultáveis.
+- Dado que uma chamada direta tente votar em enquete encerrada ou opção
+  oculta, quando chegar ao backend, então ela será rejeitada sem criar voto
+  ativo ou alterar os resultados.
+- Dado que o usuário entre na listagem sem sessão, quando fechar o login sem
+  concluir a autenticação, então o skeleton será desmontado e a navegação irá
+  para a home; ao abrir uma enquete diretamente, a prévia permanecerá visível.
+- Dado que um erro de criação seja retornado pelo backend, quando o frontend
+  receber um campo como `option.0`, então o erro será traduzido, associado à
+  opção correspondente e o campo tremerá sem expor a mensagem técnica.
+- Dado que a listagem receba uma enquete nova ou uma mudança de estado durante
+  o lazy loading, quando a sincronização terminar, então os cards serão
+  mesclados sem duplicação, sem perder o cursor e com a reorganização animada.
 
 ## Dependências e questões abertas
 
@@ -228,6 +294,16 @@ Decisões registradas:
   individualmente e podem não somar exatamente 100% visualmente.
 - Votos legados agregados são importados como registros ativos sem `user_id`;
   enquetes legadas ficam encerradas e disponíveis somente para visualização.
+- Encerramento e ocultação são ações administrativas auditáveis; votos de uma
+  opção ocultada não são apagados, apenas cancelados com motivo específico.
+- O modal de erro de conexão é o padrão para falhas de mutação que não podem
+  ser compreendidas no campo; o frontend continua preparado para erros gerais
+  mesmo quando o backend retorna erros específicos por campo.
+- A padronização estrutural do frontend será executada separadamente, em fases,
+  após a proteção do comportamento atual por testes; ela não altera contratos
+  da API nem regras do backend.
+- O card de sugestão deve compartilhar o componente e a formatação do card da
+  listagem, alterando apenas escala e ações disponíveis no contexto do modal.
 
 Questões a resolver antes do plano técnico: nenhuma funcional pendente.
 
@@ -266,3 +342,14 @@ Aditivo aprovado por gdev luvittor em 2026-10-27: após votar, gdevs autenticado
 recebem sugestões de outras enquetes abertas; “Agora não” usa uma preferência
 JSON sincronizada por no máximo 24 horas e “Não quero votar” registra a enquete
 recusada na mesma preferência, sem criar voto ou auditoria.
+
+Aditivos documentados posteriormente na implementação: encerramento com autoria
+do admin, ocultação auditável de opções com `hidden_at`/`hidden_by_user_id`,
+cancelamento dos votos afetados, guards contra chamadas diretas inválidas,
+ordenação estável de listagem e opções, skeletons de lista/detalhe/auditoria,
+login protegido com redirecionamento após cancelamento, formulário com
+validação condicional de opções e inputs/ações visuais compartilhados.
+
+A refatoração estrutural de frontend descrita no plano temporário permanece uma
+proposta de manutenção e exige aprovação antes de iniciar novas alterações de
+código.

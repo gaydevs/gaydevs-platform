@@ -56,6 +56,38 @@ restrição única no banco.
 Antes da criação, a pergunta será validada com no mínimo 10 caracteres e duas
 palavras; não haverá slug fallback genérico.
 
+O ciclo administrativo será explícito: `closed_at`/`closed_by_user_id` marcam
+o encerramento da enquete; `hidden_at`/`hidden_by_user_id` marcam a ocultação
+de opções. Nenhum desses registros será apagado em operações normais. Ao
+ocultar uma opção, os votos ativos relacionados serão cancelados com o motivo
+`option_hidden`, mantendo opção, votos e autoria disponíveis na auditoria.
+Os guards serão aplicados no serviço transacional e nas rotas, para que uma
+chamada forjada não consiga votar em enquete encerrada ou opção oculta, criar
+enquete sem `admin`, adicionar opção fora da configuração ou executar ação
+administrativa sem permissão. As foreign keys de preferências não usarão
+`cascadeOnDelete`.
+
+A listagem terá uma consulta autenticada paginada por cursor, em lotes de três,
+com snapshot e parâmetro `since` para sincronizações incrementais. A ordenação
+será aberta antes de encerrada e, dentro do estado, criação decrescente. O
+frontend fará merge por UUID, preservará cursor e cards já carregados e usará
+animação FLIP quando a posição mudar. O detalhe ordenará opções por votos
+decrescentes e criação crescente em empate.
+
+No frontend, a seção terá dois modos de acesso: a listagem exige autenticação,
+mantém o skeleton atrás do modal e retorna à home no cancelamento; o detalhe
+permite preview público e somente solicita login após uma tentativa de voto.
+Skeletons serão usados na listagem, detalhe e auditoria. A criação usará a
+mesma base visual do detalhe, com primeira opção obrigatória, mínimo condicional
+de opções, switches, erro por campo, tooltip de erro geral, tremor e bloqueio
+completo durante envio.
+
+A implementação já possui componentes compartilhados para inputs e ações de
+campo (`FieldControl` e `FieldActionButton`), cards, marca de seção e submenu.
+Uma refatoração adicional para extrair o shell genérico de seção, hooks de
+dados e estados assíncronos será feita em fases separadas, protegida por testes,
+sem alterar contratos da API.
+
 ## Impactos e dependências
 
 - Migrations e models no backend para enquetes, opções e votos.
@@ -88,6 +120,12 @@ palavras; não haverá slug fallback genérico.
   linha; a lista será lida uma vez e aplicada como `whereNotIn`.
 - Índices únicos e transações devem funcionar em SQLite de testes e MySQL de
   produção, sem SQL específico de um único banco.
+- Preferências por usuário devem sobreviver à sincronização entre dispositivos,
+  validar o limite de 24 horas no backend e não depender de cascata de exclusão.
+- A auditoria deve ser autenticada, ordenada por data, filtrável por opção e
+  por gdev/evento, e não deve ser exposta nos cards da listagem.
+- Os componentes visuais devem preservar acessibilidade e `prefers-reduced-motion`
+  ao aplicar skeleton, spinner, tremor, FLIP e transições de estado.
 - A importação das enquetes legadas será entregue como SQL separado, preservando
   datas de início, contagens anônimas do WhatsApp e votos identificados do
   StrawPoll.
@@ -108,6 +146,18 @@ palavras; não haverá slug fallback genérico.
   acessibilidade básica das telas.
 - Testes de preferências para persistência JSON, sincronização por sessão,
   limite de 24 horas, autenticação e exclusão de sugestões recusadas.
+- Testes para `closed_by_user_id`, `hidden_at`, `hidden_by_user_id`, motivo de
+  cancelamento por ocultação, mínimo de opções visíveis e ausência de cascata
+  na preferência do usuário.
+- Testes de guards contra chamadas diretas sem sessão, sem admin, em enquete
+  encerrada e em opção oculta; testes de erros traduzidos por campo e erro
+  geral no frontend.
+- Testes de listagem para ordenação aberta/encerrada, empate de opções,
+  cursor, `since`, merge incremental, novas enquetes no começo/meio/fim e
+  reordenação animada.
+- Testes de caracterização dos componentes compartilhados: input com adornos,
+  ações `+`/`×`, shell de seção, submenu fixo, links externos, teclado,
+  skeletons e ações do card compacto.
 - Executar lint, audit, testes backend e testes frontend conforme os checks
   existentes, além de `git diff --check`.
 
@@ -151,3 +201,30 @@ contagens brutas de votos.
 Aditivo solicitado por gdev luvittor em 2026-10-27: a listagem usa lotes de três,
 skeleton durante o lazy loading e sincronização incremental que mescla novas ou
 alteradas sem perder o cursor ou duplicar cards.
+
+Aditivos implementados e incorporados ao desenho técnico em 2026-10-27:
+
+- encerramento registra o admin responsável e bloqueia voto/nova opção;
+- ocultação registra responsável e momento, cancela votos sem apagar auditoria,
+  respeita o mínimo de opções visíveis e impede voto posterior;
+- auditoria autenticada inclui criação, votos, cancelamentos, ocultações e
+  encerramento, com filtros por opção e gdev, mas não aparece na listagem;
+- listagem e detalhe usam status, tempo relativo, contagem, ordenação estável,
+  lazy loading, skeletons e sincronização incremental;
+- sugestões usam preferências JSON por usuário, snooze máximo de 24 horas,
+  recusa individual sincronizada e card compartilhado com a listagem;
+- criação usa validações condicionais, bloqueio durante envio, erros ancorados
+  nos campos e controles de input compartilhados;
+- sugestões reutilizam o `PollCard` em modo compacto, sem slug no modal, com
+  `...` sempre disponível no card sugerido e ação `não quero votar nesta
+  enquete`; o card de nova opção usa o texto lowercase sem reticências;
+- o frontend recebeu testes de caracterização para o comportamento atual antes
+  da refatoração estrutural proposta.
+
+## Estado do checkpoint
+
+O estado funcional e seus testes foram registrados no commit
+`fa58751` (`feat: add community polls`). A suíte frontend tem 112 testes em
+16 arquivos; lint e typecheck direto sem incremental passam. A refatoração de
+padronização e modularização continua planejada por fases e ainda não foi
+iniciada.
