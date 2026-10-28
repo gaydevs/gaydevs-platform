@@ -204,6 +204,33 @@ test('fast-track escalation preserves branch/spec and raises governance', t => {
   assert.match(s.state().comments[27].at(-1).body, /SDD normal/i);
 });
 
+test('fast-track escalation leaves local Risk unchanged when Project update fails and can be retried', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
+  const work = JSON.parse(ok(start(s, 27, '--fast-track', '--risk', 'low', '--human-approved')));
+  const dir = path.join(s.repo, work.directory);
+  const spec = path.join(dir, 'spec.md');
+  const plan = path.join(dir, 'plan.md');
+  const specBefore = readFileSync(spec, 'utf8');
+  const planBefore = readFileSync(plan, 'utf8');
+  const project = structuredClone(s.state().project);
+
+  s.change(v => {
+    v.project.fields.nodes[0].options = v.project.fields.nodes[0].options.filter(option => option.name !== 'Specifying');
+  });
+  s.clearCalls();
+  fail(s.cli('fast-track', [27, 'escalate', 'medium']), /Status Specifying não configurado/);
+  assert.equal(readFileSync(spec, 'utf8'), specBefore);
+  assert.equal(readFileSync(plan, 'utf8'), planBefore);
+  assert.match(readFileSync(spec, 'utf8'), /Fast-track risk: Low/);
+  assert.equal(s.state().items.I_27.status, 'In Progress');
+
+  s.change(v => { v.project = structuredClone(project); });
+  s.clearCalls();
+  ok(s.cli('fast-track', [27, 'escalate', 'medium']));
+  assert.match(readFileSync(spec, 'utf8'), /Fast-track risk: Medium/);
+  assert.equal(s.state().items.I_27.status, 'Specifying');
+});
+
 test('from-issue --trivial remains a legacy alias for Low Risk', t => {
   const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Feature'); });
   const work = JSON.parse(ok(start(s, 27, '--trivial', '--human-approved')));

@@ -62,13 +62,13 @@ main(() => {
     if (rest.length) throw new Error('Escalada aceita apenas o novo nível de risco.');
     const target = fastTrackRisk(value);
     if (target === 'low' || riskRank[target] <= riskRank[state.risk]) throw new Error(`Risco só pode escalar acima de ${label(state.risk)} durante o fast-track.`);
+    setStatus(context.issue, 'Specifying', board);
     replaceRisk(state.specPath, target);
     replaceRisk(path.join(state.directory, 'plan.md'), target);
     const updated = readFileSync(state.specPath, 'utf8').replace(/^Estado:.*$/mi, target === 'medium'
       ? 'Estado: fast-track Medium Risk aguardando checkpoint humano.'
       : 'Estado: High Risk; fast-track interrompido e SDD normal obrigatório.');
     writeFileSync(state.specPath, updated);
-    setStatus(context.issue, 'Specifying', board);
     const next = target === 'medium'
       ? `Checkpoint humano obrigatório antes de retomar: node scripts/sdd/fast-track.mjs ${number} checkpoint --human-approved.`
       : 'Fast-track encerrado. Expanda os artefatos existentes e retome o SDD normal com os gates de spec/plan na mesma branch/spec.';
