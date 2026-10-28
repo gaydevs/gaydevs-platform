@@ -39,7 +39,7 @@ export function PollCard({ item, path, onNavigate, cardRef, compact = false, act
     openCard()
   }
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if ((event.target as HTMLElement).closest('a')) return
+    if (event.target !== event.currentTarget) return
     if (event.key !== 'Enter' && event.key !== ' ') return
     event.preventDefault()
     openCard()
