@@ -33,3 +33,7 @@ jobs:
       - name: Run tests
         if: hashFiles('frontend/package.json') != ''
         run: npm test
+
+      - name: Build and verify Apache SPA fallback
+        if: hashFiles('frontend/package.json') != ''
+        run: npm run build && test -f dist/.htaccess
