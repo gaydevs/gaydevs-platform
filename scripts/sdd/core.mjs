@@ -29,19 +29,25 @@ export function issueNumber(value) {
   if (!/^[1-9]\d*$/.test(String(value)) || !Number.isSafeInteger(Number(value))) throw new Error('Informe um número positivo de Issue.');
   return Number(value);
 }
-export function sddIdentity(issue, { trivial = false, requireOpen = true } = {}) {
+export const fastTrackRiskLevels = ['low', 'medium', 'high'];
+export function fastTrackRisk(value) {
+  const risk = String(value || '').toLowerCase();
+  if (!fastTrackRiskLevels.includes(risk)) throw new Error('Risk deve ser low, medium ou high.');
+  return risk;
+}
+export function sddIdentity(issue, { fastTrack = false, trivial = false, requireOpen = true } = {}) {
   const type = issue.type?.name;
   const prefix = config.types[type];
   if (!prefix) throw new Error('Issue fora do SDD: exige tipo nativo suportado.');
   if (issue.pull_request) throw new Error('O número pertence a um PR.');
   if (requireOpen && issue.state !== 'open') throw new Error('A Issue precisa estar aberta para iniciar trabalho.');
-  if (trivial && type === 'Feature') throw new Error('Feature sempre exige spec.');
+  const compact = fastTrack || trivial;
   const id = String(issueNumber(issue.number)).padStart(5, '0');
   const slug = issue.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70).replace(/-$/, '') || 'issue';
-  return { id, type, branch: `${prefix}/${id}-${slug}`, directory: `specs/${id}-${slug}`, needsSpec: !trivial };
+  return { id, type, branch: `${prefix}/${id}-${slug}`, directory: `specs/${id}-${slug}`, needsSpec: !compact };
 }
-export function identity(issue, trivial = false) {
-  return sddIdentity(issue, { trivial });
+export function identity(issue, fastTrack = false) {
+  return sddIdentity(issue, { fastTrack });
 }
 export function readIssue(number) {
   const endpoint = `repos/${config.repository}/issues/${issueNumber(number)}`;
@@ -104,14 +110,17 @@ export function prFilesIncludeSpec(files, number) {
   const id = specIdForIssue(number);
   return files.some(file => file.filename?.startsWith(`specs/${id}-`) && file.filename.endsWith('/spec.md'));
 }
-export function localSpecExists(number) {
+export function localSpecDirectory(number) {
   const specs = path.join(root, 'specs');
-  if (!existsSync(specs)) return false;
+  if (!existsSync(specs)) return null;
   const id = specIdForIssue(number);
   const matches = readdirSync(specs, { withFileTypes: true })
     .filter(entry => entry.isDirectory() && entry.name.startsWith(`${id}-`) && existsSync(path.join(specs, entry.name, 'spec.md')));
   if (matches.length > 1) throw new Error(`Mais de uma spec encontrada para ${id}.`);
-  return matches.length === 1;
+  return matches.length === 1 ? path.join(specs, matches[0].name) : null;
+}
+export function localSpecExists(number) {
+  return Boolean(localSpecDirectory(number));
 }
 export function currentSddBranch() {
   const branch = git('branch', '--show-current');
