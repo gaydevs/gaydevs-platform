@@ -1,19 +1,15 @@
 <IfModule mod_rewrite.c>
     Options -MultiViews
     RewriteEngine On
-    RewriteBase /gaydevs/platform/
 
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Social crawlers need metadata in the initial HTML response. Normal browsers
-    # keep using the static SPA fallback below.
+    # Social crawlers need metadata in the initial HTML response. Forward the
+    # SPA-relative path to the backend; the backend decides which preview applies.
     RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot) [NC]
-    RewriteRule ^polls/?$ /gaydevs/api/social/polls-preview [L]
-
-    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot) [NC]
-    RewriteRule ^polls/([a-z0-9-]+)/?$ /gaydevs/api/social/polls-preview/$1 [L]
+    RewriteRule ^(.*)$ ../api/social/preview/$1 [L]
 
     RewriteRule ^ index.html [L]
 </IfModule>

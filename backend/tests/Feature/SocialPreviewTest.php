@@ -11,7 +11,7 @@ beforeEach(function () {
 });
 
 test('poll list social preview exposes the configured metadata', function () {
-    $this->get('/social/polls-preview')
+    $this->get('/social/preview/polls')
         ->assertOk()
         ->assertHeader('content-type', 'text/html; charset=UTF-8')
         ->assertSee('<meta property="og:title" content="/gdevs/polls">', false)
@@ -30,7 +30,7 @@ test('poll detail social preview uses the poll question and canonical frontend u
         'slug' => 'o-que-vc-quer-jogar-no-jogaydev',
     ]);
 
-    $this->get('/social/polls-preview/o-que-vc-quer-jogar-no-jogaydev')
+    $this->get('/social/preview/polls/o-que-vc-quer-jogar-no-jogaydev')
         ->assertOk()
         ->assertSee('<meta property="og:title" content="O que vc quer jogar no JogaYdev?">', false)
         ->assertSee('vote e veja o que a comunidade gaydevs prefere 🗳️', false)
@@ -38,7 +38,30 @@ test('poll detail social preview uses the poll question and canonical frontend u
         ->assertSee('<meta name="twitter:title" content="O que vc quer jogar no JogaYdev?">', false);
 });
 
-test('poll social preview fails explicitly when frontend url is not configured', function () {
+test('unknown frontend path uses global social metadata', function () {
+    $this->get('/social/preview/events/php-community-summit')
+        ->assertOk()
+        ->assertSee('<meta property="og:title" content="gaydevs — uma comunidade para gays 🌈 e devs 💻">', false)
+        ->assertSee('uma comunidade para gays 🌈 e devs 💻 — tecnologia, carreira, amizade, eventos e os surtos da vida dev.', false)
+        ->assertSee('https://frontend.example.test/gaydevs/platform/brand-icon-512.png', false)
+        ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/events/php-community-summit">', false);
+});
+
+test('unsupported nested poll path falls back instead of resolving a poll', function () {
+    $this->get('/social/preview/polls/not-a-detail/extra')
+        ->assertOk()
+        ->assertSee('<meta property="og:title" content="gaydevs — uma comunidade para gays 🌈 e devs 💻">', false)
+        ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/polls/not-a-detail/extra">', false);
+});
+
+test('root social preview uses global metadata', function () {
+    $this->get('/social/preview')
+        ->assertOk()
+        ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/">', false);
+});
+
+test('social preview fails explicitly when frontend url is not configured', function () {
     config()->set('app.frontend_url', null);
-    $this->get('/social/polls-preview')->assertStatus(500);
+
+    $this->get('/social/preview/polls')->assertStatus(500);
 });
