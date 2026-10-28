@@ -8,6 +8,7 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/82 · Spec: [spec.md](
 - Navegadores comuns continuam recebendo o `index.html` da SPA sem mudança de runtime.
 - Crawlers sociais de rotas `/polls` são reescritos internamente para um endpoint público do backend.
 - O backend resolve a enquete diretamente via `PollService` e renderiza uma view HTML com Open Graph/Twitter Card; não há chamada HTTP do frontend para a API.
+- `APP_FRONTEND_URL` define a origem/base pública usada por `og:url`, canonical e `og:image`; o endpoint falha explicitamente se a configuração estiver ausente.
 - Não alterar autenticação, banco ou contratos existentes da API de polls.
 
 ## Validação

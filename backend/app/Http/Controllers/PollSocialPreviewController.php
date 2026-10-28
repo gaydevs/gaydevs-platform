@@ -7,12 +7,6 @@ use Illuminate\Contracts\View\View;
 
 class PollSocialPreviewController extends Controller
 {
-    private const SITE_ORIGIN = 'https://vettoretti.dev';
-
-    private const POLLS_PATH = '/gaydevs/platform/polls';
-
-    private const IMAGE_URL = self::SITE_ORIGIN.'/gaydevs/platform/polls-preview.png';
-
     private const LIST_TITLE = '/gdevs/polls';
 
     private const LIST_DESCRIPTION = 'vote nas enquetes da comunidade, participe das decisões 🗳️';
@@ -23,22 +17,25 @@ class PollSocialPreviewController extends Controller
 
     public function __invoke(?string $identifier = null): View
     {
+        $frontendUrl = rtrim((string) config('app.frontend_url'), '/');
+        abort_if($frontendUrl === '', 500, 'APP_FRONTEND_URL is not configured.');
+
         $title = self::LIST_TITLE;
         $description = self::LIST_DESCRIPTION;
-        $canonicalUrl = self::SITE_ORIGIN.self::POLLS_PATH.'/';
+        $canonicalUrl = $frontendUrl.'/polls/';
 
         if ($identifier !== null) {
             $poll = $this->polls->resolve($identifier);
             $title = $poll->question;
             $description = self::DETAIL_DESCRIPTION;
-            $canonicalUrl = self::SITE_ORIGIN.self::POLLS_PATH.'/'.rawurlencode($poll->slug);
+            $canonicalUrl = $frontendUrl.'/polls/'.rawurlencode($poll->slug);
         }
 
         return view('social.poll-preview', [
             'title' => $title,
             'description' => $description,
             'canonicalUrl' => $canonicalUrl,
-            'imageUrl' => self::IMAGE_URL,
+            'imageUrl' => $frontendUrl.'/polls-preview.png',
         ]);
     }
 }

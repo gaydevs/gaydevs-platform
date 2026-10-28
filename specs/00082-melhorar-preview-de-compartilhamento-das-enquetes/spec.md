@@ -13,6 +13,7 @@ Corrigir a preview social da lista de polls e de enquetes individuais no HTML in
 - Detalhe: pergunta da enquete como título, descrição definida na Issue e a mesma imagem.
 - Incluir Open Graph completo pedido na Issue e Twitter Card equivalente.
 - Manter o frontend como SPA estática; metadata dinâmica pertence ao backend.
+- Derivar URLs públicas de `APP_FRONTEND_URL`, sem domínio/path de produção hardcoded.
 - Preservar a metadata global e o comportamento normal das demais rotas.
 
 ## Critérios de aceite
