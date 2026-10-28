@@ -231,6 +231,34 @@ test('fast-track escalation leaves local Risk unchanged when Project update fail
   assert.equal(s.state().items.I_27.status, 'Specifying');
 });
 
+test('fast-track refuses checkpoint and escalation for closed Issues without mutation', t => {
+  const medium = sandbox(t); medium.change(v => { v.issues[27] = issue(27, 'Feature'); });
+  const mediumWork = JSON.parse(ok(start(medium, 27, '--fast-track', '--risk', 'medium', '--human-approved')));
+  const mediumDir = path.join(medium.repo, mediumWork.directory);
+  const mediumSpecBefore = readFileSync(path.join(mediumDir, 'spec.md'), 'utf8');
+  const mediumPlanBefore = readFileSync(path.join(mediumDir, 'plan.md'), 'utf8');
+  medium.change(v => { v.issues[27].state = 'closed'; });
+  medium.clearCalls();
+  fail(medium.cli('fast-track', [27, 'checkpoint', '--human-approved']), /Issue precisa estar aberta/);
+  assert.equal(medium.state().items.I_27.status, 'Specifying');
+  assert.equal(readFileSync(path.join(mediumDir, 'spec.md'), 'utf8'), mediumSpecBefore);
+  assert.equal(readFileSync(path.join(mediumDir, 'plan.md'), 'utf8'), mediumPlanBefore);
+  noWrites(medium);
+
+  const low = sandbox(t); low.change(v => { v.issues[27] = issue(27, 'Bug'); });
+  const lowWork = JSON.parse(ok(start(low, 27, '--fast-track', '--risk', 'low', '--human-approved')));
+  const lowDir = path.join(low.repo, lowWork.directory);
+  const lowSpecBefore = readFileSync(path.join(lowDir, 'spec.md'), 'utf8');
+  const lowPlanBefore = readFileSync(path.join(lowDir, 'plan.md'), 'utf8');
+  low.change(v => { v.issues[27].state = 'closed'; });
+  low.clearCalls();
+  fail(low.cli('fast-track', [27, 'escalate', 'medium']), /Issue precisa estar aberta/);
+  assert.equal(low.state().items.I_27.status, 'In Progress');
+  assert.equal(readFileSync(path.join(lowDir, 'spec.md'), 'utf8'), lowSpecBefore);
+  assert.equal(readFileSync(path.join(lowDir, 'plan.md'), 'utf8'), lowPlanBefore);
+  noWrites(low);
+});
+
 test('from-issue --trivial remains a legacy alias for Low Risk', t => {
   const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Feature'); });
   const work = JSON.parse(ok(start(s, 27, '--trivial', '--human-approved')));

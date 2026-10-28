@@ -28,6 +28,7 @@ main(() => {
   const branch = currentSddBranch();
   if (branch.issueNumber !== Number(number)) throw new Error(`A branch atual pertence à Issue #${branch.issueNumber}, não à #${number}.`);
   const context = readIssue(number);
+  if (context.issue.state !== 'open') throw new Error('A Issue precisa estar aberta para checkpoint ou escalada de fast-track.');
   const state = readRisk(number);
   const board = project();
 
