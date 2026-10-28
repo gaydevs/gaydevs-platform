@@ -258,11 +258,22 @@ test('the poll index returns cursor pages without repeating polls', function () 
 
 test('the poll index loads list polls without querying each poll again', function () {
     $admin = User::factory()->create(['member_type' => MemberType::ADMIN]);
+    $voter = User::factory()->create();
     foreach (['lista-poll-um', 'lista-poll-dois', 'lista-poll-tres'] as $index => $slug) {
-        Poll::create([
+        $poll = Poll::create([
             'created_by_user_id' => $admin->id,
             'question' => 'Enquete de lista '.($index + 1),
             'slug' => $slug,
+        ]);
+        $option = PollOption::create([
+            'poll_id' => $poll->id,
+            'created_by_user_id' => $voter->id,
+            'label' => 'Opção '.($index + 1),
+        ]);
+        PollVote::create([
+            'poll_id' => $poll->id,
+            'poll_option_id' => $option->id,
+            'user_id' => $voter->id,
         ]);
     }
 
@@ -272,11 +283,19 @@ test('the poll index loads list polls without querying each poll again', functio
 
     $this->getJson('/polls?limit=3')->assertOk()->assertJsonCount(3, 'polls');
 
-    $pollQueries = collect(DB::getQueryLog())
-        ->filter(fn (array $query): bool => preg_match('/\\bfrom\\s+["`]?polls["`]?/i', $query['query']) === 1);
+    $queryLog = collect(DB::getQueryLog());
+    $queriesFor = fn (string $table) => $queryLog
+        ->filter(fn (array $query): bool => preg_match('/\\bfrom\\s+[^a-z0-9_]*'.$table.'\\b/i', $query['query']) === 1);
+    $pollQueries = $queriesFor('polls');
+    $optionQueries = $queriesFor('poll_options');
+    $voteQueries = $queriesFor('poll_votes');
+    $userQueries = $queriesFor('users');
     DB::disableQueryLog();
 
-    expect($pollQueries)->toHaveCount(1);
+    expect($pollQueries)->toHaveCount(1)
+        ->and($optionQueries->count())->toBeLessThanOrEqual(2)
+        ->and($voteQueries->count())->toBeLessThanOrEqual(2)
+        ->and($userQueries->count())->toBeLessThanOrEqual(4);
 });
 
 test('the poll index keeps a poll with a future closing date out of the next cursor page', function () {
