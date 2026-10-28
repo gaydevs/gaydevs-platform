@@ -41,6 +41,5 @@ test('poll detail social preview uses the poll question and canonical frontend u
 
 test('poll social preview fails explicitly when frontend url is not configured', function () {
     config()->set('app.frontend_url', null);
-
     $this->get('/social/polls-preview')->assertStatus(500);
 });
