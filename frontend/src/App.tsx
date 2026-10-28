@@ -34,7 +34,7 @@ export default function App() {
   const [pollError, setPollError] = useState<string | null>(null)
   const pollsLoginPrompt = useRef(false)
   const loginCompleted = useRef(false)
-  const [pathname, setPathname] = useState(() => window.location.pathname)
+  const [pathname, setPathname] = useState(() => typeof window === 'undefined' ? '/' : window.location.pathname)
   useEffect(() => {
     const synchronizePathname = () => setPathname(window.location.pathname)
     window.addEventListener('popstate', synchronizePathname)

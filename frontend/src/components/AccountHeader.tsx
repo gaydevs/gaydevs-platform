@@ -15,9 +15,10 @@ export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const pollsMarker = '/polls'
-  const pollsIndex = window.location.pathname.indexOf(pollsMarker)
-  const pollsPath = pollsIndex >= 0 ? window.location.pathname.slice(0, pollsIndex) + pollsMarker : `${window.location.pathname.replace(/\/$/, '')}/polls`
-  const homePath = pollsIndex >= 0 ? `${window.location.pathname.slice(0, pollsIndex) || '/'}/`.replace(/\/{2,}/g, '/') : '#inicio'
+  const currentPathname = typeof window === 'undefined' ? '/' : window.location.pathname
+  const pollsIndex = currentPathname.indexOf(pollsMarker)
+  const pollsPath = pollsIndex >= 0 ? currentPathname.slice(0, pollsIndex) + pollsMarker : `${currentPathname.replace(/\/$/, '')}/polls`
+  const homePath = pollsIndex >= 0 ? `${currentPathname.slice(0, pollsIndex) || '/'}/`.replace(/\/{2,}/g, '/') : '#inicio'
   const goHome = (event: MouseEvent<HTMLAnchorElement>) => {
     if (pollsIndex < 0 || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()

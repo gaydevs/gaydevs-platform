@@ -1,4 +1,4 @@
-import { ApiError, messageForApiError } from './auth/api'
+import { ApiError, messageForApiError, resolveApiBase } from './auth/api'
 
 export interface PollVoter { id: string; name: string }
 export interface PollOption { id: string; label: string; created_at?: string; votes: number; percentage: number; creator?: PollVoter; voters?: PollVoter[]; anonymous_votes?: number }
@@ -13,7 +13,7 @@ export interface PollListResponse { polls: Poll[]; next_cursor: string | null; h
 interface PollAuditResponse { audit: PollAudit }
 interface ErrorResponse { message?: string; errors?: Record<string, string[]> }
 
-const apiBase = new URL('../api/', new URL(import.meta.env.BASE_URL, window.location.origin))
+const apiBase = resolveApiBase(import.meta.env.BASE_URL)
 
 function xsrfToken(): string | undefined { const cookie = document.cookie.split('; ').find((entry) => entry.startsWith('XSRF-TOKEN=')); return cookie ? decodeURIComponent(cookie.slice('XSRF-TOKEN='.length)) : undefined }
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
