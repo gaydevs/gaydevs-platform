@@ -29,7 +29,8 @@ Corrigir a preview social da lista de polls e de enquetes individuais no HTML in
 - Um crawler acessando `/polls` recebe a metadata da área; `/polls/{slug}` recebe a metadata específica da enquete quando o slug existe.
 - Um crawler acessando uma rota não reconhecida dentro de `polls` recebe a metadata da área de polls; uma rota de área desconhecida recebe a metadata global pelo mesmo endpoint genérico.
 - Adicionar uma futura seção de preview não exige alterar o `.htaccess`; a distinção pertence ao backend.
-- Um navegador comum continua usando o fallback `index.html` da SPA.
+- A raiz da SPA também recebe a metadata global quando acessada por crawler social; navegadores comuns continuam usando o fallback `index.html` da SPA.
+- URLs de crawler com barra final são normalizadas no rewrite antes de chegar ao backend, evitando redirect adicional.
 - Não há `/gaydevs/api` nem `/gaydevs/platform` hardcoded nas regras de social preview do `.htaccess`.
 
 ## Aprovação

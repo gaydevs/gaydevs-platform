@@ -8,7 +8,8 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/82 · Spec: [spec.md](
 
 - Manter arquivos e diretórios reais fora do rewrite, como hoje.
 - Remover o `RewriteBase /gaydevs/platform/` específico do ambiente.
-- Para crawlers sociais, encaminhar qualquer rota relativa da SPA para `../api/social/preview/{path}`.
+- Para crawlers sociais, tratar a raiz antes do short-circuit de diretórios reais e encaminhá-la para `../api/social/preview`.
+- Para as demais rotas da SPA, encaminhar para `../api/social/preview/{path}`, removendo uma barra final opcional antes do backend.
 - Manter `../api/` como contrato estrutural de publicação, coerente com `resolveApiBase()` no React.
 - Para navegadores comuns, manter `RewriteRule ^ index.html [L]`.
 
@@ -48,6 +49,6 @@ O proxy do Vite também usa `/gaydevs/api` no desenvolvimento. Uma futura migra�
 
 - Testes do backend para lista de polls, detalhe, fallback global e ausência de `APP_FRONTEND_URL`.
 - Testar que paths não reconhecidos não são confundidos com polls.
-- Build do frontend e presença do `.htaccess`/asset no `dist`.
+- Build do frontend e presença do `.htaccess`/asset no `dist`, incluindo regra específica da raiz antes do `-d` e normalização da barra final.
 - Verificar no `.htaccess` a ausência de paths absolutos `/gaydevs/...` para o social preview.
 - `git diff --check`, lint, testes e CI completo do PR.
