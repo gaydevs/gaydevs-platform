@@ -14,6 +14,13 @@
   --green: #45ef9a;
   --yellow: #ffd34e;
   --orange: #ff7a45;
+  --status-open: var(--cyan);
+  --status-closed: #ff8493;
+  --danger: #ff8493;
+  --focus-ring: #20d7ff35;
+  --motion-fast: 180ms;
+  --motion-standard: 220ms;
+  --motion-shake: 420ms;
   --rainbow: linear-gradient(90deg, #ff3a7a 0%, #ff7a45 18%, #ffd34e 36%, #45ef9a 54%, #20d7ff 72%, #8b5cf6 86%, #ff3ac8 100%);
   --font-sans: 'Space Grotesk', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;

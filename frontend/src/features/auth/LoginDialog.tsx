@@ -111,6 +111,7 @@ export function LoginDialog({ step, onStepChange, onClose, onAuthenticated }: Lo
         <BrandLogo
           wordmark={step === 'otp' ? '/gdevs/login/verify-otp' : '/gdevs/login'}
           suffix=""
+          linked={false}
         />
       </ModalHeader>
       {step === 'search'

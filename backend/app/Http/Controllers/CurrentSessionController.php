@@ -17,6 +17,7 @@ class CurrentSessionController extends Controller
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
+                'member_type' => $user->member_type,
             ],
         ]);
     }

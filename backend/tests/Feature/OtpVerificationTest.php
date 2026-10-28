@@ -102,6 +102,7 @@ test('a valid otp creates one stateful database session and an accepted audit ev
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
+                'member_type' => 'member',
             ],
         ]);
     $this->withHeaders(statefulHeaders())

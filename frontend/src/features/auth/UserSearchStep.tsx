@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { FieldActionButton } from '../../components/FieldActionButton'
+import { FieldControl } from '../../components/FieldControl'
+import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { messageForApiError, requestOtp, searchUsers, type MaskedUser } from './api'
 import type { OtpLoginContext } from './types'
 
@@ -83,9 +86,7 @@ export function UserSearchStep({ onOtpRequested }: UserSearchStepProps) {
 
     <div className="login-autocomplete">
       <div className="login-field">
-        <span className="login-field__control">
-          <span className="login-field__prefix" aria-hidden="true">gdev</span>
-          <input
+        <FieldControl
             ref={searchInput}
             autoFocus
             type="search"
@@ -119,10 +120,9 @@ export function UserSearchStep({ onOtpRequested }: UserSearchStepProps) {
             data-lpignore="true"
             data-form-type="other"
             placeholder="digite seu nome ou e-mail"
-          />
-          {query && !requesting && <button className="login-field__clear" type="button" aria-label="limpar busca" onClick={clearSearch}>×</button>}
-          {requesting && <span className="login-field__spinner" aria-hidden="true" />}
-        </span>
+          before={<span className="login-field__prefix">gdev</span>}
+          after={query && !requesting ? <FieldActionButton variant="remove" small aria-label="limpar busca" onClick={clearSearch} /> : requesting ? <LoadingSpinner className="login-field__spinner" /> : null}
+        />
       </div>
       {requesting && <span className="sr-only" role="status">enviando código</span>}
 
