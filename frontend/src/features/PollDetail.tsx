@@ -46,6 +46,7 @@ export function PollDetail({ poll, user, onLogin, onAudit, onError, onNavigate =
     capturePositions: captureOptionPositions,
   })
   const selectedSet = new Set(voting.selected)
+  const statusLabel = poll.closed ? 'encerrada' : user && selectedSet.size === 0 ? 'aberta e sem seu voto' : 'aberta'
   const maxPercentage = useMemo(() => Math.max(0, ...poll.options.map((option) => option.percentage)), [poll.options])
   const minimumOptions = poll.allow_new_options ? 1 : 2
   const canHideOption = user?.member_type === 'admin' && !poll.closed && poll.options.length > minimumOptions
@@ -79,11 +80,18 @@ export function PollDetail({ poll, user, onLogin, onAudit, onError, onNavigate =
     setAddOptionError('')
   }
 
+  const voteOnNewestSuggestion = () => {
+    const newest = suggestions.suggestions[0]
+    if (!newest) return
+    suggestions.clear()
+    onNavigate(`${pollsBase()}/${newest.slug}`)
+  }
+
   return <>
     <section className="polls-page container" aria-labelledby="poll-title">
       <div className="section-heading">
         <p className={`poll-card__status${poll.closed ? ' poll-card__status--closed' : ' poll-card__status--open'}`}>
-          {poll.closed ? 'encerrada' : 'aberta'}
+          {statusLabel}
         </p>
         <h1 id="poll-title"><LinkifiedText text={poll.question} /></h1>
         <div className="poll-detail__tags" aria-label="informações da enquete">
@@ -177,7 +185,7 @@ export function PollDetail({ poll, user, onLogin, onAudit, onError, onNavigate =
       {closeDialogOpen && <PollCloseDialog poll={poll} onClose={() => setCloseDialogOpen(false)} onClosed={(updatedPoll) => onUpdated(updatedPoll)} />}
       {optionToHide && <PollHideOptionDialog poll={poll} option={optionToHide} onClose={() => setOptionToHide(null)} onHidden={(updatedPoll) => onUpdated(updatedPoll)} />}
     </section>
-    {suggestions.suggestions.length > 0 && !suggestions.dialogOpen && <PollSuggestionsToast suggestions={suggestions.suggestions} onOpen={suggestions.open} onClose={suggestions.clear} onSnooze={suggestions.snooze} onError={onError ?? (() => undefined)} />}
+    {suggestions.suggestions.length > 0 && !suggestions.dialogOpen && <PollSuggestionsToast suggestions={suggestions.suggestions} onOpen={suggestions.open} onVote={voteOnNewestSuggestion} onClose={suggestions.clear} onSnooze={suggestions.snooze} onError={onError ?? (() => undefined)} />}
     {suggestions.suggestions.length > 0 && suggestions.dialogOpen && <PollSuggestionsDialog suggestions={suggestions.suggestions} basePath={pollsBase()} onNavigate={onNavigate} onDismissSuggestion={suggestions.dismiss} onSnooze={suggestions.snooze} onError={onError ?? (() => undefined)} onClose={suggestions.clear} />}
   </>
 }

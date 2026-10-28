@@ -2,6 +2,8 @@
 
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+// @ts-expect-error Node.js filesystem access is only used by this Vitest test.
+import { readFileSync } from 'node:fs'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +13,8 @@ import { PollAuditDialog, PollCard, PollDetail, PollDetailLoading, PollErrorDial
 import { addPollOption, closePoll, createPoll, getPoll, getPollAudit, hidePollOption, listPolls, pollErrorMessage, submitPoll, type Poll, type PollSubmissionResponse, type PollSuggestion } from './pollsApi'
 import { dismissPollSuggestion, snoozePollSuggestions } from './userPreferencesApi'
 import { animatePollCardReorder, animatePollOptionReorder, elapsedPollTime, pollWithSelection, pollVoterSummary, roundedPercentages, voteLabel } from './pollPresentation'
+
+const globalStylesheet = readFileSync('src/styles/global.css', 'utf8')
 
 vi.mock('./pollsApi', () => ({
   addPollOption: vi.fn(),
@@ -175,7 +179,7 @@ describe('poll presentation', () => {
     render(<PollCard item={poll({ total_votes: 8 })} path="/polls/qual-jogo" onNavigate={onNavigate} />)
 
     expect(screen.getByText('2 opções · 8 votos')).toBeInTheDocument()
-    expect(screen.getByText('aberta')).toBeInTheDocument()
+    expect(screen.getByText('aberta e sem seu voto')).toBeInTheDocument()
     const dates = document.querySelector('.poll-card__dates')
     const summary = screen.getByText('2 opções · 8 votos')
     expect(dates).not.toBeNull()
@@ -456,6 +460,8 @@ describe('poll presentation', () => {
     render(<PollAuditDialog poll={poll()} onClose={vi.fn()} />)
 
     expect(await screen.findByText('Registro completo dos votos, alterações e cancelamentos.')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toHaveClass('login-dialog--scrollable')
+    expect(globalStylesheet).toMatch(/\.login-dialog--scrollable\s*\{[^}]*overflow-y:\s*auto;/)
     expect(screen.getByText('/gdevs/polls/audit')).toBeInTheDocument()
     expect(screen.getByText('Enquete adicionada')).toBeInTheDocument()
     expect(screen.getByText('Opção adicionada: Primeiro')).toBeInTheDocument()
@@ -648,10 +654,36 @@ describe('poll presentation', () => {
   it('uses the list status marker in the detail without duplicating it as a tag', () => {
     render(<PollDetail poll={poll()} user={user} onLogin={vi.fn()} onUpdated={vi.fn()} />)
 
-    expect(screen.getByText('aberta')).toHaveClass('poll-card__status', 'poll-card__status--open')
+    expect(screen.getByText('aberta e sem seu voto')).toHaveClass('poll-card__status', 'poll-card__status--open')
     expect(screen.getByText('múltipla escolha')).toBeInTheDocument()
     expect(screen.queryByText('ENQUETE DA COMUNIDADE')).not.toBeInTheDocument()
     expect(document.querySelector('.poll-tag--open')).not.toBeInTheDocument()
+  })
+
+  it('updates the detail status immediately when the user votes or removes their vote', async () => {
+    let resolveVote: (value: PollSubmissionResponse) => void = () => undefined
+    const firstVote = new Promise<PollSubmissionResponse>((resolve) => { resolveVote = resolve })
+    vi.mocked(submitPoll).mockReturnValueOnce(firstVote).mockResolvedValueOnce(submitResponse(poll({ selected_options: [] })))
+
+    function ControlledPollDetail() {
+      const [currentPoll, setCurrentPoll] = useState(poll())
+      return <PollDetail poll={currentPoll} user={user} onLogin={vi.fn()} onUpdated={setCurrentPoll} />
+    }
+
+    const ui = userEvent.setup()
+    render(<ControlledPollDetail />)
+    const firstOption = screen.getAllByRole('checkbox')[0]
+
+    await ui.click(firstOption)
+    expect(screen.getByText('aberta')).toHaveClass('poll-card__status', 'poll-card__status--open')
+    expect(screen.queryByText('aberta e sem seu voto')).not.toBeInTheDocument()
+
+    resolveVote(submitResponse(poll({ selected_options: ['1'] })))
+    await waitFor(() => expect(firstOption).toBeChecked())
+    await ui.click(firstOption)
+
+    expect(screen.getByText('aberta e sem seu voto')).toHaveClass('poll-card__status', 'poll-card__status--open')
+    expect(screen.queryByText('aberta')).not.toBeInTheDocument()
   })
 
   it('shows the single-choice tag when multiple selections are disabled', () => {
@@ -842,34 +874,61 @@ describe('poll presentation', () => {
     render(<PollDetail poll={poll()} user={user} onLogin={vi.fn()} onUpdated={vi.fn()} />)
 
     await ui.click(screen.getAllByRole('checkbox')[0])
-    expect(await screen.findByText('Você ainda não votou em outras enquetes abertas.')).toBeInTheDocument()
+    expect(await screen.findByText('Há outra enquete para votar!')).toBeInTheDocument()
+    expect(screen.getByText('Qual filme assistir?')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'votar' })).toBeInTheDocument()
+    expect(globalStylesheet).toMatch(/\.poll-suggestions-toast__actions \.poll-suggestions-toast__vote\s*\{[^}]*background:\s*var\(--cyan\);/)
+    expect(screen.queryByRole('button', { name: 'ver outras' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Fechar sugestões' })).not.toBeInTheDocument()
     await ui.click(screen.getByRole('button', { name: 'Agora não' }))
 
     await waitFor(() => expect(snoozePollSuggestions).toHaveBeenCalledWith(24))
-    expect(screen.queryByText('Você ainda não votou em outras enquetes abertas.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Há outra enquete para votar!')).not.toBeInTheDocument()
   })
 
-  it('opens the suggestions modal and navigates to a selected poll', async () => {
-    const suggestion = pollSuggestion()
-    const secondSuggestion = pollSuggestion({ id: 'poll-3', slug: 'segunda-enquete', question: 'Outra decisão?' })
-    vi.mocked(submitPoll).mockResolvedValue(submitResponse(poll({ selected_options: ['1'] }), [suggestion, secondSuggestion]))
+  it('navigates directly to the newest suggestion from the toast', async () => {
+    const newest = pollSuggestion({ question: 'Enquete mais nova?', slug: 'enquete-mais-nova' })
+    const older = pollSuggestion({ id: 'poll-3', question: 'Enquete anterior?', slug: 'enquete-anterior' })
+    vi.mocked(submitPoll).mockResolvedValue(submitResponse(poll({ selected_options: ['1'] }), [newest, older]))
     const onNavigate = vi.fn()
     const ui = userEvent.setup()
     render(<PollDetail poll={poll()} user={user} onLogin={vi.fn()} onNavigate={onNavigate} onUpdated={vi.fn()} />)
 
     await ui.click(screen.getAllByRole('checkbox')[0])
-    await ui.click(await screen.findByRole('button', { name: 'Ver sugestões' }))
+    await ui.click(await screen.findByRole('button', { name: 'votar' }))
+
+    expect(onNavigate).toHaveBeenCalledWith('/polls/enquete-mais-nova')
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+  })
+
+  it('opens the suggestions modal and navigates to a selected poll', async () => {
+    const suggestion = pollSuggestion()
+    const secondSuggestion = pollSuggestion({ id: 'poll-3', slug: 'segunda-enquete', question: 'Outra decisão?' })
+    const thirdSuggestion = pollSuggestion({ id: 'poll-4', slug: 'terceira-enquete', question: 'Terceira decisão?' })
+    const fourthSuggestion = pollSuggestion({ id: 'poll-5', slug: 'quarta-enquete', question: 'Quarta decisão?' })
+    vi.mocked(submitPoll).mockResolvedValue(submitResponse(poll({ selected_options: ['1'] }), [suggestion, secondSuggestion, thirdSuggestion, fourthSuggestion]))
+    const onNavigate = vi.fn()
+    const ui = userEvent.setup()
+    render(<PollDetail poll={poll()} user={user} onLogin={vi.fn()} onNavigate={onNavigate} onUpdated={vi.fn()} />)
+
+    await ui.click(screen.getAllByRole('checkbox')[0])
+    expect(await screen.findByText('Há outras enquetes para votar!')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'votar' })).toBeInTheDocument()
+    await ui.click(await screen.findByRole('button', { name: 'ver outras' }))
     expect(screen.getByRole('dialog')).toHaveTextContent('Qual filme assistir?')
     const dialog = screen.getByRole('dialog')
-    expect(within(dialog).getAllByText('aberta')).toHaveLength(2)
-    expect(within(dialog).getAllByText(/4 opções · 8 votos/)).toHaveLength(2)
+    expect(dialog).toHaveClass('login-dialog--scrollable')
+    expect(globalStylesheet).toMatch(/\.login-dialog--scrollable\s*\{[^}]*overflow-y:\s*auto;/)
+    expect(within(dialog).getAllByText('aberta')).toHaveLength(3)
+    expect(within(dialog).getAllByText(/4 opções · 8 votos/)).toHaveLength(3)
     const cards = within(dialog).getAllByRole('link')
-    expect(cards).toHaveLength(2)
+    expect(cards).toHaveLength(3)
     expect(cards.every((card) => card.classList.contains('poll-card--compact') && card.classList.contains('poll-card--with-actions'))).toBe(true)
-    expect(dialog.querySelectorAll('.overflow-menu')).toHaveLength(2)
+    expect(dialog.querySelectorAll('.overflow-menu')).toHaveLength(3)
     expect([...dialog.children].some((child) => child.classList.contains('overflow-menu'))).toBe(false)
     expect(within(dialog).queryByText('/gdevs/polls/outra-enquete')).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole('link', { name: /Quarta decisão\?/ })).not.toBeInTheDocument()
+    expect(globalStylesheet).toMatch(/\.poll-card--compact h2\s*\{[^}]*-webkit-line-clamp:\s*2;/)
     await ui.click(within(dialog).getByRole('link', { name: /Qual filme assistir\?/ }))
 
     expect(onNavigate).toHaveBeenCalledWith('/polls/outra-enquete')
@@ -877,17 +936,19 @@ describe('poll presentation', () => {
 
   it('removes a suggestion when the user says they do not want to vote in it', async () => {
     const suggestion = pollSuggestion()
-    vi.mocked(submitPoll).mockResolvedValue(submitResponse(poll({ selected_options: ['1'] }), [suggestion]))
+    const secondSuggestion = pollSuggestion({ id: 'poll-3', slug: 'segunda-enquete', question: 'Outra decisão?' })
+    vi.mocked(submitPoll).mockResolvedValue(submitResponse(poll({ selected_options: ['1'] }), [suggestion, secondSuggestion]))
     vi.mocked(dismissPollSuggestion).mockResolvedValue({ polls: { suggestions: { snooze_until: null, not_interested_poll_ids: ['poll-2'] } } })
     const ui = userEvent.setup()
     render(<PollDetail poll={poll()} user={user} onLogin={vi.fn()} onUpdated={vi.fn()} />)
 
     await ui.click(screen.getAllByRole('checkbox')[0])
-    await ui.click(await screen.findByRole('button', { name: 'Ver sugestões' }))
+    await ui.click(await screen.findByRole('button', { name: 'ver outras' }))
     await ui.click(screen.getByRole('button', { name: 'Ações da enquete Qual filme assistir?' }))
     await ui.click(screen.getByRole('button', { name: 'não quero votar nesta enquete' }))
 
     await waitFor(() => expect(dismissPollSuggestion).toHaveBeenCalledWith('poll-2'))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toHaveTextContent('Outra decisão?')
+    expect(screen.getByRole('dialog')).not.toHaveTextContent('Qual filme assistir?')
   })
 })

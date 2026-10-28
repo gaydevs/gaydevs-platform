@@ -16,6 +16,7 @@ const item: PollCardItem = {
   closed: false,
   closed_at: null,
   total_votes: 3,
+  selected_options: [],
   options_count: 2,
 }
 
@@ -32,6 +33,26 @@ describe('PollCard', () => {
     expect(onNavigate).not.toHaveBeenCalled()
   })
 
+  it('shows open polls without the current user vote in the list status', () => {
+    render(<PollCard item={item} path="/polls/qual-jogo" onNavigate={vi.fn()} />)
+
+    expect(screen.getByText('aberta e sem seu voto')).toHaveClass('poll-card__status', 'poll-card__status--open')
+  })
+
+  it('keeps the regular open status after the current user has voted', () => {
+    render(<PollCard item={{ ...item, selected_options: ['option-1'] }} path="/polls/qual-jogo" onNavigate={vi.fn()} />)
+
+    expect(screen.getByText('aberta')).toHaveClass('poll-card__status', 'poll-card__status--open')
+    expect(screen.queryByText('aberta e sem seu voto')).not.toBeInTheDocument()
+  })
+
+  it('keeps the closed status even when the current user has no vote', () => {
+    render(<PollCard item={{ ...item, closed: true, closed_at: '2026-10-20T12:00:00.000Z' }} path="/polls/qual-jogo" onNavigate={vi.fn()} />)
+
+    expect(screen.getByText('encerrada')).toHaveClass('poll-card__status', 'poll-card__status--closed')
+    expect(screen.queryByText('aberta e sem seu voto')).not.toBeInTheDocument()
+  })
+
   it.each(['Enter', ' '])('supports keyboard navigation with %s', (key) => {
     const onNavigate = vi.fn()
     render(<PollCard item={item} path="/polls/qual-jogo" onNavigate={onNavigate} />)
@@ -43,10 +64,12 @@ describe('PollCard', () => {
   })
 
   it('keeps the compact suggestion presentation and actions contract', () => {
-    render(<PollCard item={item} path="/polls/qual-jogo" onNavigate={vi.fn()} compact actions={<button type="button">ações</button>} />)
+    render(<PollCard item={item} path="/polls/qual-jogo" onNavigate={vi.fn()} compact showUnvotedStatus={false} actions={<button type="button">ações</button>} />)
 
     const card = document.querySelector('article.poll-card')
     expect(card).toHaveClass('poll-card', 'poll-card--compact', 'poll-card--with-actions')
+    expect(screen.getByText('aberta')).toBeInTheDocument()
+    expect(screen.queryByText('aberta e sem seu voto')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'ações' })).toBeInTheDocument()
   })
 })

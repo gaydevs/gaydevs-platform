@@ -10,6 +10,7 @@ export interface PollCardItem {
   closed: boolean
   closed_at: string | null
   total_votes: number
+  selected_options?: string[]
   options?: { id: string }[]
   options_count?: number
 }
@@ -20,6 +21,7 @@ interface PollCardProps {
   onNavigate: (path: string) => void
   cardRef?: (node: HTMLElement | null) => void
   compact?: boolean
+  showUnvotedStatus?: boolean
   actions?: ReactNode
 }
 
@@ -31,7 +33,7 @@ function pollClosedElapsedTime(item: PollCardItem): string {
   return elapsedPollTime(item.closed_at, null, 'encerrada')
 }
 
-export function PollCard({ item, path, onNavigate, cardRef, compact = false, actions }: PollCardProps) {
+export function PollCard({ item, path, onNavigate, cardRef, compact = false, showUnvotedStatus = true, actions }: PollCardProps) {
   const openCard = () => onNavigate(path)
   const handleClick = (event: MouseEvent<HTMLElement>) => {
     if ((event.target as HTMLElement).closest('a')) return
@@ -45,7 +47,8 @@ export function PollCard({ item, path, onNavigate, cardRef, compact = false, act
     openCard()
   }
   const optionsCount = item.options_count ?? item.options?.length ?? 0
+  const status = item.closed ? 'encerrada' : showUnvotedStatus && item.selected_options?.length === 0 ? 'aberta e sem seu voto' : 'aberta'
   const classes = ['poll-card', compact && 'poll-card--compact', actions && 'poll-card--with-actions'].filter(Boolean).join(' ')
 
-  return <article ref={cardRef} className={classes} role="link" tabIndex={0} onClick={handleClick} onKeyDown={handleKeyDown}><span className={`poll-card__status${item.closed ? ' poll-card__status--closed' : ' poll-card__status--open'}`}>{item.closed ? 'encerrada' : 'aberta'}</span><h2><LinkifiedText text={item.question} stopPropagation /></h2><span className="poll-card__dates">{item.closed ? pollClosedElapsedTime(item) : pollElapsedTime(item)}</span><p>{optionsCount} opções · {voteLabel(item.total_votes)}</p>{actions}</article>
+  return <article ref={cardRef} className={classes} role="link" tabIndex={0} onClick={handleClick} onKeyDown={handleKeyDown}><span className={`poll-card__status${item.closed ? ' poll-card__status--closed' : ' poll-card__status--open'}`}>{status}</span><h2><LinkifiedText text={item.question} stopPropagation /></h2><span className="poll-card__dates">{item.closed ? pollClosedElapsedTime(item) : pollElapsedTime(item)}</span><p>{optionsCount} opções · {voteLabel(item.total_votes)}</p>{actions}</article>
 }

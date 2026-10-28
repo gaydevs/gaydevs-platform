@@ -172,7 +172,7 @@ export function PollAuditDialog({ poll, onClose }: { poll: Poll; onClose: () => 
   }, [audit, auditFilter])
 
   return <div className={`login-overlay${closing ? ' login-overlay--closing' : ''}`} role="presentation" onMouseDown={closeFromBackdrop}>
-    <section className={`login-dialog poll-audit-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-audit-title">
+    <section className={`login-dialog login-dialog--scrollable poll-audit-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-audit-title">
       <ModalHeader closeLabel="fechar auditoria" onClose={closeDialog}><PollsBrand wordmark="/gdevs/polls/audit" linked={false} /></ModalHeader>
       <div className="poll-audit-dialog__body">
         <p className="login-dialog__eyebrow">AUDITORIA DA ENQUETE</p>

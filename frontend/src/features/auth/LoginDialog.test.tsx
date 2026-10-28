@@ -2,11 +2,15 @@
 
 import '@testing-library/jest-dom/vitest'
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+// @ts-expect-error Node.js filesystem access is only used by this Vitest test.
+import { readFileSync } from 'node:fs'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, requestOtp, searchUsers, verifyOtp } from './api'
 import { useLoginHash } from './useLoginHash'
 import { LoginDialog } from './LoginDialog'
+
+const globalStylesheet = readFileSync('src/styles/global.css', 'utf8')
 
 vi.mock('./api', async (importOriginal) => {
   const original = await importOriginal<typeof import('./api')>()
@@ -50,6 +54,25 @@ afterEach(() => {
 })
 
 describe('LoginDialog', () => {
+  it('keeps the autocomplete layered above the dialog without clipping it', async () => {
+    vi.mocked(searchUsers).mockResolvedValue([
+      { id: 'user-id', name: 'Gdev Exemplo', email: 'gdev@example.test' },
+    ])
+    const user = userEvent.setup()
+    render(<LoginHarness />)
+
+    await user.click(screen.getByRole('button', { name: 'entrar' }))
+    await user.type(screen.getByRole('combobox', { name: 'nome ou e-mail' }), 'Gdev')
+
+    const dialog = screen.getByRole('dialog')
+    const results = await screen.findByRole('listbox')
+    expect(dialog).not.toHaveClass('login-dialog--scrollable')
+    expect(dialog).toContainElement(results)
+    expect(globalStylesheet).toMatch(/\.login-overlay\s*\{[^}]*z-index:\s*30;/)
+    expect(globalStylesheet).toMatch(/\.login-dialog\s*\{[^}]*overflow:\s*visible;/)
+    expect(globalStylesheet).toMatch(/\.login-results\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*2;/)
+  })
+
   it('opens and closes over the current page while synchronizing #login', async () => {
     const user = userEvent.setup()
     render(<LoginHarness />)

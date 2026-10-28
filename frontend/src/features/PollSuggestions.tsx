@@ -22,9 +22,10 @@ interface PollSuggestionsToastProps {
   onSnooze: () => Promise<void>
   onError: (message: string) => void
   onOpen: () => void
+  onVote: () => void
 }
 
-export function PollSuggestionsToast({ suggestions, onClose, onSnooze, onError, onOpen }: PollSuggestionsToastProps) {
+export function PollSuggestionsToast({ suggestions, onClose, onSnooze, onError, onOpen, onVote }: PollSuggestionsToastProps) {
   const [busy, setBusy] = useState(false)
 
   const snooze = async () => {
@@ -40,17 +41,21 @@ export function PollSuggestionsToast({ suggestions, onClose, onSnooze, onError, 
     }
   }
 
+  const hasMoreSuggestions = suggestions.length > 1
+
   return <aside className="poll-suggestions-toast" aria-live="polite">
-    <strong>Você ainda não votou em outras enquetes abertas.</strong>
-    <p>{suggestions.length === 1 ? 'Há uma sugestão para você.' : `Há ${suggestions.length} sugestões para você.`}</p>
+    <strong>{hasMoreSuggestions ? 'Há outras enquetes para votar!' : 'Há outra enquete para votar!'}</strong>
+    <p className="poll-suggestions-toast__question">{suggestions[0]?.question}</p>
     <div className="poll-suggestions-toast__actions">
-      <button className="action-link" type="button" onClick={onOpen}>Ver sugestões</button>
+      <button className="action-link poll-suggestions-toast__vote" type="button" onClick={onVote}>votar</button>
+      {hasMoreSuggestions && <button className="action-link action-link--secondary" type="button" onClick={onOpen}>ver outras</button>}
       <button className="poll-suggestions-toast__snooze" type="button" disabled={busy} onClick={() => void snooze()}>{busy && <LoadingSpinner className="poll-suggestions-toast__spinner" />}Agora não</button>
     </div>
   </aside>
 }
 
 export function PollSuggestionsDialog({ suggestions, onClose, onNavigate, basePath, onDismissSuggestion, onSnooze, onError }: PollSuggestionsDialogProps) {
+  const visibleSuggestions = suggestions.slice(0, 3)
   const [closing, setClosing] = useState(false)
   const [dismissingId, setDismissingId] = useState<string | null>(null)
   const [snoozeBusy, setSnoozeBusy] = useState(false)
@@ -104,14 +109,14 @@ export function PollSuggestionsDialog({ suggestions, onClose, onNavigate, basePa
   }
 
   return <div className={`login-overlay${closing ? ' login-overlay--closing' : ''}`} role="presentation" onMouseDown={closeFromBackdrop}>
-    <section className={`login-dialog poll-suggestions-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-suggestions-title">
+    <section className={`login-dialog login-dialog--scrollable poll-suggestions-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-suggestions-title">
       <ModalHeader closeLabel="fechar sugestões" onClose={close}>
         <PollsBrand wordmark="/gdevs/polls/suggestions" linked={false} />
       </ModalHeader>
       <p className="login-dialog__eyebrow">OUTRAS ENQUETES</p>
       <h2 id="poll-suggestions-title">Participe de mais decisões</h2>
       <div className="poll-suggestions-dialog__list">
-        {suggestions.map((suggestion) => <PollCard key={suggestion.id} item={{ ...suggestion, closed: false, closed_at: null }} path={`${basePath}/${suggestion.slug}`} onNavigate={(path) => { close(); onNavigate(path) }} compact actions={<OverflowMenu label={`Ações da enquete ${suggestion.question}`} className="poll-suggestion-card__menu">
+        {visibleSuggestions.map((suggestion) => <PollCard key={suggestion.id} item={{ ...suggestion, closed: false, closed_at: null }} path={`${basePath}/${suggestion.slug}`} onNavigate={(path) => { close(); onNavigate(path) }} compact showUnvotedStatus={false} actions={<OverflowMenu label={`Ações da enquete ${suggestion.question}`} className="poll-suggestion-card__menu">
           {(closeMenu) => <button className="poll-suggestion-card__dismiss" type="button" disabled={dismissingId !== null} onClick={() => { closeMenu(); void dismissSuggestion(suggestion.id) }}>{dismissingId === suggestion.id && <LoadingSpinner className="poll-suggestions-dialog__spinner" />}não quero votar nesta enquete</button>}
         </OverflowMenu>} />)}
       </div>
