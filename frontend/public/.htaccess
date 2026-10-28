@@ -7,8 +7,13 @@
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Poll routes need server-rendered social metadata for WhatsApp/social crawlers.
-    RewriteRule ^polls(?:/.*)?$ polls-preview.php [L]
+    # Social crawlers need metadata in the initial HTML response. Normal browsers
+    # keep using the static SPA fallback below.
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot) [NC]
+    RewriteRule ^polls/?$ /gaydevs/api/social/polls-preview [L]
+
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot) [NC]
+    RewriteRule ^polls/([a-z0-9-]+)/?$ /gaydevs/api/social/polls-preview/$1 [L]
 
     RewriteRule ^ index.html [L]
 </IfModule>

@@ -4,16 +4,17 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/82 · Spec: [spec.md](
 
 ## Abordagem
 
-- Interceptar apenas rotas `/polls` no fallback Apache já existente.
-- Servir o mesmo `index.html` compilado por um entrypoint PHP mínimo que injeta a metadata social antes de devolver o HTML.
-- Para uma enquete individual, consultar o endpoint público já existente `/gaydevs/api/polls/{slug}` para obter a pergunta; em falha, manter o título genérico de polls sem perder a descrição e URL da rota individual.
-- Não alterar backend, autenticação, banco ou contratos de API.
+- O frontend mantém somente o asset de preview e a regra Apache de roteamento para crawlers sociais.
+- Navegadores comuns continuam recebendo o `index.html` da SPA sem mudança de runtime.
+- Crawlers sociais de rotas `/polls` são reescritos internamente para um endpoint público do backend.
+- O backend resolve a enquete diretamente via `PollService` e renderiza uma view HTML com Open Graph/Twitter Card; não há chamada HTTP do frontend para a API.
+- Não alterar autenticação, banco ou contratos existentes da API de polls.
 
 ## Validação
 
-- Conferir build do frontend e presença dos arquivos de deploy.
-- Validar regras de rewrite, tags obrigatórias e integridade do diff.
-- Validar sintaxe PHP quando um runtime PHP estiver disponível; o Survivor não possui PHP instalado.
+- Executar teste direcionado do endpoint de preview no backend via CI/local quando PHP estiver disponível.
+- Build do frontend e presença do asset/rewrite no `dist`.
+- `git diff --check` e checks do PR.
 
 ## Aprovação
 

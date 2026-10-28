@@ -9,10 +9,11 @@ Corrigir a preview social da lista de polls e de enquetes individuais no HTML in
 
 ## Escopo
 
-- Lista: título `/gdevs/polls`, descrição definida na Issue e imagem atual da subseção.
+- Lista: título `/gdevs/polls`, descrição definida na Issue e imagem da subseção sobre fundo azul escuro.
 - Detalhe: pergunta da enquete como título, descrição definida na Issue e a mesma imagem.
 - Incluir Open Graph completo pedido na Issue e Twitter Card equivalente.
-- Preservar a metadata global das demais rotas.
+- Manter o frontend como SPA estática; metadata dinâmica pertence ao backend.
+- Preservar a metadata global e o comportamento normal das demais rotas.
 
 ## Critérios de aceite
 

@@ -2,8 +2,9 @@
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/82 · Plano: [plan.md](plan.md)
 
-- [x] T001 Rotear `/polls` para um entrypoint que entregue metadata social no HTML inicial.
-- [x] T002 Usar metadata fixa na lista e pergunta da API pública em enquetes individuais.
-- [x] T003 Validar build, rewrite, metadata e integridade do diff.
+- [x] T001 Manter no frontend apenas o asset social e o roteamento específico de crawlers.
+- [x] T002 Gerar a metadata no backend usando `PollService` e view dedicada.
+- [x] T003 Adicionar testes direcionados para lista e enquete individual.
+- [ ] T004 Validar build, diff e CI do PR.
 
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.
