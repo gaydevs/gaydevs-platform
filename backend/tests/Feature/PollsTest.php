@@ -8,6 +8,7 @@ use App\Models\PollVote;
 use App\Models\User;
 use App\Services\PollSlugger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Mockery\MockInterface;
 
@@ -255,6 +256,29 @@ test('the poll index returns cursor pages without repeating polls', function () 
     expect(collect($firstPage['polls'])->merge($secondPage['polls']))->toHaveCount(5);
 });
 
+test('the poll index loads list polls without querying each poll again', function () {
+    $admin = User::factory()->create(['member_type' => MemberType::ADMIN]);
+    foreach (['lista-poll-um', 'lista-poll-dois', 'lista-poll-tres'] as $index => $slug) {
+        Poll::create([
+            'created_by_user_id' => $admin->id,
+            'question' => 'Enquete de lista '.($index + 1),
+            'slug' => $slug,
+        ]);
+    }
+
+    Sanctum::actingAs($admin);
+    DB::enableQueryLog();
+    DB::flushQueryLog();
+
+    $this->getJson('/polls?limit=3')->assertOk()->assertJsonCount(3, 'polls');
+
+    $pollQueries = collect(DB::getQueryLog())
+        ->filter(fn (array $query): bool => preg_match('/\\bfrom\\s+["`]?polls["`]?/i', $query['query']) === 1);
+    DB::disableQueryLog();
+
+    expect($pollQueries)->toHaveCount(1);
+});
+
 test('the poll index keeps a poll with a future closing date out of the next cursor page', function () {
     $creator = User::factory()->create(['member_type' => MemberType::ADMIN]);
     $createPoll = static function (string $question, string $slug, $createdAt, $closedAt = null) use ($creator): void {
@@ -305,6 +329,27 @@ test('the poll index returns only polls changed since the last sync', function (
 
     expect($response->json('polls'))->toHaveCount(2)
         ->and(collect($response->json('polls'))->pluck('id')->all())->toContain($newPoll->id, $unchanged->id);
+});
+
+test('the incremental poll index returns every changed poll regardless of limit', function () {
+    $admin = User::factory()->create(['member_type' => MemberType::ADMIN]);
+    $since = now()->subMinute();
+    $slugs = ['delta-poll-um', 'delta-poll-dois', 'delta-poll-tres'];
+
+    foreach ($slugs as $index => $slug) {
+        Poll::create([
+            'created_by_user_id' => $admin->id,
+            'question' => 'Enquete delta '.($index + 1),
+            'slug' => $slug,
+        ]);
+    }
+
+    Sanctum::actingAs($admin);
+    $response = $this->getJson('/polls?since='.urlencode($since->toISOString()).'&limit=1')
+        ->assertOk()
+        ->assertJsonCount(3, 'polls');
+
+    expect(collect($response->json('polls'))->pluck('slug')->all())->toEqualCanonicalizing($slugs);
 });
 
 test('the poll index rejects malformed cursors', function () {
@@ -537,6 +582,36 @@ test('a public poll shows raw selection percentages and authenticated voters', f
     $this->getJson('/polls/'.$poll->fresh()->slug)->assertOk()
         ->assertJsonPath('poll.options.0.voters.0.name', 'Gdev Um')
         ->assertJsonPath('poll.selected_options.0', $first->id);
+});
+
+test('anonymous poll payloads count votes without loading voter models', function () {
+    $creator = User::factory()->create(['member_type' => MemberType::ADMIN]);
+    $voter = User::factory()->create();
+    $poll = Poll::create([
+        'created_by_user_id' => $creator->id,
+        'question' => 'Enquete sem nomes de votantes',
+        'slug' => 'enquete-sem-nomes-de-votantes',
+    ]);
+    $option = PollOption::create(['poll_id' => $poll->id, 'label' => 'Opção pública']);
+    PollVote::create(['poll_id' => $poll->id, 'poll_option_id' => $option->id, 'user_id' => $voter->id]);
+
+    DB::enableQueryLog();
+    DB::flushQueryLog();
+
+    $this->getJson('/polls/'.$poll->slug)
+        ->assertOk()
+        ->assertJsonPath('poll.total_votes', 1)
+        ->assertJsonPath('poll.options.0.votes', 1)
+        ->assertJsonMissingPath('poll.options.0.voters');
+
+    $voterLookups = collect(DB::getQueryLog())
+        ->filter(function (array $query) use ($voter): bool {
+            return str_contains(strtolower($query['query']), 'users')
+                && in_array((string) $voter->id, array_map('strval', $query['bindings']), true);
+        });
+    DB::disableQueryLog();
+
+    expect($voterLookups)->toBeEmpty();
 });
 
 test('authenticated voters are listed from the earliest vote to the latest', function () {

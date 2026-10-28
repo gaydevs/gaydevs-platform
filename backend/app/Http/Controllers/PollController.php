@@ -2,19 +2,35 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Polls\AddPollOption;
+use App\Actions\Polls\ClosePoll;
+use App\Actions\Polls\CreatePoll;
+use App\Actions\Polls\HidePollOption;
+use App\Actions\Polls\SubmitPollResponse;
 use App\Http\Requests\CreatePollOptionRequest;
 use App\Http\Requests\CreatePollRequest;
 use App\Http\Requests\SubmitPollResponseRequest;
 use App\Models\PollOption;
 use App\Models\User;
-use App\Services\PollService;
+use App\Services\Polls\PollAuditPayloadBuilder;
+use App\Services\Polls\PollPayloadBuilder;
+use App\Services\Polls\PollReadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class PollController extends Controller
 {
-    public function __construct(private readonly PollService $polls) {}
+    public function __construct(
+        private readonly PollReadService $pollReads,
+        private readonly PollPayloadBuilder $payloads,
+        private readonly CreatePoll $createPoll,
+        private readonly ClosePoll $closePoll,
+        private readonly SubmitPollResponse $submitResponse,
+        private readonly AddPollOption $addPollOption,
+        private readonly HidePollOption $hidePollOption,
+        private readonly PollAuditPayloadBuilder $auditPayloads,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -24,81 +40,92 @@ class PollController extends Controller
             'since' => ['nullable', 'date'],
         ]);
 
-        return response()->json($this->polls->listPayloads(
+        return response()->json($this->pollReads->listPayloads(
             (int) ($validated['limit'] ?? 3),
             $validated['cursor'] ?? null,
             isset($validated['since']) ? Carbon::parse($validated['since']) : null,
+            $request->user(),
         ));
     }
 
     public function store(CreatePollRequest $request): JsonResponse
     {
         /** @var User $user */
-        $poll = $this->polls->create($request->user(), $request->validated());
+        $user = $request->user();
+        $poll = $this->createPoll->handle($user, $request->validated());
 
-        return response()->json(['poll' => $this->polls->payload($this->polls->resolve($poll->slug))], 201);
+        return response()->json(['poll' => $this->payloads->build($this->pollReads->resolve($poll->slug, $user), $user)], 201);
     }
 
     public function close(Request $request, string $identifier): JsonResponse
     {
-        $poll = $this->polls->resolve($identifier);
         /** @var User $user */
         $user = $request->user();
-        $closedPoll = $this->polls->close($poll, $user);
+        $poll = $this->pollReads->resolve($identifier, $user);
+        $closedPoll = $this->closePoll->handle($poll, $user);
 
-        return response()->json(['poll' => $this->polls->payload($this->polls->resolve($closedPoll->slug))]);
+        return response()->json(['poll' => $this->payloads->build($this->pollReads->resolve($closedPoll->slug, $user), $user)]);
     }
 
-    public function show(string $identifier): JsonResponse
+    public function show(Request $request, string $identifier): JsonResponse
     {
-        $poll = $this->polls->resolve($identifier);
+        $viewer = $request->user('sanctum');
+        $poll = $this->pollReads->resolve($identifier, $viewer);
 
-        return response()->json(['poll' => $this->polls->payload($poll)]);
+        return response()->json(['poll' => $this->payloads->build($poll, $viewer)]);
     }
 
     public function audit(string $identifier): JsonResponse
     {
-        $poll = $this->polls->resolve($identifier);
+        $poll = $this->pollReads->resolve($identifier);
 
-        return response()->json(['audit' => $this->polls->auditPayload($poll)]);
+        return response()->json(['audit' => $this->auditPayloads->build($poll)]);
     }
 
     public function submit(SubmitPollResponseRequest $request, string $identifier): JsonResponse
     {
-        $poll = $this->polls->resolve($identifier);
         /** @var User $user */
         $user = $request->user();
-        $this->polls->submit($poll, $user, $request->validated());
+        $poll = $this->pollReads->resolve($identifier, $user);
+        $this->submitResponse->handle($poll, $user, $request->validated());
 
-        return response()->json($this->polls->responsePayload($this->polls->resolve($poll->slug), $user, ! empty($request->validated('added_options'))));
+        $updatedPoll = $this->pollReads->resolve($poll->slug, $user);
+
+        return response()->json([
+            'poll' => $this->payloads->build($updatedPoll, $user),
+            'suggested_polls' => ! empty($request->validated('added_options')) ? $this->pollReads->suggestionsFor($updatedPoll, $user) : [],
+        ]);
     }
 
     public function addOption(CreatePollOptionRequest $request, string $identifier): JsonResponse
     {
-        $poll = $this->polls->resolve($identifier);
         /** @var User $user */
-        $option = $this->polls->addOption($poll, $user = $request->user(), $request->validated('label'));
+        $user = $request->user();
+        $poll = $this->pollReads->resolve($identifier, $user);
+        $option = $this->addPollOption->handle($poll, $user, $request->validated('label'));
 
         return response()->json(['option' => ['id' => $option->id, 'label' => $option->label]], 201);
     }
 
     public function removeOption(Request $request, string $identifier, string $option): JsonResponse
     {
-        $poll = $this->polls->resolve($identifier);
-        $pollOption = PollOption::query()->findOrFail($option);
         /** @var User $user */
-        $this->polls->removeOption($poll, $pollOption, $request->user());
+        $user = $request->user();
+        $poll = $this->pollReads->resolve($identifier, $user);
+        $pollOption = PollOption::query()->findOrFail($option);
+        $this->hidePollOption->handle($poll, $pollOption, $user);
 
         return response()->json([], 204);
     }
 
     public function hideOption(Request $request, string $identifier, string $option): JsonResponse
     {
-        $poll = $this->polls->resolve($identifier);
-        $pollOption = PollOption::query()->findOrFail($option);
         /** @var User $user */
-        $this->polls->hideOption($poll, $pollOption, $user = $request->user(), true);
+        $user = $request->user();
+        $poll = $this->pollReads->resolve($identifier, $user);
+        $pollOption = PollOption::query()->findOrFail($option);
+        $this->hidePollOption->handle($poll, $pollOption, $user, true);
 
-        return response()->json(['poll' => $this->polls->payload($this->polls->resolve($poll->slug))]);
+        return response()->json(['poll' => $this->payloads->build($this->pollReads->resolve($poll->slug, $user), $user)]);
     }
 }
