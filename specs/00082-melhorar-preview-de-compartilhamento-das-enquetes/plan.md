@@ -16,8 +16,8 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/82 · Spec: [spec.md](
 
 - Substituir o endpoint específico `/social/polls-preview/{identifier?}` por `/social/preview/{path?}` com captura do restante da rota.
 - Usar um `SocialPreviewController` como dispatcher simples de metadata.
-- Resolver `polls` e `polls/{slug}` diretamente via `PollService`.
-- Para rotas ainda sem resolver específico, renderizar a metadata global já usada pelo frontend.
+- Tratar `polls` como área conhecida e resolver `polls/{slug}` via busca não-excepcional no `PollService`.
+- Se o recurso de uma área conhecida não existir ou a subrota não for reconhecida, usar a metadata da área; somente áreas desconhecidas usam a metadata global já usada pelo frontend.
 - Usar uma única view `social/preview.blade.php` para Open Graph/Twitter Card.
 - Derivar canonical e assets públicos de `APP_FRONTEND_URL`; falhar explicitamente se a configuração estiver ausente.
 
@@ -40,7 +40,7 @@ O proxy do Vite também usa `/gaydevs/api` no desenvolvimento. Uma futura migra�
 ## Segurança e comportamento
 
 - O path capturado pelo endpoint genérico não seleciona arquivos nem classes; somente passa por regras explícitas de resolução no controller.
-- Apenas slugs de poll no formato esperado entram em `PollService`; paths desconhecidos usam fallback global.
+- Apenas slugs de poll no formato esperado entram na busca de `PollService`; ausência do recurso é comportamento esperado e usa fallback da área, enquanto áreas desconhecidas usam fallback global.
 - Blade mantém escaping padrão para perguntas de polls.
 - Não alterar autenticação, banco ou contratos existentes da API de polls.
 

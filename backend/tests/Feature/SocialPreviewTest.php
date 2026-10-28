@@ -47,11 +47,19 @@ test('unknown frontend path uses global social metadata', function () {
         ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/events/php-community-summit">', false);
 });
 
-test('unsupported nested poll path falls back instead of resolving a poll', function () {
+test('unknown poll slug falls back to poll area metadata', function () {
+    $this->get('/social/preview/polls/new')
+        ->assertOk()
+        ->assertSee('<meta property="og:title" content="/gdevs/polls">', false)
+        ->assertSee('vote nas enquetes da comunidade, participe das decisões 🗳️', false)
+        ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/polls/">', false);
+});
+
+test('unsupported nested poll path falls back to poll area metadata', function () {
     $this->get('/social/preview/polls/not-a-detail/extra')
         ->assertOk()
-        ->assertSee('<meta property="og:title" content="gaydevs — uma comunidade para gays 🌈 e devs 💻">', false)
-        ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/polls/not-a-detail/extra">', false);
+        ->assertSee('<meta property="og:title" content="/gdevs/polls">', false)
+        ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/polls/">', false);
 });
 
 test('root social preview uses global metadata', function () {

@@ -12,13 +12,13 @@ Corrigir a preview social da lista de polls e de enquetes individuais no HTML in
 - Lista de polls: título `/gdevs/polls`, descrição definida na Issue e imagem da subseção sobre fundo azul escuro.
 - Detalhe de poll: pergunta da enquete como título, descrição definida na Issue e a mesma imagem.
 - Incluir Open Graph completo pedido na Issue e Twitter Card equivalente.
-- Rotas sem preview específico devem receber a metadata global do site, em vez de exigir novas regras Apache por seção.
+- A resolução de preview segue fallback hierárquico: recurso específico → área conhecida → metadata global da plataforma.
 - Navegadores comuns continuam recebendo a SPA normalmente.
 
 ## Escopo arquitetural
 
 - O `.htaccess` do frontend identifica apenas se o cliente é um crawler social e encaminha a rota relativa completa para um endpoint genérico do backend.
-- O backend decide qual metadata corresponde à rota recebida. Nesta Issue, apenas `polls` possui resolução específica; demais rotas usam fallback global.
+- O backend decide qual metadata corresponde à rota recebida. Nesta Issue, `polls` é uma área conhecida: um slug existente recebe preview do recurso; slug ausente ou subrota não reconhecida recebe o preview da área; áreas desconhecidas recebem fallback global.
 - Novas seções com preview próprio devem ser adicionadas no backend sem criar novas regras Apache.
 - A relação de publicação atual assume frontend e API na mesma origem e em diretórios irmãos (`platform/` e `api/`). Tanto o React quanto o `.htaccess` derivam a API por `../api/`.
 - `APP_FRONTEND_URL` define a base pública usada por canonical e imagens, sem domínio de produção hardcoded no código.
@@ -26,8 +26,8 @@ Corrigir a preview social da lista de polls e de enquetes individuais no HTML in
 ## Critérios de aceite
 
 - Os critérios de metadata de polls registrados na Issue #82 continuam válidos.
-- Um crawler acessando `/polls` ou `/polls/{slug}` recebe a metadata específica de polls no HTML inicial.
-- Um crawler acessando outra rota da SPA recebe a metadata global pelo mesmo endpoint genérico.
+- Um crawler acessando `/polls` recebe a metadata da área; `/polls/{slug}` recebe a metadata específica da enquete quando o slug existe.
+- Um crawler acessando uma rota não reconhecida dentro de `polls` recebe a metadata da área de polls; uma rota de área desconhecida recebe a metadata global pelo mesmo endpoint genérico.
 - Adicionar uma futura seção de preview não exige alterar o `.htaccess`; a distinção pertence ao backend.
 - Um navegador comum continua usando o fallback `index.html` da SPA.
 - Não há `/gaydevs/api` nem `/gaydevs/platform` hardcoded nas regras de social preview do `.htaccess`.

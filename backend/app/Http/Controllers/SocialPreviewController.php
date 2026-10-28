@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Poll;
 use App\Services\PollService;
 use Illuminate\Contracts\View\View;
 
@@ -27,10 +28,8 @@ class SocialPreviewController extends Controller
         $path = trim((string) $path, '/');
         $preview = $this->defaultPreview($frontendUrl, $path);
 
-        if ($path === 'polls') {
-            $preview = $this->pollListPreview($frontendUrl);
-        } elseif (preg_match('/\Apolls\/([a-z0-9-]+)\z/', $path, $matches) === 1) {
-            $preview = $this->pollDetailPreview($frontendUrl, $matches[1]);
+        if ($path === 'polls' || str_starts_with($path, 'polls/')) {
+            $preview = $this->pollPreview($frontendUrl, $path);
         }
 
         return view('social.preview', $preview);
@@ -51,6 +50,19 @@ class SocialPreviewController extends Controller
     }
 
     /** @return array<string, int|string> */
+    private function pollPreview(string $frontendUrl, string $path): array
+    {
+        if (preg_match('/\Apolls\/([a-z0-9-]+)\z/', $path, $matches) === 1) {
+            $poll = $this->polls->find($matches[1]);
+            if ($poll !== null) {
+                return $this->pollDetailPreview($frontendUrl, $poll);
+            }
+        }
+
+        return $this->pollListPreview($frontendUrl);
+    }
+
+    /** @return array<string, int|string> */
     private function pollListPreview(string $frontendUrl): array
     {
         return [
@@ -65,10 +77,8 @@ class SocialPreviewController extends Controller
     }
 
     /** @return array<string, int|string> */
-    private function pollDetailPreview(string $frontendUrl, string $identifier): array
+    private function pollDetailPreview(string $frontendUrl, Poll $poll): array
     {
-        $poll = $this->polls->resolve($identifier);
-
         return [
             'title' => $poll->question,
             'description' => self::POLLS_DETAIL_DESCRIPTION,
