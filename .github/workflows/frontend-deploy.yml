@@ -77,6 +77,10 @@ jobs:
           password: ${{ secrets.SFTP_PASSWORD }}
           port: 22
           script: |
+            if [ ! -f "${{ env.REMOTE_TMP }}/.htaccess" ]; then
+              echo 'O .htaccess de fallback SPA não chegou ao diretório temporário; deploy cancelado.' >&2
+              exit 1
+            fi
             mkdir -p "${{ env.REMOTE_ROOT }}"
             # Remove restos do layout antigo (frontend direto em /gaydevs/)
             find "${{ env.REMOTE_ROOT }}" -mindepth 1 -maxdepth 1 ! -name platform ! -name api ! -name .htaccess -exec rm -rf {} +
