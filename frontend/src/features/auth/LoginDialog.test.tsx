@@ -58,8 +58,8 @@ describe('LoginDialog', () => {
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     const dialog = screen.getByRole('dialog')
-    const modalBrand = within(dialog).getByRole('link', { name: 'voltar ao início' })
-    expect(modalBrand).toHaveAttribute('href', '#inicio')
+    const modalBrand = within(dialog).getByText('/gdevs/login', { exact: true })
+    expect(modalBrand.closest('a')).not.toBeInTheDocument()
     expect(modalBrand).toHaveTextContent('/gdevs/login')
     expect(dialog.querySelector('.login-field__prefix')).toHaveTextContent('gdev')
     const modalHeader = dialog.querySelector('.modal-header')
@@ -111,8 +111,8 @@ describe('LoginDialog', () => {
       expect(requestOtp).toHaveBeenCalledWith('user-id')
       expect(window.location.hash).toBe('#login/otp')
     })
-    expect(within(screen.getByRole('dialog')).getByRole('link', { name: 'voltar ao início' }))
-      .toHaveTextContent('/gdevs/login/verify-otp')
+    const modalBrand = within(screen.getByRole('dialog')).getByText('/gdevs/login/verify-otp', { exact: true })
+    expect(modalBrand.closest('a')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'enviar código por e-mail' })).not.toBeInTheDocument()
     expect(within(screen.getByRole('dialog')).queryByRole('button', { name: 'entrar' })).not.toBeInTheDocument()
 
