@@ -255,6 +255,39 @@ test('the poll index returns cursor pages without repeating polls', function () 
     expect(collect($firstPage['polls'])->merge($secondPage['polls']))->toHaveCount(5);
 });
 
+test('the poll index keeps a poll with a future closing date out of the next cursor page', function () {
+    $creator = User::factory()->create(['member_type' => MemberType::ADMIN]);
+    $createPoll = static function (string $question, string $slug, $createdAt, $closedAt = null) use ($creator): void {
+        $poll = Poll::create([
+            'created_by_user_id' => $creator->id,
+            'question' => $question,
+            'slug' => $slug,
+        ]);
+        $poll->forceFill([
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+            'closed_at' => $closedAt,
+        ])->saveQuietly();
+    };
+
+    $createPoll('Enquete aberta recente', 'enquete-aberta-recente', now()->subMinutes(1));
+    $createPoll('Enquete aberta anterior', 'enquete-aberta-anterior', now()->subMinutes(2));
+    $createPoll('Enquete com encerramento futuro', 'enquete-encerramento-futuro', now()->subMinutes(3), now()->addHour());
+    $createPoll('Enquete aberta antiga', 'enquete-aberta-antiga', now()->subMinutes(4));
+
+    Sanctum::actingAs($creator);
+    $firstPage = $this->getJson('/polls')->assertOk()
+        ->assertJsonPath('polls.2.slug', 'enquete-encerramento-futuro')
+        ->json();
+
+    $secondPage = $this->getJson('/polls?cursor='.urlencode($firstPage['next_cursor']))->assertOk()
+        ->assertJsonCount(1, 'polls')
+        ->assertJsonPath('polls.0.slug', 'enquete-aberta-antiga')
+        ->json();
+
+    expect(collect($secondPage['polls'])->pluck('slug'))->not->toContain('enquete-encerramento-futuro');
+});
+
 test('the poll index returns only polls changed since the last sync', function () {
     $creator = User::factory()->create(['member_type' => MemberType::ADMIN]);
     $voter = User::factory()->create();

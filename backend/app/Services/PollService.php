@@ -555,11 +555,12 @@ class PollService
 
     private function applyListCursor(Builder $query, array $cursor): void
     {
+        $snapshot = $this->databaseDate($cursor['snapshot']);
         $statusOrder = 'CASE WHEN closed_at IS NULL OR closed_at > ? THEN 0 ELSE 1 END';
-        $query->where(function (Builder $query) use ($cursor, $statusOrder): void {
-            $query->whereRaw($statusOrder.' > ?', [$cursor['snapshot'], $cursor['status']])
-                ->orWhere(function (Builder $query) use ($cursor, $statusOrder): void {
-                    $query->whereRaw($statusOrder.' = ?', [$cursor['snapshot'], $cursor['status']])
+        $query->where(function (Builder $query) use ($cursor, $snapshot, $statusOrder): void {
+            $query->whereRaw($statusOrder.' > ?', [$snapshot, $cursor['status']])
+                ->orWhere(function (Builder $query) use ($cursor, $snapshot, $statusOrder): void {
+                    $query->whereRaw($statusOrder.' = ?', [$snapshot, $cursor['status']])
                         ->where(function (Builder $query) use ($cursor): void {
                             $query->where('created_at', '<', $this->databaseDate($cursor['created_at']))
                                 ->orWhere(function (Builder $query) use ($cursor): void {
