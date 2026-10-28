@@ -25,4 +25,4 @@ body:
       required: true
   - type: markdown
     attributes:
-      value: 'Após criar, defina Priority (High, Medium ou Low) no campo nativo. Use blocked by / blocking para dependências. Tech Debt não trivial exige spec.'
+      value: 'Após criar, defina Priority (High, Medium ou Low) no campo nativo. Use blocked by / blocking para dependências. Risk é independente de Priority; Low/Medium podem usar fast-track com aprovação humana e High usa SDD normal. Todos os fluxos mantêm spec.'

@@ -113,30 +113,26 @@ test('Blockers: open permits reading only; closed permits start', t => {
   ok(start(s)); assert.equal(s.state().items.I_27.status, 'Specifying');
 });
 
-test('Human gates: Feature refuses fast-track and legacy trivial alias', t => {
-  for (const flag of ['--fast-track', '--trivial']) {
-    const s = sandbox(t); fail(start(s, 27, flag, '--human-approved'), /Feature sempre exige spec/); noWrites(s);
-  }
-});
-
-test('Human gates: fast-track requires explicit approval and rejects approval flag alone', t => {
-  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
-  const preview = JSON.parse(ok(s.cli('from-issue', [27, '--fast-track'])));
-  assert.equal(preview.fastTrack, true); assert.equal(preview.needsSpec, false); noWrites(s);
-  fail(start(s, 27, '--fast-track'), /aprovação humana explícita/); noWrites(s);
+test('Human gates: fast-track requires explicit Risk and human approval', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Feature'); });
+  fail(s.cli('from-issue', [27, '--fast-track']), /classificação explícita/); noWrites(s);
+  const preview = JSON.parse(ok(s.cli('from-issue', [27, '--fast-track', '--risk', 'low'])));
+  assert.equal(preview.fastTrack, true); assert.equal(preview.risk, 'low'); assert.equal(preview.needsSpec, false); noWrites(s);
+  fail(start(s, 27, '--fast-track', '--risk', 'low'), /aprovação humana explícita/); noWrites(s);
   fail(start(s, 27, '--human-approved'), /só é válido com/); noWrites(s);
+  fail(start(s, 27, '--fast-track', '--risk', 'high', '--human-approved'), /High Risk não usa fast-track/); noWrites(s);
 });
 
-for (const type of ['Bug', 'Refactor', 'Tech Debt']) test(`from-issue fast-track: ${type} creates branch with succinct spec/plan/tasks`, t => {
+for (const type of ['Feature', 'Bug', 'Refactor', 'Tech Debt']) test(`from-issue Low Risk: ${type} creates succinct artifacts and starts implementation`, t => {
   const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, type); });
   const before = new Map(snapshot(s.repo));
-  const work = JSON.parse(ok(start(s, 27, '--fast-track', '--human-approved')));
-  assert.equal(work.needsSpec, false);
+  const work = JSON.parse(ok(start(s, 27, '--fast-track', '--risk', 'low', '--human-approved')));
+  assert.equal(work.risk, 'low'); assert.equal(work.needsSpec, false);
   assert.equal(s.git('branch', '--show-current'), work.branch);
   const dir = path.join(s.repo, work.directory);
   assert.deepEqual(readdirSync(dir).sort(), ['plan.md', 'spec.md', 'tasks.md']);
-  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /fast-track aprovado/i);
-  assert.match(readFileSync(path.join(dir, 'plan.md'), 'utf8'), /menor alteração necessária/i);
+  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /Fast-track risk: Low/);
+  assert.match(readFileSync(path.join(dir, 'plan.md'), 'utf8'), /risco permanecer Low/i);
   assert.match(readFileSync(path.join(dir, 'tasks.md'), 'utf8'), /T001.*Technical fixture 27/i);
   const after = new Map(snapshot(s.repo));
   for (const [name, value] of before) { assert.equal(after.get(name), value, name); after.delete(name); }
@@ -147,16 +143,53 @@ for (const type of ['Bug', 'Refactor', 'Tech Debt']) test(`from-issue fast-track
     path.join(work.directory, 'tasks.md'),
   ].sort());
   assert.equal(s.state().items.I_27.status, 'In Progress');
-  assert.match(s.state().comments[27][0].body, /spec\.md.*plan\.md.*tasks\.md.*sucintos/s); s.noPointer();
+  assert.match(s.state().comments[27][0].body, /Fast-track Low Risk.*implementação está autorizada/s); s.noPointer();
 });
 
-test('from-issue --trivial remains a compatible fast-track alias', t => {
-  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
-  const work = JSON.parse(ok(start(s, 27, '--trivial', '--human-approved')));
-  assert.equal(work.needsSpec, false);
+test('from-issue Medium Risk pauses in Specifying until one human checkpoint', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Feature'); });
+  const work = JSON.parse(ok(start(s, 27, '--fast-track', '--risk', 'medium', '--human-approved')));
+  assert.equal(work.risk, 'medium');
   const dir = path.join(s.repo, work.directory);
-  assert.deepEqual(readdirSync(dir).sort(), ['plan.md', 'spec.md', 'tasks.md']);
+  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /Fast-track risk: Medium/);
+  assert.equal(s.state().items.I_27.status, 'Specifying');
+  assert.match(s.state().comments[27][0].body, /checkpoint humano explícito/);
+  s.clearCalls();
+  fail(s.cli('fast-track', [27, 'checkpoint']), /aprovação humana explícita/); noWrites(s);
+  ok(s.cli('fast-track', [27, 'checkpoint', '--human-approved']));
   assert.equal(s.state().items.I_27.status, 'In Progress');
+  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /checkpoint humano aprovado/);
+  assert.match(s.state().comments[27].at(-1).body, /Checkpoint Medium Risk aprovado/);
+});
+
+test('fast-track escalation preserves branch/spec and raises governance', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Bug'); });
+  const work = JSON.parse(ok(start(s, 27, '--fast-track', '--risk', 'low', '--human-approved')));
+  const branch = s.git('branch', '--show-current');
+  const dir = path.join(s.repo, work.directory);
+  s.clearCalls();
+  ok(s.cli('fast-track', [27, 'escalate', 'medium']));
+  assert.equal(s.git('branch', '--show-current'), branch);
+  assert.equal(s.state().items.I_27.status, 'Specifying');
+  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /Fast-track risk: Medium/);
+  ok(s.cli('fast-track', [27, 'checkpoint', '--human-approved']));
+  assert.equal(s.state().items.I_27.status, 'In Progress');
+  ok(s.cli('fast-track', [27, 'escalate', 'high']));
+  assert.equal(s.git('branch', '--show-current'), branch);
+  assert.equal(s.state().items.I_27.status, 'Specifying');
+  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /Fast-track risk: High/);
+  assert.match(s.state().comments[27].at(-1).body, /SDD normal/i);
+});
+
+test('from-issue --trivial remains a legacy alias for Low Risk', t => {
+  const s = sandbox(t); s.change(v => { v.issues[27] = issue(27, 'Feature'); });
+  const work = JSON.parse(ok(start(s, 27, '--trivial', '--human-approved')));
+  assert.equal(work.risk, 'low'); assert.equal(work.needsSpec, false);
+  const dir = path.join(s.repo, work.directory);
+  assert.match(readFileSync(path.join(dir, 'spec.md'), 'utf8'), /Fast-track risk: Low/);
+  assert.equal(s.state().items.I_27.status, 'In Progress');
+  const other = sandbox(t); other.change(v => { v.issues[27] = issue(27, 'Bug'); });
+  fail(start(other, 27, '--trivial', '--risk', 'medium', '--human-approved'), /não aceita --risk/); noWrites(other);
 });
 
 for (const scenario of ['dirty', 'local branch', 'remote branch', 'existing spec', 'incorrect remote', 'missing infrastructure']) {

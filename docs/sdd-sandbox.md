@@ -78,12 +78,12 @@ exigem revisão explícita da fronteira antes de serem aceitos na suíte.
 - API simulada não comprova permissões, schema remoto vigente, auto-add assíncrono,
   disponibilidade do GitHub ou efeito real das proteções/CODEOWNERS.
 - `--human-approved` é uma declaração do operador; não autentica a identidade
-  nem comprova a aprovação. `from-issue --fast-track` exige essa declaração antes
-  de mutar estado; `--trivial` é alias compatível. A sandbox verifica o gate, os
-  tipos permitidos, a geração sucinta de spec/plan/tasks e o comentário de
-  rastreabilidade, mas não consegue decidir semanticamente se uma mudança real
-  deixou de ser trivial. Essa
-  reavaliação é responsabilidade obrigatória do agente/gdev durante a execução.
+  nem comprova a aprovação. `from-issue --fast-track` exige Risk explícito e essa
+  declaração antes de mutar estado; `--trivial` é alias legado de Low Risk. A
+  sandbox verifica Low nos quatro tipos SDD, Medium parando para um checkpoint
+  humano, High recusando fast-track, geração sucinta de spec/plan/tasks, escalada
+  de risco preservando branch/spec e comentários de rastreabilidade. A avaliação
+  semântica do risco real continua responsabilidade obrigatória do agente/gdev.
 - O origin/develop da sandbox é local. O uso a partir do origin/develop real
   após integração do PR #12 continua pendente do review/merge humano.
 - Promoção develop → main, bootstrap do CODEOWNERS na base main, reviews reais
