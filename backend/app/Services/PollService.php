@@ -41,6 +41,11 @@ class PollService
         ])->firstOrFail();
     }
 
+    public function find(string $identifier): ?Poll
+    {
+        return Poll::query()->where('slug', $identifier)->first();
+    }
+
     public function allPayloads(): array
     {
         return $this->listPayloads(1000000)['polls'];

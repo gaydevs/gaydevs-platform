@@ -1,11 +1,20 @@
 <IfModule mod_rewrite.c>
     Options -MultiViews
     RewriteEngine On
-    RewriteBase /gaydevs/platform/
+
+    # The SPA root is a real directory, so social crawlers must be handled
+    # before the real file/directory short-circuit below.
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot) [NC]
+    RewriteRule ^$ ../api/social/preview [L]
 
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
+
+    # Forward SPA routes to the generic backend resolver. Do not propagate an
+    # optional trailing slash, avoiding an extra canonical redirect in the API.
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot) [NC]
+    RewriteRule ^(.+?)/?$ ../api/social/preview/$1 [L]
 
     RewriteRule ^ index.html [L]
 </IfModule>
