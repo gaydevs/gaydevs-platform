@@ -19,7 +19,9 @@ O caminho `since` continua retornando todos os polls alterados na janela atual, 
 
 Estão fora do escopo mudanças de frontend, rotas ou contratos HTTP, regras de produto, autenticação/autorização, esquema de dados e migrations. A divisão ou renomeação dos arquivos de teste só ocorre sem perda de cobertura e em etapa separada das extrações de produção.
 
-Antes de qualquer mudança de produção, o primeiro commit de implementação será somente de testes de caracterização, verdes contra o código atual. A cobertura existente já é ampla; a lacuna confirmada é o contrato de sincronização incremental: `since` retorna todos os polls alterados mesmo quando `limit` é menor que a quantidade retornada. Asserções de desempenho que falhem no código atual serão introduzidas junto com a implementação que as satisfaz, sem deixar um commit intermediário vermelho.
+A estratégia aprovada inicialmente previa um commit de testes de caracterização, verde contra o código atual, antes das mudanças de produção. A lacuna confirmada era o contrato de sincronização incremental: `since` retorna todos os polls alterados mesmo quando `limit` é menor que a quantidade retornada. O commit local `847a12f` registrou esse teste isoladamente, mas não integra o histórico publicado da PR. O primeiro commit de implementação publicado, `843a18b`, reúne o teste de caracterização e a refatoração.
+
+Para esta Issue, gdev `luvittor` aprovou em 2026-10-29 manter o histórico publicado consolidado, sem reescrevê-lo, e atualizar estes artefatos para refletir a entrega. A exceção dispensa somente preservar um commit de testes separado na história remota; o teste de `since` com `limit` pequeno permanece no código e deve passar nas validações finais. Asserções de desempenho que falhem no código atual continuam sendo introduzidas junto com a implementação que as satisfaz, sem deixar um commit intermediário vermelho.
 
 ## Requisitos verificáveis
 
@@ -31,7 +33,7 @@ Antes de qualquer mudança de produção, o primeiro commit de implementação s
 - REQ-006: Nenhuma migration ou alteração de esquema é necessária.
 - REQ-007: A validação cobre as regras existentes de payload, ordenação, cursor, `since`, votos, opções, permissões, sugestões e auditoria, além das novas garantias de carregamento em lote.
 - REQ-008: A linha de base é registrada antes da primeira alteração; extrações são feitas em etapas pequenas, com validação focada após cada etapa e repetição da validação completa ao final.
-- REQ-009: O primeiro commit que altera código de produção é precedido por um commit verde que altera somente testes e caracteriza a semântica existente de `since` com `limit` menor que o número de polls alterados.
+- REQ-009 (ajustado para esta Issue): O teste de caracterização de `since` com `limit` menor que o número de polls alterados permanece no diff final e passa nas validações. Para a #80, a história publicada pode reunir esse teste e as mudanças de produção no mesmo commit; não é necessário preservar um commit remoto separado de testes.
 
 ## Critérios de aceite
 
@@ -42,7 +44,7 @@ Antes de qualquer mudança de produção, o primeiro commit de implementação s
 - Dada uma listagem com mais de uma enquete, quando as consultas são observadas, então o número de consultas não cresce com uma resolução individual por item; o cálculo dos resultados não repete a varredura de todos os votos para cada opção.
 - Dada uma resposta que não expõe nomes de votantes, quando é montada, então os modelos de gdevs votantes não são hidratados e contagens/percentuais continuam corretos.
 - Dado o baseline e o código final, quando os comandos completos são executados, então lint e suítes SQLite e MySQL passam sem remoção de cobertura; qualquer skip é identificado pelo motivo do ambiente.
-- Dado o commit de caracterização inicial, quando os testes são executados sem mudanças de produção, então o novo caso `since` com `limit` pequeno passa e a suíte atual continua verde.
+- Dada a implementação publicada da #80, quando a suíte é executada, então o caso `since` com `limit` pequeno passa junto com a implementação; para esta Issue, não se exige um commit remoto separado de testes.
 - Ao final, `PollService` está removido ou reduzido a uma responsabilidade delimitada, controllers continuam finos e o diff não contém mudança de rota, contrato HTTP, esquema ou migration.
 
 ## Linha de base registrada antes do código
@@ -70,6 +72,10 @@ Executada no estado final da branch, sem mudanças de rota ou migration:
 
 A comparação com a linha de base preserva a cobertura e adiciona três testes: o contrato `since` com `limit=1`, a ausência de resolução por poll na listagem e a não hidratação de votantes no payload anônimo. `PollService` foi removido; as responsabilidades agora estão em `PollReadService`, builders de payload e Actions específicas.
 
+## Validação do comentário de revisão sobre 403/404
+
+Após a correção publicada em `14e8f05`, `composer test` passou com 158 testes, 1 skip e 946 asserções; `composer lint` também passou. Foram adicionadas regressões para o JSON de 403 e 404, preservando as respostas existentes sem expor mensagens internas.
+
 ## Dependências e questões abertas
 
 O helper SDD consultou a Issue #80 e confirmou zero blockers e zero dependências que bloqueiem esta demanda. O comportamento-alvo e seus limites estão descritos na Issue atualizada. As fronteiras concretas de classes e a sequência detalhada de extrações ficam para o plano técnico.
@@ -77,3 +83,5 @@ O helper SDD consultou a Issue #80 e confirmou zero blockers e zero dependência
 ## Aprovação humana
 
 Aprovada por gdev luvittor em 2026-10-28, com referência à mensagem explícita “aprovado” nesta conversa.
+
+O ajuste específico de REQ-009 e a manutenção do histórico consolidado da PR foram aprovados por gdev `luvittor` em 2026-10-29, com referência à mensagem explícita “prefiro reorganizar o spec... é só um commit com tudo... nada demais” nesta conversa.

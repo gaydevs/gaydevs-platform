@@ -2,7 +2,7 @@
 
 ## Antes de mudanças de produção
 
-A linha de base registrada em `spec.md` foi executada em `develop` (`bc4c60e`). O primeiro commit de implementação será somente de testes e precisa permanecer verde sem mudar código de produção.
+A linha de base registrada em `spec.md` foi executada em `develop` (`bc4c60e`). Para esta Issue, a entrega publicada foi aprovada como consolidada: o commit local `847a12f` contém somente testes, mas não integra a ancestralidade da PR; `843a18b` reúne o teste de caracterização e a produção. O teste continua no diff final e precisa passar junto com a suíte. Essa exceção de histórico está registrada em `spec.md`.
 
 No diretório `backend/`:
 

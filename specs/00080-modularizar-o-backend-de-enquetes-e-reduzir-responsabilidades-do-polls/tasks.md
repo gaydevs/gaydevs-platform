@@ -5,11 +5,11 @@ Aprovação do plan: gdev `luvittor`, 2026-10-28, mensagem explícita “aprovo�
 
 ## Execução
 
-### Etapa 1 — Caracterização verde, somente testes
+### Etapa 1 — Caracterização verde
 
 - [x] T001 Acrescentar em `backend/tests/Feature/PollsTest.php` um caso com três polls alterados e `since` junto de `limit=1`, verificando que os três são retornados.
 - [x] T002 Rodar `composer lint`, `php artisan test tests/Feature/PollsTest.php` e `composer test` em `backend/`; confirmar que o diff de código contém somente `backend/tests/Feature/PollsTest.php`.
-- [x] T003 Criar o primeiro commit de código somente com `backend/tests/Feature/PollsTest.php` e conferir seu conteúdo com `git show --stat --oneline HEAD` (commit `847a12f`, um arquivo de testes).
+- [x] T003 Criar localmente o commit de caracterização somente com `backend/tests/Feature/PollsTest.php` (`847a12f`, um arquivo). Ele não integra a ancestralidade da PR publicada: `843a18b` reúne o teste e a produção. Para esta Issue, gdev `luvittor` aprovou manter o histórico consolidado; a exceção está registrada em `spec.md`.
 
 ### Etapa 2 — Leitura e payload
 
@@ -55,4 +55,8 @@ Aprovação do plan: gdev `luvittor`, 2026-10-28, mensagem explícita “aprovo�
 
 As etapas são sequenciais: caracterização → leitura/payload → criação/encerramento → votação → opções → auditoria/remoção → validação final. Não há tarefas paralelas seguras porque cada etapa migra chamadores e responsabilidades que dependem das anteriores.
 
-MVP: Etapa 1, o commit de caracterização verde. Ela fixa primeiro o contrato de `since` com `limit` antes de qualquer alteração de produção. Os testes de desempenho e hidratação entram junto com a implementação que os satisfaz, sem commit vermelho. Nenhuma task cria Issues.
+MVP: Etapa 1, a caracterização verde de `since` com `limit`. O commit local `847a12f` contém somente esse teste, mas não foi preservado como ancestral na PR. A entrega publicada em `843a18b` combina caracterização e produção, conforme a exceção aprovada para a #80. O teste permanece no diff final e a validação passa; nenhum teste vermelho intermediário foi publicado. Nenhuma task cria Issues.
+
+## Validação após comentário da PR
+
+No commit `14e8f05`, `composer test` passou com 158 testes, 1 skip e 946 asserções; `composer lint` passou. Os testes de regressão confirmam o JSON anterior nos erros 403 e 404.

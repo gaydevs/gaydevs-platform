@@ -11,7 +11,7 @@
 ## Alternativas descartadas
 
 - Repositórios/interfaces sobre Eloquent: não existe uma necessidade de troca de persistência que justifique essa camada.
-- Reescrita geral antes de validar: torna difícil atribuir regressões e conflita com o primeiro commit somente de caracterização.
+- Reescrita geral antes de validar: torna difícil atribuir regressões e conflita com a estratégia inicial de caracterização antes da produção.
 - Fixar metas absolutas de latência: resultados dependem de host e dados. A regressão deve medir consultas por requisição e demonstrar que não há consulta por enquete/opção, sem criar um benchmark instável.
 
 ## Lacunas e contexto
@@ -19,3 +19,7 @@
 O código e os testes de `develop` foram lidos localmente. A cobertura existente já protege criação, fechamento, votos, opções, autorização, paginação/cursor, sync incremental, payload público/autenticado e auditoria. A lacuna confirmada é um teste com `since` e `limit` menor que o número de resultados; o teste atual tem apenas dois resultados e usa o limite padrão de três.
 
 Não há decisão pendente de biblioteca externa nem necessidade de migration. A base de implementação continua Laravel/Eloquent e Composer atuais.
+
+## Ajuste aprovado de histórico
+
+A caracterização de `since` com `limit` foi criada localmente antes da produção no commit `847a12f`. A branch publicada foi consolidada e o primeiro commit da PR (`843a18b`) reúne testes e produção; `847a12f` não é ancestral remoto. Gdev `luvittor` aprovou em 2026-10-29 registrar essa exceção para a #80, mantendo o teste e as validações finais sem reescrever o histórico.

@@ -19,7 +19,7 @@ Organização-alvo:
 
 A hidratação da listagem deve reutilizar eager loading em coleções ordenadas. Se o resultado de `since` exigir lotes por limites de SQL, o serviço carrega cada lote e recompõe a ordem original antes da serialização. Isso preserva o delta completo e evita uma consulta por enquete. Não se altera o limite, cursor ou payload para controlar memória nesta refatoração.
 
-Alternativas consideradas: manter um `PollService` fachada amplo conserva o acoplamento; um repository layer duplicaria Eloquent sem necessidade; uma reescrita em um único passo dificultaria localizar regressões. A sequência abaixo usa commits pequenos e deixa o primeiro commit de implementação somente com testes verdes.
+Alternativas consideradas: manter um `PollService` fachada amplo conserva o acoplamento; um repository layer duplicaria Eloquent sem necessidade; uma reescrita em um único passo dificultaria localizar regressões. A sequência inicial previa commits pequenos e um primeiro commit só de testes. Na publicação, a branch foi consolidada: `847a12f` existe localmente como commit de testes, mas não é ancestral da PR; o commit `843a18b` publicado reúne caracterização e produção. A exceção específica para esta Issue foi aprovada e registrada em [spec.md](spec.md); não será feita reescrita do histórico remoto.
 
 ## Impactos e dependências
 
@@ -31,9 +31,9 @@ Alternativas consideradas: manter um `PollService` fachada amplo conserva o acop
 
 ## Validação
 
-### Sequência de commits
+### Etapas de implementação e validação
 
-1. **Teste de caracterização, somente testes**: adicionar em `PollsTest` um caso com três polls alterados e `since` junto de `limit=1`; confirmar que os três são retornados. O código de produção não muda. Rodar `composer lint`, `php artisan test tests/Feature/PollsTest.php` e `composer test`; todos devem passar no código atual.
+1. **Teste de caracterização**: adicionar em `PollsTest` um caso com três polls alterados e `since` junto de `limit=1`; confirmar que os três são retornados. O teste foi criado e validado localmente antes da refatoração (`847a12f`). Na história publicada, teste e produção aparecem juntos em `843a18b`, conforme a exceção aprovada para esta Issue. Rodar `composer lint`, `php artisan test tests/Feature/PollsTest.php` e `composer test`; todos devem passar.
 2. **Leitura e payload**: extrair `PollReadService` e os builders; no mesmo commit, adicionar testes de regressão para consultas da listagem que não crescem por enquete, agregação que não revarre votos por opção e ausência de hidratação de votantes no payload anônimo. Rodar lint, `PollsTest` e suíte completa.
 3. **Criação e fechamento**: extrair esses casos para Actions sem alterar transações nem middleware; validar testes de criação, slug, permissões e fechamento, depois lint e suíte completa.
 4. **Votação**: extrair `SubmitPollResponse`; validar single/multiple choice, retirada/substituição, duplicidade, opção escondida, poll encerrado e concorrência. Rodar MySQL isolado após esta etapa para cobrir locks.
@@ -53,10 +53,12 @@ Não há validação frontend neste escopo porque nenhum arquivo ou contrato do 
 - **SDD**: fluxo normal para Refactor; não é fast-track trivial. Issue #80 existe e tem tipo/prioridade confirmados via gh.
 - **Uma feature, uma spec**: único diretório `specs/00080-*`, cobrindo o módulo backend de enquetes.
 - **Gates humanos**: spec e plano aprovados explicitamente por `luvittor` em 2026-10-28.
-- **Escopo**: nenhuma rota, regra de produto, esquema ou migration muda. Mudança de escopo exige atualizar spec e nova aprovação.
+- **Escopo**: nenhuma rota, regra de produto, esquema ou migration muda. A exceção específica de histórico da #80 foi aprovada em 2026-10-29 e atualizada na spec.
 - **Dependências**: zero blockers abertos; status do Project foi relido como `Specifying`.
 - **Rastreabilidade**: branch `refactor/00080-modularizar-o-backend-de-enquetes-e-reduzir-responsabilidades-do-polls`, issue #80, prioridade Medium.
 
 ## Aprovação humana
 
 Plano aprovado por gdev `luvittor` em 2026-10-28, com referência à mensagem explícita “aprovo” nesta conversa.
+
+A atualização documental deste plano reflete a exceção aprovada por gdev `luvittor` e registrada em [spec.md](spec.md) em 2026-10-29.
