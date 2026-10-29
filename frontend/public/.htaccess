@@ -2,19 +2,19 @@
     Options -MultiViews
     RewriteEngine On
 
-    # The SPA root is a real directory, so social crawlers must be handled
-    # before the real file/directory short-circuit below.
+    # DreamHost Shared Hosting does not preserve the expected Laravel route when
+    # internally rewriting from platform/ to the sibling api/ directory. Social
+    # crawlers therefore receive an external redirect to the absolute preview URL.
     RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot) [NC]
-    RewriteRule ^$ ../api/social/preview [L]
+    RewriteRule ^$ https://vettoretti.dev/gaydevs/api/social/preview [R=302,L]
 
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Forward SPA routes to the generic backend resolver. Do not propagate an
-    # optional trailing slash, avoiding an extra canonical redirect in the API.
+    # Do not propagate an optional trailing slash to the backend preview path.
     RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot) [NC]
-    RewriteRule ^(.+?)/?$ ../api/social/preview/$1 [L]
+    RewriteRule ^(.+?)/?$ https://vettoretti.dev/gaydevs/api/social/preview/$1 [R=302,L]
 
     RewriteRule ^ index.html [L]
 </IfModule>

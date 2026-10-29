@@ -14,9 +14,9 @@ class SocialPreviewController extends Controller
 
     private const POLLS_LIST_TITLE = '/gdevs/polls';
 
-    private const POLLS_LIST_DESCRIPTION = 'vote nas enquetes da comunidade, participe das decisões 🗳️';
+    private const POLLS_LIST_DESCRIPTION = 'vote nas enquetes da comunidade, participe das decisões ✅';
 
-    private const POLLS_DETAIL_DESCRIPTION = 'vote e veja o que a comunidade gaydevs prefere 🗳️';
+    private const POLLS_DETAIL_DESCRIPTION = 'vote e veja o que a comunidade gaydevs prefere ✔️';
 
     public function __construct(private readonly PollReadService $polls) {}
 
@@ -42,7 +42,7 @@ class SocialPreviewController extends Controller
             'title' => self::DEFAULT_TITLE,
             'description' => self::DEFAULT_DESCRIPTION,
             'canonicalUrl' => $this->canonicalUrl($frontendUrl, $path),
-            'imageUrl' => $frontendUrl.'/brand-icon-512.png',
+            'imageUrl' => $frontendUrl.'/browser-icon-512.png',
             'imageWidth' => 512,
             'imageHeight' => 512,
             'imageAlt' => 'gaydevs',
@@ -80,7 +80,7 @@ class SocialPreviewController extends Controller
     private function pollDetailPreview(string $frontendUrl, Poll $poll): array
     {
         return [
-            'title' => $poll->question,
+            'title' => self::POLLS_LIST_TITLE.' "'.$poll->question.'"',
             'description' => self::POLLS_DETAIL_DESCRIPTION,
             'canonicalUrl' => $frontendUrl.'/polls/'.rawurlencode($poll->slug),
             'imageUrl' => $frontendUrl.'/polls-preview.png',
