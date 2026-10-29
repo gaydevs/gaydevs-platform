@@ -15,7 +15,7 @@ test('poll list social preview exposes the configured metadata', function () {
         ->assertOk()
         ->assertHeader('content-type', 'text/html; charset=UTF-8')
         ->assertSee('<meta property="og:title" content="/gdevs/polls">', false)
-        ->assertSee('vote nas enquetes da comunidade, participe das decisões 🗳️', false)
+        ->assertSee('vote nas enquetes da comunidade, participe das decisões ✅', false)
         ->assertSee('https://frontend.example.test/gaydevs/platform/polls-preview.png', false)
         ->assertSee('<meta property="og:type" content="website">', false)
         ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/polls/">', false)
@@ -32,10 +32,10 @@ test('poll detail social preview uses the poll question and canonical frontend u
 
     $this->get('/social/preview/polls/o-que-vc-quer-jogar-no-jogaydev')
         ->assertOk()
-        ->assertSee('<meta property="og:title" content="O que vc quer jogar no JogaYdev?">', false)
-        ->assertSee('vote e veja o que a comunidade gaydevs prefere 🗳️', false)
+        ->assertSee('<meta property="og:title" content="/gdevs/polls &quot;O que vc quer jogar no JogaYdev?&quot;">', false)
+        ->assertSee('vote e veja o que a comunidade gaydevs prefere ✔️', false)
         ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/polls/o-que-vc-quer-jogar-no-jogaydev">', false)
-        ->assertSee('<meta name="twitter:title" content="O que vc quer jogar no JogaYdev?">', false);
+        ->assertSee('<meta name="twitter:title" content="/gdevs/polls &quot;O que vc quer jogar no JogaYdev?&quot;">', false);
 });
 
 test('unknown frontend path uses global social metadata', function () {
@@ -43,7 +43,7 @@ test('unknown frontend path uses global social metadata', function () {
         ->assertOk()
         ->assertSee('<meta property="og:title" content="gaydevs — uma comunidade para gays 🌈 e devs 💻">', false)
         ->assertSee('uma comunidade para gays 🌈 e devs 💻 — tecnologia, carreira, amizade, eventos e os surtos da vida dev.', false)
-        ->assertSee('https://frontend.example.test/gaydevs/platform/brand-icon-512.png', false)
+        ->assertSee('https://frontend.example.test/gaydevs/platform/browser-icon-512.png', false)
         ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/events/php-community-summit">', false);
 });
 
@@ -51,7 +51,7 @@ test('unknown poll slug falls back to poll area metadata', function () {
     $this->get('/social/preview/polls/new')
         ->assertOk()
         ->assertSee('<meta property="og:title" content="/gdevs/polls">', false)
-        ->assertSee('vote nas enquetes da comunidade, participe das decisões 🗳️', false)
+        ->assertSee('vote nas enquetes da comunidade, participe das decisões ✅', false)
         ->assertSee('<meta property="og:url" content="https://frontend.example.test/gaydevs/platform/polls/">', false);
 });
 

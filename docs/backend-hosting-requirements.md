@@ -21,39 +21,37 @@ de um ambiente real não pertencem ao Git e devem ser registrados separadamente.
 
 ## Topologia frontend ↔ API
 
-A publicação atual assume **mesma origem** e diretórios irmãos para frontend e
-backend. O contrato estrutural é:
+A publicação atual usa a mesma origem e diretórios irmãos para frontend e
+backend. O React, em `frontend/src/features/auth/api.ts`, deriva a base da API
+com `../api/` a partir de `BASE_URL`:
 
 ```text
 platform/
 ../api/
 ```
 
-Esse caminho relativo está deliberadamente acoplado em dois pontos de runtime e
-**ambos precisam ser atualizados juntos se a API for migrada**:
+O social preview é uma exceção a esse contrato relativo. No DreamHost Shared
+Hosting, o rewrite interno de `platform/` para o diretório irmão `api/` foi
+validado em produção retornando `404`, embora o endpoint público da API responda
+`200` diretamente. Por isso, `frontend/public/.htaccess` redireciona crawlers
+sociais com `302` para URLs absolutas sob
+`https://vettoretti.dev/gaydevs/api/social/preview/...`.
 
-1. o React, em `frontend/src/features/auth/api.ts`, usa `../api/` em
-   `resolveApiBase()` para derivar a base da API a partir de `BASE_URL`;
-2. o Apache, em `frontend/public/.htaccess`, usa `../api/social/preview/...` para
-   entregar HTML com metadata a crawlers sociais.
+O ambiente de desenvolvimento possui `/gaydevs/api` no proxy do Vite
+(`frontend/vite.config.ts`). O backend usa `APP_FRONTEND_URL` para gerar URLs
+públicas de canonical e imagens de social preview.
 
-Além disso, o ambiente de desenvolvimento possui `/gaydevs/api` no proxy do
-Vite (`frontend/vite.config.ts`). Esse terceiro ponto também deve ser revisado
-quando o path público da API mudar.
+Uma migração de path, origem ou hospedagem deve revisar em conjunto:
 
-O backend usa `APP_FRONTEND_URL` para gerar URLs públicas de canonical e imagens
-de social preview. Portanto, uma migração de hospedagem deve revisar em conjunto:
-
-- `resolveApiBase()` no React;
-- o destino `../api/` do `.htaccess`;
+- `resolveApiBase()` no React e seu `../api/`;
+- as URLs absolutas de social preview no `.htaccess`;
 - o proxy de desenvolvimento do Vite;
 - `APP_URL` e `APP_FRONTEND_URL` no `.env` persistente.
 
-Se frontend e API deixarem de compartilhar a mesma origem/topologia de
-diretórios irmãos, `../api/` deixa de ser válido. Nesse cenário, não altere
-apenas uma das referências: defina antes a nova estratégia de roteamento
-(configuração explícita, reverse proxy/edge ou equivalente), atualize os pontos
-acima e valide tanto requisições normais do React quanto previews de crawlers.
+Não presuma que o comportamento do rewrite interno observado na DreamHost se
+aplica a outro servidor. Em uma migração, defina a nova estratégia de roteamento
+e valide separadamente as requisições normais do React e os previews de
+crawlers sociais.
 
 ## Configuração e dados persistentes
 
