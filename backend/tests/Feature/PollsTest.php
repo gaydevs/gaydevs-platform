@@ -984,6 +984,50 @@ test('option creators can remove an unclaimed option and cannot remove one with 
     expect($hiddenEvent['actor']['name'])->toBe($admin->name);
 });
 
+test('a member cannot remove an option created by another user and keeps the forbidden JSON response', function () {
+    $admin = User::factory()->create(['member_type' => MemberType::ADMIN]);
+    $member = User::factory()->create(['member_type' => MemberType::MEMBER]);
+    $poll = Poll::create([
+        'created_by_user_id' => $admin->id,
+        'question' => 'Qual jogo pode remover?',
+        'slug' => 'qual-jogo-pode-remover',
+        'allow_new_options' => true,
+    ]);
+    PollOption::create(['poll_id' => $poll->id, 'created_by_user_id' => $admin->id, 'label' => 'Primeira']);
+    $option = PollOption::create(['poll_id' => $poll->id, 'created_by_user_id' => $admin->id, 'label' => 'Segunda']);
+
+    config(['app.debug' => false]);
+    Sanctum::actingAs($member);
+
+    $this->deleteJson('/polls/'.$poll->slug.'/options/'.$option->id)
+        ->assertForbidden()
+        ->assertExactJson(['message' => '']);
+});
+
+test('removing an option from another poll preserves the not found JSON response', function () {
+    $admin = User::factory()->create(['member_type' => MemberType::ADMIN]);
+    $poll = Poll::create([
+        'created_by_user_id' => $admin->id,
+        'question' => 'Qual jogo da enquete?',
+        'slug' => 'qual-jogo-da-enquete',
+        'allow_new_options' => true,
+    ]);
+    PollOption::create(['poll_id' => $poll->id, 'created_by_user_id' => $admin->id, 'label' => 'Primeira']);
+    $otherPoll = Poll::create([
+        'created_by_user_id' => $admin->id,
+        'question' => 'Qual jogo da outra enquete?',
+        'slug' => 'qual-jogo-da-outra-enquete',
+    ]);
+    $option = PollOption::create(['poll_id' => $otherPoll->id, 'created_by_user_id' => $admin->id, 'label' => 'Opção externa']);
+
+    config(['app.debug' => false]);
+    Sanctum::actingAs($admin);
+
+    $this->deleteJson('/polls/'.$poll->slug.'/options/'.$option->id)
+        ->assertNotFound()
+        ->assertExactJson(['message' => '']);
+});
+
 test('a stale poll page cannot vote on a hidden option', function () {
     $admin = User::factory()->create(['member_type' => MemberType::ADMIN]);
     $voter = User::factory()->create();

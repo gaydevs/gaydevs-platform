@@ -25,7 +25,7 @@ class HidePollOption
                 throw ValidationException::withMessages(['poll' => 'Esta enquete está encerrada.']);
             }
             if ($lockedOption->poll_id !== $lockedPoll->id || $lockedOption->hidden_at) {
-                throw (new ModelNotFoundException)->setModel(PollOption::class, [$option->id]);
+                throw new ModelNotFoundException;
             }
             $minimumVisibleOptions = $lockedPoll->allow_new_options ? 1 : 2;
             $visibleOptionCount = $lockedPoll->options()->whereNull('hidden_at')->count();
@@ -33,7 +33,7 @@ class HidePollOption
                 throw ValidationException::withMessages(['options' => 'A enquete precisa manter pelo menos '.$minimumVisibleOptions.' opções.']);
             }
             if (! $admin && $lockedOption->created_by_user_id !== $user->id) {
-                throw new AuthorizationException;
+                throw new AuthorizationException('');
             }
             if (! $admin && $lockedOption->activeVotes()->where(function ($query) use ($user): void {
                 $query->whereNull('user_id')->orWhere('user_id', '!=', $user->id);
