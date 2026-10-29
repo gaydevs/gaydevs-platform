@@ -13,7 +13,7 @@ Executar os testes diretamente relacionados e verificações de integridade do d
 
 ## Aprovação
 
-Fast-track aprovado por um gdev antes da implementação. Implementação pendente do checkpoint Medium Risk.
+Fast-track aprovado por um gdev antes da implementação. Checkpoint Medium Risk aprovado; implementação autorizada.
 
 
 ## Implementação

@@ -1,7 +1,7 @@
 # 00091 — Sincronizar main em develop após release
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/91
-Estado: fast-track Medium Risk aguardando checkpoint humano.
+Estado: fast-track Medium Risk com checkpoint humano aprovado.
 Fast-track risk: Medium
 
 ## Objetivo
