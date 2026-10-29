@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Poll;
-use App\Services\PollService;
+use App\Services\Polls\PollReadService;
 use Illuminate\Contracts\View\View;
 
 class SocialPreviewController extends Controller
@@ -18,7 +18,7 @@ class SocialPreviewController extends Controller
 
     private const POLLS_DETAIL_DESCRIPTION = 'vote e veja o que a comunidade gaydevs prefere 🗳️';
 
-    public function __construct(private readonly PollService $polls) {}
+    public function __construct(private readonly PollReadService $polls) {}
 
     public function __invoke(?string $path = null): View
     {
@@ -53,7 +53,7 @@ class SocialPreviewController extends Controller
     private function pollPreview(string $frontendUrl, string $path): array
     {
         if (preg_match('/\Apolls\/([a-z0-9-]+)\z/', $path, $matches) === 1) {
-            $poll = $this->polls->find($matches[1]);
+            $poll = $this->polls->findBySlug($matches[1]);
             if ($poll !== null) {
                 return $this->pollDetailPreview($frontendUrl, $poll);
             }
