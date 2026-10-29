@@ -19,6 +19,42 @@ de um ambiente real não pertencem ao Git e devem ser registrados separadamente.
   `storage/`, `app/`, `artisan` e `composer.json`.
 - `storage/` e `bootstrap/cache/` precisam ser graváveis pelo processo PHP.
 
+## Topologia frontend ↔ API
+
+A publicação atual assume **mesma origem** e diretórios irmãos para frontend e
+backend. O contrato estrutural é:
+
+```text
+platform/
+../api/
+```
+
+Esse caminho relativo está deliberadamente acoplado em dois pontos de runtime e
+**ambos precisam ser atualizados juntos se a API for migrada**:
+
+1. o React, em `frontend/src/features/auth/api.ts`, usa `../api/` em
+   `resolveApiBase()` para derivar a base da API a partir de `BASE_URL`;
+2. o Apache, em `frontend/public/.htaccess`, usa `../api/social/preview/...` para
+   entregar HTML com metadata a crawlers sociais.
+
+Além disso, o ambiente de desenvolvimento possui `/gaydevs/api` no proxy do
+Vite (`frontend/vite.config.ts`). Esse terceiro ponto também deve ser revisado
+quando o path público da API mudar.
+
+O backend usa `APP_FRONTEND_URL` para gerar URLs públicas de canonical e imagens
+de social preview. Portanto, uma migração de hospedagem deve revisar em conjunto:
+
+- `resolveApiBase()` no React;
+- o destino `../api/` do `.htaccess`;
+- o proxy de desenvolvimento do Vite;
+- `APP_URL` e `APP_FRONTEND_URL` no `.env` persistente.
+
+Se frontend e API deixarem de compartilhar a mesma origem/topologia de
+diretórios irmãos, `../api/` deixa de ser válido. Nesse cenário, não altere
+apenas uma das referências: defina antes a nova estratégia de roteamento
+(configuração explícita, reverse proxy/edge ou equivalente), atualize os pontos
+acima e valide tanto requisições normais do React quanto previews de crawlers.
+
 ## Configuração e dados persistentes
 
 - O `.env` de produção fica fora do Git e fora da pasta descartada pelo deploy.
