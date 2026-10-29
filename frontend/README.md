@@ -53,11 +53,15 @@ npm run images
 
 O frontend não precisa de uma variável de ambiente para descobrir a API durante
 o desenvolvimento: a base é derivada de `import.meta.env.BASE_URL` usando
-`../api/`. O `.htaccess` usa o mesmo contrato relativo para encaminhar crawlers
-sociais ao backend. Em produção, a topologia atual publica `platform/` e `api/`
-como diretórios irmãos na mesma origem.
+`../api/`. Em produção, a topologia atual publica `platform/` e `api/` como
+diretórios irmãos na mesma origem.
 
-Antes de migrar a API para outro path ou origem, consulte
+O `.htaccess` é uma exceção: no DreamHost Shared Hosting, crawlers sociais são
+redirecionados com `302` para a URL absoluta do endpoint de social preview. O
+rewrite interno entre os diretórios irmãos foi validado retornando `404` nesse
+ambiente.
+
+Antes de migrar a API para outro path, origem ou hospedagem, consulte
 [`docs/backend-hosting-requirements.md`](../docs/backend-hosting-requirements.md):
-o React e o `.htaccess` precisam ser alterados juntos, e o proxy local do Vite
-também deve ser revisado.
+revise o caminho relativo usado pelo React, as URLs absolutas do `.htaccess` e
+o proxy local do Vite.
