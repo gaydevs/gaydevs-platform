@@ -163,7 +163,7 @@ commits do release e pelos PRs de trabalho mergeados em `develop` cujo
 de release pode ficar vazio; o comando não usa título, branch parecida,
 mensagem livre de commit ou data como heurística. Ele deduplica por Issue,
 finaliza apenas Issues em `Ready for Release`, move para Done e fecha como
-completed. Deploy não é pré-requisito para Done nesta fase, e falha posterior
+completed. Antes de finalizar as Issues, sincroniza o `merge_commit_sha` exato da release de volta em `develop` pela API de merge do GitHub; isso preserva commits novos já existentes em `develop` e evita divergência puramente de histórico entre `main` e `develop`. Deploy não é pré-requisito para Done nesta fase, e falha posterior
 de deploy não reabre Issue automaticamente.
 
 Com Project indisponível, `--without-project` permite iniciar com aviso explícito

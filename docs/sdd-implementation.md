@@ -415,7 +415,7 @@ lista PRs mergeados com base `develop`, seleciona aqueles cujo
 `merge_commit_sha` persistido pelo GitHub pertence ao intervalo, lê
 `Refs #ID`/`Spec: NNNNN` dos próprios PRs de trabalho, revalida as Issues,
 deduplica por número e finaliza somente Issues em `Ready for Release` com
-Project Status `Done` e Issue `closed`/`completed`. O corpo do PR de release
+Project Status `Done` e Issue `closed`/`completed`. Antes de finalizar as Issues, o comando faz back-sync do `merge_commit_sha` exato da release em `develop` pela API de merge do GitHub. A operação é merge, não reset: commits novos que já tenham entrado em `develop` são preservados, e uma falha no back-sync interrompe o comando antes de alterar Project/Issues. O corpo do PR de release
 pode ficar vazio. O comando não depende de título, branch parecida, mensagem
 livre de commit, data de merge nem `commits/{sha}/pulls` como mecanismo primário.
 

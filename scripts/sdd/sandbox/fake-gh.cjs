@@ -111,6 +111,13 @@ function serve() {
     }
     throw new Error(`Unexpected pull endpoint: ${method} ${endpoint}`);
   }
+  if (endpoint === 'repos/gaydevs/gaydevs-platform/merges') {
+    assert.equal(method, 'POST');
+    assert.equal(body.base, 'develop');
+    assert.equal(typeof body.head, 'string');
+    assert.equal(typeof body.commit_message, 'string');
+    return output({ sha: `sync-${body.head}` });
+  }
   const compareMatch = endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/compare\/([^?]+)(?:\?(.*))?$/);
   if (compareMatch) {
     assert.equal(method, 'GET');
