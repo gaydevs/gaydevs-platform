@@ -1,4 +1,5 @@
 import {
+  api,
   closeCompleted,
   compareCommits,
   config,
@@ -81,6 +82,15 @@ main(() => {
   if (invalid.length) {
     throw new Error(`Issues em estado incompatível para release: ${invalid.map(entry => `#${entry.context.issue.number} (${entry.status})`).join(', ')}`);
   }
+
+  api(`repos/${config.repository}/merges`, {
+    method: 'POST',
+    body: {
+      base: config.baseBranch,
+      head: release.merge_commit_sha,
+      commit_message: `chore: sync release #${number} history into ${config.baseBranch}`,
+    },
+  });
 
   let changed = 0;
   for (const entry of candidates) {
