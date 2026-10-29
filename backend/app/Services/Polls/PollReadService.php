@@ -24,6 +24,11 @@ class PollReadService
             ->firstOrFail();
     }
 
+    public function findBySlug(string $slug): ?Poll
+    {
+        return Poll::query()->where('slug', $slug)->first();
+    }
+
     /**
      * @return array{polls: array<int, array<string, mixed>>, next_cursor: string|null, has_more: bool, synced_at: string}
      */

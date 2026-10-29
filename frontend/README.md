@@ -52,6 +52,12 @@ npm run images
 ## Configuração
 
 O frontend não precisa de uma variável de ambiente para descobrir a API durante
-o desenvolvimento: a base é derivada de `import.meta.env.BASE_URL`. Em produção,
-sirva a aplicação no caminho `/gaydevs/platform/` e disponibilize a API em
-`/gaydevs/api/` na mesma origem.
+o desenvolvimento: a base é derivada de `import.meta.env.BASE_URL` usando
+`../api/`. O `.htaccess` usa o mesmo contrato relativo para encaminhar crawlers
+sociais ao backend. Em produção, a topologia atual publica `platform/` e `api/`
+como diretórios irmãos na mesma origem.
+
+Antes de migrar a API para outro path ou origem, consulte
+[`docs/backend-hosting-requirements.md`](../docs/backend-hosting-requirements.md):
+o React e o `.htaccess` precisam ser alterados juntos, e o proxy local do Vite
+também deve ser revisado.

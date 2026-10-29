@@ -5,6 +5,7 @@ use App\Http\Controllers\LogoutAllController;
 use App\Http\Controllers\LogoutController;
 use App\Http\Controllers\PollController;
 use App\Http\Controllers\RequestOtpController;
+use App\Http\Controllers\SocialPreviewController;
 use App\Http\Controllers\UserPreferenceController;
 use App\Http\Controllers\UserSearchController;
 use App\Http\Controllers\VerifyOtpController;
@@ -17,6 +18,8 @@ Route::get('/users', UserSearchController::class);
 Route::post('/auth/otp', RequestOtpController::class);
 Route::post('/auth/verify', VerifyOtpController::class);
 Route::get('/polls/{identifier}', [PollController::class, 'show'])->name('poll.show');
+Route::get('/social/preview/{path?}', SocialPreviewController::class)
+    ->where('path', '.*');
 Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (): void {
     Route::get('/auth/session', CurrentSessionController::class);
     Route::get('/me/preferences', [UserPreferenceController::class, 'show']);
