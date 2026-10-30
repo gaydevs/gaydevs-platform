@@ -95,6 +95,31 @@ test('release-sync: discovers Issues from work PR merge_commit_sha, not release 
   assert.ok(!s.calls().some(c => /commits\/.+\/pulls/.test(c.endpoint)));
 });
 
+
+test('release-sync: merges the release commit back into develop before finalizing Issues', t => {
+  const s = sandbox(t);
+  setupRelease(s);
+  ok(s.cli('release-sync', [200]));
+  const mutations = s.mutations();
+  assert.equal(mutations[0].endpoint, 'repos/gaydevs/gaydevs-platform/merges');
+  assert.deepEqual(mutations[0].body, {
+    base: 'develop',
+    head: 'release-merge',
+    commit_message: 'chore: sync release #200 history into develop',
+  });
+  assert.equal(s.state().items.I_27.status, 'Done');
+});
+
+test('release-sync: back-sync failure stops before Project or Issue finalization', t => {
+  const s = sandbox(t);
+  setupRelease(s);
+  s.change(v => { v.failures.push({ endpoint: '/merges', method: 'POST', code: 409 }); });
+  fail(s.cli('release-sync', [200]), /sandbox API failure/);
+  assert.equal(s.state().items.I_27.status, 'Ready for Release');
+  assert.equal(s.state().issues[27].state, 'open');
+  assert.deepEqual(s.mutations().map(call => call.endpoint), ['repos/gaydevs/gaydevs-platform/merges']);
+});
+
 test('release-sync: paginates the complete release commit range before selecting work PRs', t => {
   const s = sandbox(t);
   setupRelease(s);
@@ -149,12 +174,12 @@ test('release-sync: multiple Issues are deduplicated by Issue number', t => {
   ]);
 });
 
-test('release-sync: terminal states are idempotent no-ops', t => {
+test('release-sync: terminal states keep Issue mutations idempotent while back-sync remains safe', t => {
   const s = sandbox(t);
   setupRelease(s, { statuses: ['Done'] });
   s.change(v => { v.issues[27].state = 'closed'; v.issues[27].state_reason = 'completed'; });
   ok(s.cli('release-sync', [200]));
-  noWrites(s);
+  assert.deepEqual(s.mutations().map(call => call.endpoint), ['repos/gaydevs/gaydevs-platform/merges']);
 });
 
 test('release-sync: rerun completes an open Issue already marked Done', t => {
