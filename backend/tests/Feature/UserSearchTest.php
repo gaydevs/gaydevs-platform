@@ -10,8 +10,15 @@ test('user search requires a term and masks the matching name or email prefix co
         'name' => 'Roberto Souza',
         'email' => 'roberto.sousa@gdevsmail.com',
     ]);
-    User::factory()->inactive()->create(['name' => 'Mario Lima']);
-    User::factory()->create(['name' => 'Amaro Silva']);
+    // Busca também aceita prefixos de e-mail; fixtures aleatórios podem criar matches extras.
+    User::factory()->inactive()->create([
+        'name' => 'Mario Lima',
+        'email' => 'mario.lima@example.test',
+    ]);
+    User::factory()->create([
+        'name' => 'Amaro Silva',
+        'email' => 'amaro.silva@example.test',
+    ]);
 
     $this->getJson('/users')->assertOk()->assertExactJson([]);
     $this->getJson('/users?q=')->assertOk()->assertExactJson([]);
@@ -37,7 +44,10 @@ test('user search requires a term and masks the matching name or email prefix co
 });
 
 test('user search treats sql wildcard characters as literal input', function () {
-    User::factory()->create(['name' => 'Roberto Souza']);
+    User::factory()->create([
+        'name' => 'Roberto Souza',
+        'email' => 'roberto.souza@example.test',
+    ]);
 
     $this->getJson('/users?q=%')->assertOk()->assertExactJson([]);
     $this->getJson('/users?q=_')->assertOk()->assertExactJson([]);
@@ -63,17 +73,17 @@ test('user search ranks exact email, name prefix, exact later word and partial m
         ->assertJsonPath('1.id', $exactNameForEmailQuery->id)
         ->assertJsonPath('2.id', $partialEmail->id);
 
-    $prefixName = User::factory()->create(['name' => 'Luciano Vettoretti']);
-    $laterExactWord = User::factory()->create(['name' => 'Vagner Lu']);
+    $prefixName = User::factory()->create(['name' => 'Luciano Vettoretti', 'email' => 'prefix-name@example.test']);
+    $laterExactWord = User::factory()->create(['name' => 'Vagner Lu', 'email' => 'later-word@example.test']);
 
     $this->getJson('/users?q=Lu')
         ->assertOk()
         ->assertJsonPath('0.id', $prefixName->id)
         ->assertJsonPath('1.id', $laterExactWord->id);
 
-    $partialName = User::factory()->create(['name' => 'Aline Robertoide']);
-    $firstExactName = User::factory()->create(['name' => 'Bruno Roberto Souza']);
-    $secondExactName = User::factory()->create(['name' => 'Carlos Roberto Lima']);
+    $partialName = User::factory()->create(['name' => 'Aline Robertoide', 'email' => 'partial-name@example.test']);
+    $firstExactName = User::factory()->create(['name' => 'Bruno Roberto Souza', 'email' => 'first-exact-name@example.test']);
+    $secondExactName = User::factory()->create(['name' => 'Carlos Roberto Lima', 'email' => 'second-exact-name@example.test']);
 
     $this->getJson('/users?q=Roberto')
         ->assertOk()
@@ -104,7 +114,10 @@ test('user search rate limit applies across queries from the same ip', function 
         'passwordless.rate_limits.search_per_ip.max_attempts' => 2,
         'passwordless.rate_limits.search_per_ip.decay_seconds' => 60,
     ]);
-    User::factory()->create(['name' => 'Roberto Souza']);
+    User::factory()->create([
+        'name' => 'Roberto Souza',
+        'email' => 'roberto.souza@example.test',
+    ]);
 
     $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
         ->getJson('/users?q=R')
