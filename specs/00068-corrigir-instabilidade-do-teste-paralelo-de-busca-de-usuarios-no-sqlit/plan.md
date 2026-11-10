@@ -26,3 +26,5 @@ O sucesso em várias execuções aumenta a confiança, mas não prova ausência 
 - `php vendor/bin/pint --test`: 167 arquivos aprovados.
 - Suíte serial também retornou código zero e 970 asserções, mas a instalação PHP 8.4 isolada reportou avisos locais de `file_get_contents`; CI oficial usa PHP 8.3 e será a validação final.
 - Nenhum ajuste de produto, factory compartilhada ou CI foi necessário.
+
+- CI GitHub Actions do PR #100 aprovado: https://github.com/gaydevs/gaydevs-platform/actions/runs/42873597592 (MySQL, SQLite, frontend, lint, auditoria e CI Required). SDD PR contract: https://github.com/gaydevs/gaydevs-platform/actions/runs/42873727831.
