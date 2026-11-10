@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e070d52eca95583db28d3c6dc3ce6750",
+    "content-hash": "b2593516e355220314859712c14905be",
     "packages": [
         {
             "name": "brick/math",
@@ -2258,6 +2258,56 @@
             ],
             "time": "2026-11-04T12:45:07+00:00",
             "published-time": "2026-11-04T13:02:27+00:00"
+        },
+        {
+            "name": "luvittor/geoip-updater",
+            "version": "v0.1.0-beta.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/luvittor/geoip-updater.git",
+                "reference": "66891e20d752438b3090ab08e993e00accd75133"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/luvittor/geoip-updater/zipball/66891e20d752438b3090ab08e993e00accd75133",
+                "reference": "66891e20d752438b3090ab08e993e00accd75133",
+                "shasum": ""
+            },
+            "require": {
+                "geoip2/geoip2": "^3.3",
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^11.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Luvittor\\GeoIpUpdater\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Luvittor\\GeoIpUpdater\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "phpunit"
+                ],
+                "lint": [
+                    "php -l src"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Safe, framework-agnostic updater for MaxMind GeoLite2 and GeoIP2 databases.",
+            "support": {
+                "source": "https://github.com/luvittor/geoip-updater/tree/v0.1.0-beta.1",
+                "issues": "https://github.com/luvittor/geoip-updater/issues"
+            },
+            "time": "2026-11-10T21:33:19+00:00"
         },
         {
             "name": "maxmind-db/reader",
