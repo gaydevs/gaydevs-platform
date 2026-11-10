@@ -20,3 +20,11 @@ Fast-track risk: Low
 ## Aprovação
 
 Fast-track solicitado pelo gdev em 2026-11-10 para esta Issue.
+
+## Evidências de validação (2026-11-10)
+
+- `composer validate --strict` e `composer audit --locked`: aprovados, zero advisories.
+- `npm run lint`, `npm run typecheck`, `npm test` (130 de 130) e `npm run build`: aprovados.
+- Workflow `Frontend Test` executa `npm test` e inclui os testes automatizados das polls.
+- CI completo do PR #99: https://github.com/gaydevs/gaydevs-platform/actions/runs/42859342612 (todos os checks críticos passaram).
+- `npm audit` incluindo `devDependencies` não produziu resposta na máquina Survivor e foi interrompido por timeout; esta verificação adicional permanece pendente. O workflow atual audita apenas dependências de produção e a política é discutida na #52.
