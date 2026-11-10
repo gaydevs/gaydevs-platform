@@ -208,6 +208,18 @@ instalação, sem registrar credenciais ou conteúdo baixado nos logs. A versão
 beta é fixada no Composer por um repositório VCS temporário; não realizar deploy
 da integração sem revisão e validação adicionais.
 
+Em caso de falha, `geoip:update` retorna exit code `1` e registra
+`geoip.update_failed` no canal `operational`, com `phase`
+(`initialization`, `update` ou `metadata`), `category`
+(`configuration`, `authentication`, `network`, `validation`,
+`archive`, `concurrency`, `filesystem`, `incomplete_result`,
+`unexpected_result` ou `unknown`), `edition`
+(`City`/`ASN`, quando identificável) e `exception_class`
+(quando houve exceção). Não são gravados caminhos, credenciais,
+headers ou mensagens brutas do pacote. Categorias desconhecidas
+permanecem `unknown`; elas não são diagnosticadas por tentativa de
+registrar mensagens potencialmente sensíveis.
+
 A suíte contém um teste funcional com `8.8.8.8`: ele usa os arquivos reais
 quando estão instalados e é marcado como skipped em ambientes, como o CI, que
 não possuem as bases privadas.

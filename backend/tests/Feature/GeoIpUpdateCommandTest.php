@@ -146,6 +146,10 @@ test('a package error does not leak secrets or authorization headers to output o
     $logger = Mockery::mock(LoggerInterface::class);
     $logger->shouldReceive('error')->once()->with('geoip.update_failed', [
         'reason' => 'database_update_failed',
+        'phase' => 'update',
+        'category' => 'unknown',
+        'edition' => 'City',
+        'exception_class' => null,
     ]);
     Log::shouldReceive('channel')->once()->with('operational')->andReturn($logger);
 
@@ -155,6 +159,95 @@ test('a package error does not leak secrets or authorization headers to output o
     expect($exit)->toBe(1)
         ->and($output)->not->toContain($secret, 'Authorization')
         ->and($output)->toContain('Falha ao atualizar ou validar as bases GeoIP.');
+});
+
+test('MaxMind authorization failures are identifiable without logging credentials', function (): void {
+    $transport = Mockery::mock(Transport::class);
+    $transport->shouldReceive('metadata')
+        ->andThrow(new UpdateException('MaxMind rejected the request (HTTP 401).'));
+    $transport->shouldNotReceive('download');
+    app()->instance(Transport::class, $transport);
+
+    $logger = Mockery::mock(LoggerInterface::class);
+    $logger->shouldReceive('error')->once()->with('geoip.update_failed', [
+        'reason' => 'database_update_failed',
+        'phase' => 'update',
+        'category' => 'authentication',
+        'edition' => 'City',
+        'exception_class' => null,
+    ]);
+    Log::shouldReceive('channel')->once()->with('operational')->andReturn($logger);
+
+    $exit = Artisan::call('geoip:update');
+    $output = Artisan::output();
+
+    expect($exit)->toBe(1)
+        ->and($output)->toContain('Falha ao atualizar ou validar as bases GeoIP.')
+        ->and($output)->not->toContain('401', 'Authorization', 'license');
+});
+
+test('a failed ASN download logs a safe network category and the affected edition', function (): void {
+    $transport = Mockery::mock(Transport::class);
+    $transport->shouldReceive('metadata')
+        ->andReturnUsing(static fn (string $product): RemoteDatabase => new RemoteDatabase(
+            'version-'.substr($product, -3),
+            'https://maxmind.invalid/no-request',
+        ));
+    $transport->shouldReceive('download')
+        ->andReturnUsing(static function (RemoteDatabase $database, string $destination): void {
+            if (str_contains($destination, '/ASN.tar.gz')) {
+                throw new UpdateException('Temporary database service failure.');
+            }
+
+            $source = dirname($destination).'/source-City/GeoLite2-City_TEST';
+            mkdir($source, 0750, true);
+            file_put_contents($source.'/GeoLite2-City.mmdb', 'fake-City-database');
+            (new Process(['tar', '-czf', $destination, '-C', dirname($source), basename($source)]))->mustRun();
+        });
+    app()->instance(Transport::class, $transport);
+
+    $validator = Mockery::mock(DatabaseValidator::class);
+    $validator->shouldReceive('validate')
+        ->andReturn(['type' => 'GeoLite2-City', 'builtAt' => new DateTimeImmutable('yesterday')]);
+    app()->instance(DatabaseValidator::class, $validator);
+
+    $logger = Mockery::mock(LoggerInterface::class);
+    $logger->shouldReceive('error')->once()->with('geoip.update_failed', [
+        'reason' => 'database_update_failed',
+        'phase' => 'update',
+        'category' => 'network',
+        'edition' => 'ASN',
+        'exception_class' => null,
+    ]);
+    Log::shouldReceive('channel')->once()->with('operational')->andReturn($logger);
+
+    $exit = Artisan::call('geoip:update');
+    $output = Artisan::output();
+
+    expect($exit)->toBe(1)
+        ->and($output)->toContain('Falha ao atualizar ou validar as bases GeoIP.')
+        ->and($output)->not->toContain('Temporary database service failure.');
+});
+
+test('missing credentials log a safe configuration category and exception class', function (): void {
+    config(['geoip.account_id' => '', 'geoip.license_key' => '']);
+
+    $logger = Mockery::mock(LoggerInterface::class);
+    $logger->shouldReceive('error')->once()->with('geoip.update_failed', [
+        'reason' => 'database_update_failed',
+        'phase' => 'initialization',
+        'category' => 'configuration',
+        'edition' => null,
+        'exception_class' => InvalidArgumentException::class,
+    ]);
+    Log::shouldReceive('channel')->once()->with('operational')->andReturn($logger);
+
+    $exit = Artisan::call('geoip:update');
+    $output = Artisan::output();
+
+    expect($exit)->toBe(1)
+        ->and($output)->toContain('Falha ao atualizar ou validar as bases GeoIP.')
+        ->and($output)->not->toContain('MaxMind credentials are required.');
 });
 
 test('invalid GeoIP configuration fails without leaking credentials or reprocessing IPs', function (): void {
