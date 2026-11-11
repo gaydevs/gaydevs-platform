@@ -116,6 +116,51 @@ test('successful City and ASN updates reprocess observed IPs only after validati
         ->and(Artisan::output())->toContain('1 IP(s) reprocessado(s)');
 });
 
+test('two current databases skip IP reprocessing', function (): void {
+    installFakeGeoIpTransport();
+    expect(Artisan::call('geoip:update'))->toBe(0);
+
+    IpAddress::factory()->create();
+    $geolocation = Mockery::mock(IpGeolocationUpdater::class);
+    $geolocation->shouldNotReceive('update');
+    app()->instance(IpGeolocationUpdater::class, $geolocation);
+
+    expect(Artisan::call('geoip:update'))->toBe(0)
+        ->and(Artisan::output())->toContain('(current)', 'reprocessamento de IPs dispensado.')
+        ->not->toContain('IP(s) reprocessado(s)');
+});
+
+test('force-reprocess updates IPs even when both databases are current', function (): void {
+    installFakeGeoIpTransport();
+    expect(Artisan::call('geoip:update'))->toBe(0);
+
+    $address = IpAddress::factory()->create();
+    $geolocation = Mockery::mock(IpGeolocationUpdater::class);
+    $geolocation->shouldReceive('update')->once()->withArgs(
+        static fn (IpAddress $model, bool $force): bool => $model->is($address) && $force,
+    )->andReturn(new IpGeolocation);
+    app()->instance(IpGeolocationUpdater::class, $geolocation);
+
+    expect(Artisan::call('geoip:update', ['--force-reprocess' => true]))->toBe(0)
+        ->and(Artisan::output())->toContain('(current)', '1 IP(s) reprocessado(s)');
+});
+
+test('a mixed current and updated result reprocesses IPs', function (): void {
+    installFakeGeoIpTransport();
+    expect(Artisan::call('geoip:update'))->toBe(0);
+    file_put_contents(config('geoip.asn_database').'.version', 'stale-marker');
+
+    $address = IpAddress::factory()->create();
+    $geolocation = Mockery::mock(IpGeolocationUpdater::class);
+    $geolocation->shouldReceive('update')->once()->withArgs(
+        static fn (IpAddress $model, bool $force): bool => $model->is($address) && $force,
+    )->andReturn(new IpGeolocation);
+    app()->instance(IpGeolocationUpdater::class, $geolocation);
+
+    expect(Artisan::call('geoip:update'))->toBe(0)
+        ->and(Artisan::output())->toContain('(updated)', '(current)', '1 IP(s) reprocessado(s)');
+});
+
 test('a failure on ASN leaves both existing databases unchanged and stops IP reprocessing', function (): void {
     $directory = config('geoip.database_directory');
     mkdir($directory, 0750, true);
@@ -129,7 +174,7 @@ test('a failure on ASN leaves both existing databases unchanged and stops IP rep
 
     installFakeGeoIpTransport('ASN');
 
-    expect(Artisan::call('geoip:update'))->toBe(1)
+    expect(Artisan::call('geoip:update', ['--force-reprocess' => true]))->toBe(1)
         ->and(Artisan::output())->toContain('Falha ao atualizar ou validar as bases GeoIP.')
         ->and(file_get_contents(config('geoip.city_database')))->toBe('previous-city')
         ->and(file_get_contents(config('geoip.asn_database')))->toBe('previous-asn');
@@ -139,7 +184,7 @@ test('a package error does not leak secrets or authorization headers to output o
     $secret = 'sensitive-license-test-value';
     $transport = Mockery::mock(Transport::class);
     $transport->shouldReceive('metadata')
-        ->andThrow(new UpdateException('Authorization: Basic abc '.$secret));
+        ->andThrow(new UpdateException('Authorization: Basic abc '.$secret, 0, null, 'code-'.$secret, 'phase-'.$secret, 999, 42));
     $transport->shouldNotReceive('download');
     app()->instance(Transport::class, $transport);
 
@@ -149,6 +194,10 @@ test('a package error does not leak secrets or authorization headers to output o
         'phase' => 'update',
         'category' => 'unknown',
         'edition' => 'City',
+        'error_code' => 'unknown',
+        'package_phase' => null,
+        'http_status' => null,
+        'attempts' => null,
         'exception_class' => null,
     ]);
     Log::shouldReceive('channel')->once()->with('operational')->andReturn($logger);
@@ -164,7 +213,7 @@ test('a package error does not leak secrets or authorization headers to output o
 test('MaxMind authorization failures are identifiable without logging credentials', function (): void {
     $transport = Mockery::mock(Transport::class);
     $transport->shouldReceive('metadata')
-        ->andThrow(new UpdateException('MaxMind rejected the request (HTTP 401).'));
+        ->andThrow(new UpdateException('MaxMind rejected the request (HTTP 401).', 0, null, 'authentication_failed', 'metadata', 401, 1));
     $transport->shouldNotReceive('download');
     app()->instance(Transport::class, $transport);
 
@@ -174,6 +223,10 @@ test('MaxMind authorization failures are identifiable without logging credential
         'phase' => 'update',
         'category' => 'authentication',
         'edition' => 'City',
+        'error_code' => 'authentication_failed',
+        'package_phase' => 'metadata',
+        'http_status' => 401,
+        'attempts' => 1,
         'exception_class' => null,
     ]);
     Log::shouldReceive('channel')->once()->with('operational')->andReturn($logger);
@@ -196,7 +249,7 @@ test('a failed ASN download logs a safe network category and the affected editio
     $transport->shouldReceive('download')
         ->andReturnUsing(static function (RemoteDatabase $database, string $destination): void {
             if (str_contains($destination, '/ASN.tar.gz')) {
-                throw new UpdateException('Temporary database service failure.');
+                throw new UpdateException('Temporary database service failure.', 0, null, 'temporary_http_failure', 'download', 503, 3);
             }
 
             $source = dirname($destination).'/source-City/GeoLite2-City_TEST';
@@ -217,6 +270,10 @@ test('a failed ASN download logs a safe network category and the affected editio
         'phase' => 'update',
         'category' => 'network',
         'edition' => 'ASN',
+        'error_code' => 'temporary_http_failure',
+        'package_phase' => 'download',
+        'http_status' => 503,
+        'attempts' => 3,
         'exception_class' => null,
     ]);
     Log::shouldReceive('channel')->once()->with('operational')->andReturn($logger);
@@ -238,6 +295,10 @@ test('missing credentials log a safe configuration category and exception class'
         'phase' => 'initialization',
         'category' => 'configuration',
         'edition' => null,
+        'error_code' => 'unknown',
+        'package_phase' => null,
+        'http_status' => null,
+        'attempts' => null,
         'exception_class' => InvalidArgumentException::class,
     ]);
     Log::shouldReceive('channel')->once()->with('operational')->andReturn($logger);

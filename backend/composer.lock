@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b2593516e355220314859712c14905be",
+    "content-hash": "4482515efd3222083cefffff0015a8f0",
     "packages": [
         {
             "name": "brick/math",
@@ -2261,16 +2261,16 @@
         },
         {
             "name": "luvittor/geoip-updater",
-            "version": "v0.1.0-beta.1",
+            "version": "v0.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/luvittor/geoip-updater.git",
-                "reference": "66891e20d752438b3090ab08e993e00accd75133"
+                "reference": "a927f452b6aad729f5cbf7ae1ea6a702996c7d6d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/luvittor/geoip-updater/zipball/66891e20d752438b3090ab08e993e00accd75133",
-                "reference": "66891e20d752438b3090ab08e993e00accd75133",
+                "url": "https://api.github.com/repos/luvittor/geoip-updater/zipball/a927f452b6aad729f5cbf7ae1ea6a702996c7d6d",
+                "reference": "a927f452b6aad729f5cbf7ae1ea6a702996c7d6d",
                 "shasum": ""
             },
             "require": {
@@ -2304,10 +2304,10 @@
             ],
             "description": "Safe, framework-agnostic updater for MaxMind GeoLite2 and GeoIP2 databases.",
             "support": {
-                "source": "https://github.com/luvittor/geoip-updater/tree/v0.1.0-beta.1",
+                "source": "https://github.com/luvittor/geoip-updater/tree/v0.1.0",
                 "issues": "https://github.com/luvittor/geoip-updater/issues"
             },
-            "time": "2026-11-10T21:33:19+00:00"
+            "time": "2026-11-11T11:53:03+00:00"
         },
         {
             "name": "maxmind-db/reader",
