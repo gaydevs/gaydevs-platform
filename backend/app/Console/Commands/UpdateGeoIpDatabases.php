@@ -9,6 +9,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use Luvittor\GeoIpUpdater\Exception\UpdateException;
 use Luvittor\GeoIpUpdater\UpdateResult;
 use Throwable;
 
@@ -16,7 +17,16 @@ class UpdateGeoIpDatabases extends Command
 {
     private const BATCH_SIZE = 100;
 
-    protected $signature = 'geoip:update';
+    private const SAFE_ERROR_CODES = [
+        'authentication_failed', 'authorization_failed', 'request_rejected',
+        'network_failure', 'temporary_http_failure', 'empty_download',
+        'redirect_limit_exceeded', 'unsafe_redirect', 'insecure_redirect_downgrade',
+        'update_failed',
+    ];
+
+    private const SAFE_PACKAGE_PHASES = ['http', 'metadata', 'download', 'update'];
+
+    protected $signature = 'geoip:update {--force-reprocess : Reprocessa IPs mesmo com as bases atuais}';
 
     protected $description = 'Atualiza e valida as bases locais GeoIP configuradas';
 
@@ -32,17 +42,16 @@ class UpdateGeoIpDatabases extends Command
         $edition = null;
 
         try {
-            // Resolving after the feature flag avoids demanding MaxMind credentials
-            // when the command is disabled.
+            // Resolving after the feature flag avoids demanding credentials when disabled.
             $updater = app(GeoIpPackageUpdater::class);
             $phase = 'update';
             $results = $updater->update();
 
             if ($failure = $this->resultFailure($results)) {
-                return $this->failSafely('update', $failure['category'], $failure['edition']);
+                return $this->failSafely('update', $failure['category'], $failure['edition'], null, $failure['diagnostics']);
             }
 
-            // No IP is reprocessed unless both editions were updated or confirmed current.
+            // Both editions must be present and valid, regardless of reprocessing.
             $phase = 'metadata';
             foreach ($results as $result) {
                 $edition = $result->edition;
@@ -57,13 +66,21 @@ class UpdateGeoIpDatabases extends Command
                 $this->info("Base GeoIP {$result->edition}: {$metadata['type']}, construída em {$builtAt->toIso8601String()} ({$result->status}).");
             }
         } catch (Throwable $exception) {
-            // Only a recognized category and the exception class reach the logs.
-            // Neither the exception message nor its previous exceptions are logged.
+            $diagnostics = $exception instanceof UpdateException
+                ? $this->safeDiagnostics($exception->errorCode, $exception->phase, $exception->httpStatus, $exception->attempts)
+                : $this->safeDiagnostics();
             $category = $exception instanceof InvalidArgumentException
                 ? 'configuration'
-                : $this->errorCategory($exception->getMessage());
+                : $this->categoryForErrorCode($diagnostics['error_code']);
 
-            return $this->failSafely($phase, $category, $edition, $exception);
+            return $this->failSafely($phase, $category, $edition, $exception, $diagnostics);
+        }
+
+        $hasNewDatabase = collect($results)->contains(static fn (UpdateResult $result): bool => $result->status === 'updated');
+        if (! $hasNewDatabase && ! $this->option('force-reprocess')) {
+            $this->info('Bases GeoIP atuais; reprocessamento de IPs dispensado.');
+
+            return self::SUCCESS;
         }
 
         $updated = 0;
@@ -82,10 +99,10 @@ class UpdateGeoIpDatabases extends Command
     }
 
     /**
-     * Detect incomplete, unexpected or failed package responses before reprocessing IPs.
+     * No failed, duplicate or missing edition may trigger reprocessing, even if forced.
      *
      * @param  list<UpdateResult>  $results
-     * @return array{category: string, edition: string|null}|null
+     * @return array{category:string,edition:?string,diagnostics:array}|null
      */
     private function resultFailure(array $results): ?array
     {
@@ -93,83 +110,71 @@ class UpdateGeoIpDatabases extends Command
 
         foreach ($results as $result) {
             if (! in_array($result->edition, ['City', 'ASN'], true) || isset($seen[$result->edition])) {
-                return ['category' => 'unexpected_result', 'edition' => null];
+                return ['category' => 'unexpected_result', 'edition' => null, 'diagnostics' => $this->safeDiagnostics()];
             }
 
             $seen[$result->edition] = true;
 
             if (! in_array($result->status, ['updated', 'current'], true)) {
+                $diagnostics = $result->status === 'failed'
+                    ? $this->safeDiagnostics($result->errorCode, $result->phase, $result->httpStatus, $result->attempts)
+                    : $this->safeDiagnostics();
+
                 return [
                     'category' => $result->status === 'failed'
-                        ? $this->errorCategory($result->reason)
+                        ? $this->categoryForErrorCode($diagnostics['error_code'])
                         : 'unexpected_result',
                     'edition' => $result->edition,
+                    'diagnostics' => $diagnostics,
                 ];
             }
         }
 
         return count($seen) === 2
             ? null
-            : ['category' => 'incomplete_result', 'edition' => null];
+            : ['category' => 'incomplete_result', 'edition' => null, 'diagnostics' => $this->safeDiagnostics()];
     }
 
-    /**
-     * Whitelist diagnostic categories; never persist arbitrary package error text.
-     */
-    private function errorCategory(?string $reason): string
+    /** Never copy arbitrary package strings into operational logs. */
+    private function safeDiagnostics(
+        ?string $code = null,
+        ?string $phase = null,
+        ?int $httpStatus = null,
+        ?int $attempts = null,
+    ): array {
+        return [
+            'error_code' => in_array($code, self::SAFE_ERROR_CODES, true) ? $code : 'unknown',
+            'package_phase' => in_array($phase, self::SAFE_PACKAGE_PHASES, true) ? $phase : null,
+            'http_status' => $httpStatus >= 100 && $httpStatus <= 599 ? $httpStatus : null,
+            'attempts' => $attempts >= 1 && $attempts <= 20 ? $attempts : null,
+        ];
+    }
+
+    private function categoryForErrorCode(?string $code): string
     {
-        if (preg_match('/^MaxMind rejected the request \(HTTP (401|403)\)\.$/', $reason ?? '') === 1) {
-            return 'authentication';
-        }
-
-        return match ($reason) {
-            'Configuração dos caminhos GeoIP incompleta.',
-            'Database directory must be absolute.',
-            'Database path is not a directory.',
-            'Database targets must be direct children of the database directory.' => 'configuration',
-
-            'Network request failed.',
-            'Temporary database service failure.',
-            'Database download was empty.' => 'network',
-
-            'Database validation failed.',
-            'Database edition is incompatible.',
-            'Database exceeds maximum age.' => 'validation',
-
-            'Archive extraction failed.',
-            'Archive contains an unsafe entry.',
-            'Archive does not contain the expected database.' => 'archive',
-
-            'Another GeoIP update is in progress.' => 'concurrency',
-
-            'Cannot create database directory.',
-            'Database directory is not writable.',
-            'Cannot open update lock.',
-            'Cannot create staging directory.',
-            'Cannot stage database.',
-            'Cannot install database.',
-            'Cannot preserve current database.',
-            'Cannot preserve database metadata.',
-            'Cannot replace database.',
-            'Cannot save database metadata.',
-            'Installation failed.' => 'filesystem',
-
+        return match ($code) {
+            'authentication_failed', 'authorization_failed' => 'authentication',
+            'network_failure', 'temporary_http_failure', 'empty_download',
+            'redirect_limit_exceeded', 'unsafe_redirect', 'request_rejected' => 'network',
+            'insecure_redirect_downgrade' => 'security',
             default => 'unknown',
         };
     }
 
-    /** Log safe operational diagnostics without exposing credentials, paths or raw errors. */
+    /** Log only whitelisted diagnostics, never URLs, credentials or raw exception messages. */
     private function failSafely(
         string $phase,
         string $category,
         ?string $edition = null,
         ?Throwable $exception = null,
+        array $diagnostics = [],
     ): int {
         Log::channel('operational')->error('geoip.update_failed', [
             'reason' => 'database_update_failed',
             'phase' => $phase,
             'category' => $category,
             'edition' => $edition,
+            ...($diagnostics ?: $this->safeDiagnostics()),
             'exception_class' => $exception === null ? null : $exception::class,
         ]);
 

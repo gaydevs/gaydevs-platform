@@ -13,7 +13,7 @@
         "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
-        "luvittor/geoip-updater": "v0.1.0-beta.1",
+        "luvittor/geoip-updater": "v0.1.0-beta.2",
         "php": "^8.3"
     },
     "require-dev": {

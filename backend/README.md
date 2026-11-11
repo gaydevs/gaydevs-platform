@@ -204,21 +204,26 @@ deve respeitar os [requisitos de hospedagem](../docs/backend-hosting-requirement
 Resoluções ficam em snapshots: o mesmo IP pode ter cidades diferentes em
 momentos diferentes. O cache normal vale 24 horas e falhas são tentadas
 novamente após 60 minutos. A atualização usa uma área temporária e prepara as duas bases antes da
-instalação, sem registrar credenciais ou conteúdo baixado nos logs. A versão
-beta é fixada no Composer por um repositório VCS temporário; não realizar deploy
-da integração sem revisão e validação adicionais.
+instalação, sem registrar credenciais ou conteúdo baixado nos logs. A integração fixa `luvittor/geoip-updater:v0.1.0-beta.2` no Composer. Ela foi
+validada na DreamHost para primeiro download, recriação de bases e status
+`updated` → `current`; atualizações futuras requerem PR/deploy revisados.
+
+`php artisan geoip:update` reprocessa os IPs não anonimizados somente quando
+uma base City/ASN recebe status `updated` e ambas passam na validação. Quando
+ambas estão `current`, encerra sem reprocessar. Para reprocessamento manual,
+use `php artisan geoip:update --force-reprocess`; uma falha em qualquer base
+continua interrompendo a execução, mesmo com a opção. O scheduler às 04:00
+utiliza o modo normal, sem a opção de forçar.
 
 Em caso de falha, `geoip:update` retorna exit code `1` e registra
-`geoip.update_failed` no canal `operational`, com `phase`
-(`initialization`, `update` ou `metadata`), `category`
-(`configuration`, `authentication`, `network`, `validation`,
-`archive`, `concurrency`, `filesystem`, `incomplete_result`,
-`unexpected_result` ou `unknown`), `edition`
-(`City`/`ASN`, quando identificável) e `exception_class`
-(quando houve exceção). Não são gravados caminhos, credenciais,
-headers ou mensagens brutas do pacote. Categorias desconhecidas
-permanecem `unknown`; elas não são diagnosticadas por tentativa de
-registrar mensagens potencialmente sensíveis.
+`geoip.update_failed` no canal `operational`. Os campos `phase` (etapa no
+Laravel: `initialization`, `update`, `metadata`) e `package_phase` (etapa da
+biblioteca: `http`, `metadata`, `download`, `update`) são distintos. O log contém
+ainda `category`, `edition`, `error_code`, `http_status`, `attempts` e
+`exception_class`, quando disponíveis. Campos desconhecidos são substituídos
+por `unknown`/`null`: não se interpretam mensagens de exceção nem são gravados
+caminhos, headers, credenciais ou corpos de resposta. Os erros genéricos da
+biblioteca podem não fornecer detalhes HTTP; não inventar diagnósticos.
 
 A suíte contém um teste funcional com `8.8.8.8`: ele usa os arquivos reais
 quando estão instalados e é marcado como skipped em ambientes, como o CI, que
