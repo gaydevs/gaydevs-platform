@@ -6,7 +6,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { readFileSync } from 'node:fs'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, messageForApiError } from './auth/api'
 import type { AuthenticatedUser } from './auth/api'
 import { PollAuditDialog, PollCard, PollDetail, PollDetailLoading, PollErrorDialog, PollLoading, PollsPage, PollsSectionBar } from './PollsPage'
@@ -33,7 +33,20 @@ vi.mock('./userPreferencesApi', () => ({
   snoozePollSuggestions: vi.fn(),
 }))
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); vi.clearAllTimers(); vi.unstubAllGlobals(); vi.useRealTimers() })
+// clearAllMocks keeps queued mockResolvedValueOnce/mockReturnValueOnce responses,
+// which can leak into later tests when an asynchronous request is not consumed.
+// Reset all mock implementations between tests, then restore the shared default.
+afterEach(() => {
+  cleanup()
+  vi.resetAllMocks()
+  vi.clearAllTimers()
+  vi.unstubAllGlobals()
+  vi.useRealTimers()
+})
+
+beforeEach(() => {
+  vi.mocked(pollErrorMessage).mockReturnValue('erro')
+})
 
 const user: AuthenticatedUser = { id: 'user-1', name: 'Luciano Vettoretti', member_type: 'member' }
 const adminUser: AuthenticatedUser = { ...user, member_type: 'admin' }
