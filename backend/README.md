@@ -197,14 +197,14 @@ ficam somente no `.env` externo e nunca no `.env.example` ou no Git.
 `GEOIP_DOWNLOAD_TIMEOUT_SECONDS` controla o timeout da transferência.
 `GEOIP_DOWNLOAD_RETRY_ATTEMPTS` e `GEOIP_DOWNLOAD_RETRY_SLEEP_MILLISECONDS`
 controlam as tentativas para falhas transitórias (429, 5xx e conexão) e o
-intervalo entre elas. A beta `luvittor/geoip-updater` usa o lock
+intervalo entre elas. O pacote `luvittor/geoip-updater` usa o lock
 `.geoipupdate.lock` diretamente em `GEOIP_DATABASE_DIRECTORY`; o antigo
 `GEOIP_UPDATE_LOCK_FILE` não é utilizado por ela. A configuração local e de produção
 deve respeitar os [requisitos de hospedagem](../docs/backend-hosting-requirements.md).
 Resoluções ficam em snapshots: o mesmo IP pode ter cidades diferentes em
 momentos diferentes. O cache normal vale 24 horas e falhas são tentadas
 novamente após 60 minutos. A atualização usa uma área temporária e prepara as duas bases antes da
-instalação, sem registrar credenciais ou conteúdo baixado nos logs. A integração fixa `luvittor/geoip-updater:v0.1.0-beta.2` no Composer. Ela foi
+instalação, sem registrar credenciais ou conteúdo baixado nos logs. A integração depende de `luvittor/geoip-updater:^0.1.0` pelo Packagist, com a versão resolvida fixada no `composer.lock`. Ela foi
 validada na DreamHost para primeiro download, recriação de bases e status
 `updated` → `current`; atualizações futuras requerem PR/deploy revisados.
 

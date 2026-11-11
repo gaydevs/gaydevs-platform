@@ -1,11 +1,11 @@
-# 00107 — Consolidar GeoIP beta.2, melhorar logs e evitar reprocessamento sem atualização
+# 00107 — Consolidar GeoIP v0.1.0, melhorar logs e evitar reprocessamento sem atualização
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/107
 Fast-track: Low Risk, aprovado pelo pedido explícito do gdev antes da implementação.
 
 ## Objetivo e escopo
 
-Atualizar a dependência GeoIP para beta.2 e tornar observáveis e eficientes as atualizações diárias. Manter configuração, caminhos persistentes, banco, scheduler, autenticação MaxMind e contrato externo inalterados.
+Atualizar a dependência GeoIP para v0.1.0 e tornar observáveis e eficientes as atualizações diárias. Manter configuração, caminhos persistentes, banco, scheduler, autenticação MaxMind e contrato externo inalterados.
 
 ## Comportamentos verificáveis
 
@@ -14,7 +14,7 @@ Atualizar a dependência GeoIP para beta.2 e tornar observáveis e eficientes as
 - `current/current --force-reprocess`: reprocessar IPs mesmo sem atualizar bases.
 - Falha/incompletude em qualquer edição: exit code 1 e nenhum reprocessamento, com ou sem flag.
 - Falha de pacote: log estruturado sanitizado, sem parsing de texto ou vazamento de segredos.
-- Deploy futuro usa beta.2 travada em composer.json/lock; testes isolados e CI.
+- Deploy futuro usa ^0.1.0 com composer.lock versionado; testes isolados e CI.
 
 ## Restrições
 
