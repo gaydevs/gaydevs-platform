@@ -2,12 +2,8 @@
 
 namespace App\Providers;
 
-use App\Services\GeoIp\GeoIpDatabaseDownloader;
-use App\Services\GeoIp\GeoIpDatabaseValidator;
 use App\Services\GeoIp\GeoIpLookup;
 use App\Services\GeoIp\LocalGeoIpLookup;
-use App\Services\GeoIp\MaxMindGeoIpDatabaseDownloader;
-use App\Services\GeoIp\MaxMindGeoIpDatabaseValidator;
 use Illuminate\Console\Events\ScheduledTaskFailed;
 use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Events\ScheduledTaskSkipped;
@@ -16,6 +12,10 @@ use Illuminate\Console\Scheduling\Event as ScheduledEvent;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
+use Luvittor\GeoIpUpdater\Contract\DatabaseValidator;
+use Luvittor\GeoIpUpdater\Contract\Transport;
+use Luvittor\GeoIpUpdater\MaxMindDatabaseValidator;
+use Luvittor\GeoIpUpdater\MaxMindTransport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,8 +25,15 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(GeoIpLookup::class, LocalGeoIpLookup::class);
-        $this->app->bind(GeoIpDatabaseDownloader::class, MaxMindGeoIpDatabaseDownloader::class);
-        $this->app->bind(GeoIpDatabaseValidator::class, MaxMindGeoIpDatabaseValidator::class);
+        $this->app->bind(DatabaseValidator::class, MaxMindDatabaseValidator::class);
+        $this->app->bind(Transport::class, static fn (): MaxMindTransport => new MaxMindTransport(
+            accountId: (string) config('geoip.account_id'),
+            licenseKey: (string) config('geoip.license_key'),
+            baseUrl: (string) config('geoip.download_base_url'),
+            timeout: (int) config('geoip.download_timeout_seconds'),
+            attempts: (int) config('geoip.download_retry_attempts'),
+            backoffMilliseconds: (int) config('geoip.download_retry_sleep_milliseconds'),
+        ));
     }
 
     /**
