@@ -7,4 +7,4 @@ Plano: [plan.md](plan.md)
 - [x] T003 Condicionar reprocessamento a `updated` e adicionar `--force-reprocess`.
 - [x] T004 Atualizar testes para `current`, misto, force, falhas e sanitização.
 - [x] T005 Documentar operação e preservar scheduler.
-- [ ] T006 Executar verificações, publicar branch e PR para develop.
+- [x] T006 Validar via CI (PHP/Laravel, frontend e contrato SDD aprovados) e publicar branch/PR #108 para develop.
