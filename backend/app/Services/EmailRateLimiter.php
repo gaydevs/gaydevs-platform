@@ -35,11 +35,11 @@ class EmailRateLimiter
         });
     }
 
-    public function reserve(): void
+    public function reserve(bool $application = false): void
     {
-        $this->withLock(function (): void {
+        $this->withLock(function () use ($application): void {
             foreach ($this->limits() as $window => $limit) {
-                if (! RateLimiter::tooManyAttempts($limit['key'], $limit['max_attempts'])) {
+                if (($maximum = $application ? intdiv($limit['max_attempts'], 2) : $limit['max_attempts']) > 0 && ! RateLimiter::tooManyAttempts($limit['key'], $maximum)) {
                     continue;
                 }
 

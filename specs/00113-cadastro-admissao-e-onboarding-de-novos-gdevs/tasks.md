@@ -17,11 +17,11 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 ### OTP, sessões e segurança (PLAN-06 a PLAN-10)
 
-- [ ] T007 — Extrair primitivas compartilhadas de OTP por sujeito/purpose preservando login; testar geração, hash, expiração, supersessão e tentativas, inclusive user_id null.
-- [ ] T008 — Implementar request/verify de candidatura, incluindo membro existente sem enumeração, recusada com novo registro somente após OTP e retomada draft/pending; verificar ausência de autenticação de membro.
-- [ ] T009 — Implementar Turnstile server-side com hostname/action, configuração, fail closed e fakes de teste; exigir novo token em cada envio.
+- [x] T007 — Extrair primitivas compartilhadas de OTP por sujeito/purpose preservando login; testar geração, hash, expiração, supersessão e tentativas, inclusive user_id null.
+- [x] T008 — Implementar request/verify de candidatura, incluindo membro existente sem enumeração, recusada com novo registro somente após OTP e retomada draft/pending; verificar ausência de autenticação de membro.
+- [x] T009 — Implementar Turnstile server-side com hostname/action, configuração, fail closed e fakes de teste; exigir novo token em cada envio.
 - [ ] T010 — Implementar limites de candidatura, cooldown, HMAC das chaves e reserva atômica; aplicar limites aprovados de OTP/SMTP compartilhado e reservar margem de login; testar concorrência, falhas e tentativas inválidas.
-- [ ] T011 — Implementar sessão exclusiva de candidato, armazenamento server-side e cookie seguro independente de membro, 30 dias de inatividade/90 dias absolutos configuráveis, revogação na nova autenticação, logout e isolamento de propósitos; testar relógio, CSRF, revogação e regressão.
+- [x] T011 — Implementar sessão exclusiva de candidato, armazenamento server-side e cookie seguro independente de membro, 30 dias de inatividade/90 dias absolutos configuráveis, revogação na nova autenticação, logout e isolamento de propósitos; testar relógio, CSRF, revogação e regressão.
 - [ ] T012 — Implementar middleware de identidade/status do candidato, configuração protegida de contato do scrum master, feature gate e no-store; revisar TrackVisitor, erros e logs para evitar exposição de dados.
 
 ### API, validações, administração (PLAN-11 a PLAN-15)
@@ -68,6 +68,14 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 - T005: users.applicant_id nullable/UNIQUE/FK restrict, preservando restrições existentes em SQLite por ALTER TABLE ADD COLUMN nativo. Testados membro legado, vínculo único e proteção de downgrade.
 - T006: serviço ApplicantLifecycle com lock por email normalizado (HMAC), transações, estados, auditoria e idempotência; criação/retomada, nova candidatura após recusa mediante prova, aprovação/recusa e membro ativo atômico. Teste com dois processos independentes e cache database em SQLite confirmou ausência de duplicidade na criação, confirmação, submissão e aprovação. T008 ainda integra consumo do OTP e transição na mesma transação; T017/T018 fornecem validação integral e intenção durável real; T019/T020 conectam autorização e APIs. Nenhum endpoint novo exposto nesta etapa.
 - Regressão após T004–T006: PHP 8.4.27 + SQLite 3.46.1, 188 testes passaram, 2 ignorados, 1111 assertions; 12 testes novos em relação à etapa anterior. Pint --dirty --test passou em 16 arquivos. MySQL e PHP 8.3 permanecem pendentes (T001/T002/T030). Project apresentou Backlog em leitura apesar de tentativa anterior de atualização para In Progress; não considerar sincronizado.
+
+- T007: OtpPrimitives compartilhado para geração, supersessão, falhas e registro de tentativas; hash/expiração usam Hash e configuração passwordless existente. Regressão de login aprovada.
+- T008: endpoints OTP e verify de candidatura separados, resposta pré-OTP sem distinguir membro/candidato, novo registro após recusa somente com prova fresca. Consumo do OTP, transição, auditoria e emissão da sessão na mesma transação sob lock por email; registro de tentativa sem authenticated_user_id. Testes de finalidade, replay, expiração, recusa e códigos incorretos aprovados.
+- T009: Siteverify backend com success, hostname/action, timeout, fail closed e sem redirects; testes HTTP fake de hostname/action inválidos. Smoke com chaves de teste reais permanece em T032.
+- T010 (parcial): limites configuráveis, cooldown, HMAC por email/IP, reserva sob lock, cotas próprias e global SMTP, inclusive falhas. Política conservadora: cadastro/notificação não consome a metade final da cota global diária/horária, além dos tetos próprios. Testados cooldown, cota, tentativas inválidas e falha de transporte. Ainda testar concorrência específica dos contadores em cache compartilhado e integrar links em T015 e avisos em T018.
+- T011: applicant_sessions com token aleatório e somente hash no banco; cookie gdev_applicant Secure/HttpOnly/SameSite=Lax, TTL 30/90 configurável sem alteração da vida da sessão de membro, rotação por candidatura, logout e revogação no login de membro. Testados isolamento, cookie, expiração e revogação. Smoke navegador HTTPS e fluxo completo candidato/membro em T032.
+- T012 (parcial): middleware first-party Sanctum/CSRF, middleware de sessão e modo write, configuração de contato backend, no-store, redaction de referer/user agent/path para candidaturas e relatório de exceção sem payload. Feature desativada por padrão, .env.example com placeholders. Testados request não stateful, ausência de sessão, contato autorizado, ID de terceiro ignorado, headers e observações redigidos. Falta teste dedicado de CSRF com proteção efetivamente ativa (ambiente PHPUnit normalmente ignora CSRF), auditoria de logs e uso do middleware em mutações de T013/T017. Sem deploy.
+- Regressão T007–T012: PHP 8.4.27 + SQLite 3.46.1, 206 testes passaram, 2 ignorados, 1229 assertions; 18 testes novos (118 assertions). Pint --dirty --test aprovado em 22 arquivos PHP. MySQL/PHP 8.3, Turnstile/SMTP real e Project continuam pendentes. Não há teste com dados reais.
 
 ## Limites
 

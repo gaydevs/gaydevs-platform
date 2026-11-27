@@ -31,7 +31,8 @@ class VisitorIdentifier
         $visitor = $this->visitor($request, $now);
         $visit = $this->visit($visitor, $now);
         $ipAddress = $this->ipAddress($request->ip(), $now);
-        $userAgent = (string) $request->userAgent() ?: null;
+        $privateApplication = $request->is('applications/*', 'admin/applications*');
+        $userAgent = $privateApplication ? null : ((string) $request->userAgent() ?: null);
         $ipGeolocationId = null;
 
         if ($ipAddress !== null) {
@@ -53,14 +54,14 @@ class VisitorIdentifier
             'user_agent' => $userAgent,
             ...$this->userAgents->parse($userAgent),
             'language' => mb_substr(
-                (string) $request->header('Accept-Language'),
+                $privateApplication ? '' : (string) $request->header('Accept-Language'),
                 0,
                 (int) config('visitors.observation.language_max_characters'),
             ) ?: null,
-            'referer' => $request->headers->get('referer'),
+            'referer' => $privateApplication ? null : $request->headers->get('referer'),
             'method' => $request->getMethod(),
             'path' => mb_substr(
-                $request->path(),
+                $privateApplication ? 'applications' : $request->path(),
                 0,
                 (int) config('visitors.observation.path_max_characters'),
             ),

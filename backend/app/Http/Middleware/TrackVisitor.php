@@ -25,6 +25,10 @@ class TrackVisitor
             $this->attributeAuthentication($request, $observation);
         }
 
+        if ($request->is('applications/*', 'admin/applications*')) {
+            $response->headers->set('Cache-Control', 'no-store, private');
+        }
+
         $response->headers->setCookie(Cookie::create(
             VisitorIdentifier::VISITOR_COOKIE,
             Crypt::encryptString($observation->visit->visitor_id),

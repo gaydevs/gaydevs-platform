@@ -26,22 +26,26 @@ class ApplicantLifecycle
 
         return $this->withEmailLock($email, function () use ($email): Applicant|User {
             try {
-                return DB::transaction(function () use ($email): Applicant|User {
-                    return $this->member($email)
-                        ?? $this->open($email)
-                        ?? Applicant::query()->where('email', $email)
-                            ->where('status', ApplicantStatus::Rejected)
-                            ->latest('reviewed_at')->orderByDesc('id')->first()
-                        ?? $this->createUnverified($email);
-                }, 3);
+                return DB::transaction(fn () => $this->startLocked($email), 3);
             } catch (UniqueConstraintViolationException $exception) {
                 return $this->member($email) ?? $this->open($email) ?? throw $exception;
             }
         });
     }
 
+    // Caller holds the normalized email lock and database transaction.
+    public function startLocked(string $email): Applicant|User
+    {
+        return $this->member($email)
+            ?? $this->open($email)
+            ?? Applicant::query()->where('email', $email)
+                ->where('status', ApplicantStatus::Rejected)
+                ->latest('reviewed_at')->orderByDesc('id')->first()
+            ?? $this->createUnverified($email);
+    }
+
     // Called only with a registration OTP already consumed by the verifier.
-    // T008 must integrate OTP consumption and this operation atomically.
+    // Registration verification uses confirmEmailLocked in the same transaction.
     public function confirmEmail(OtpRequest $proof): Applicant|User
     {
         if ($proof->email === null) {
@@ -50,52 +54,57 @@ class ApplicantLifecycle
 
         $email = Applicant::normalizeEmail($proof->email);
 
-        return $this->withEmailLock($email, fn () => DB::transaction(function () use ($proof, $email): Applicant|User {
-            $otp = OtpRequest::query()->lockForUpdate()->findOrFail($proof->id);
-            if ($otp->purpose !== OtpPurpose::Registration || $otp->status !== OtpRequestStatus::Used
-                || $otp->accepted_at === null || $otp->email !== $email) {
-                throw new ConflictHttpException('Invalid registration proof.');
-            }
+        return $this->withEmailLock($email, fn () => DB::transaction(fn () => $this->confirmEmailLocked($proof), 3));
+    }
 
-            if ($member = $this->member($email)) {
-                return $member;
-            }
+    // Caller holds the normalized email lock and database transaction.
+    public function confirmEmailLocked(OtpRequest $proof): Applicant|User
+    {
+        $email = Applicant::normalizeEmail((string) $proof->email);
+        $otp = OtpRequest::query()->lockForUpdate()->findOrFail($proof->id);
+        if ($otp->purpose !== OtpPurpose::Registration || $otp->status !== OtpRequestStatus::Used
+            || $otp->accepted_at === null || $otp->email !== $email) {
+            throw new ConflictHttpException('Invalid registration proof.');
+        }
 
-            $subject = Applicant::query()->lockForUpdate()->find($otp->applicant_id);
-            if ($subject === null || $subject->email !== $email) {
-                throw new ConflictHttpException('Invalid registration subject.');
-            }
+        if ($member = $this->member($email)) {
+            return $member;
+        }
 
-            $eventKey = 'otp-verified:'.$otp->id;
-            if (DB::table('applicant_events')->where('event_key', $eventKey)->exists()) {
-                throw new ConflictHttpException('Registration proof already consumed.');
-            }
+        $subject = Applicant::query()->lockForUpdate()->find($otp->applicant_id);
+        if ($subject === null || $subject->email !== $email) {
+            throw new ConflictHttpException('Invalid registration subject.');
+        }
 
-            if ($subject->status === ApplicantStatus::Rejected) {
-                if ($subject->reviewed_at === null || $otp->created_at->lt($subject->reviewed_at)) {
-                    throw new ConflictHttpException('A new OTP is required after rejection.');
-                }
-                $applicant = $this->open($email) ?? $this->createUnverified($email);
-                $this->event($subject, 'reapplication:'.$otp->id, 'reapplication');
-                $otp->update(['applicant_id' => $applicant->id]);
-            } elseif ($subject->status->isOpen()) {
-                $applicant = $subject;
-            } else {
-                throw new ConflictHttpException('Application is no longer open.');
-            }
+        $eventKey = 'otp-verified:'.$otp->id;
+        if (DB::table('applicant_events')->where('event_key', $eventKey)->exists()) {
+            throw new ConflictHttpException('Registration proof already consumed.');
+        }
 
-            if ($applicant->status === ApplicantStatus::Unverified) {
-                $applicant->forceFill([
-                    'status' => ApplicantStatus::Draft,
-                    'current_step' => 'identification',
-                    'email_verified_at' => now(),
-                    'revision' => $applicant->revision + 1,
-                ])->save();
+        if ($subject->status === ApplicantStatus::Rejected) {
+            if ($subject->reviewed_at === null || $otp->created_at->lt($subject->reviewed_at)) {
+                throw new ConflictHttpException('A new OTP is required after rejection.');
             }
-            $this->event($applicant, $eventKey, 'email_verified', 'otp');
+            $applicant = $this->open($email) ?? $this->createUnverified($email);
+            $this->event($subject, 'reapplication:'.$otp->id, 'reapplication');
+            $otp->update(['applicant_id' => $applicant->id]);
+        } elseif ($subject->status->isOpen()) {
+            $applicant = $subject;
+        } else {
+            throw new ConflictHttpException('Application is no longer open.');
+        }
 
-            return $applicant;
-        }, 3));
+        if ($applicant->status === ApplicantStatus::Unverified) {
+            $applicant->forceFill([
+                'status' => ApplicantStatus::Draft,
+                'current_step' => 'identification',
+                'email_verified_at' => now(),
+                'revision' => $applicant->revision + 1,
+            ])->save();
+        }
+        $this->event($applicant, $eventKey, 'email_verified', 'otp');
+
+        return $applicant;
     }
 
     // Submission validation and the durable notification intent are mandatory
@@ -182,7 +191,7 @@ class ApplicantLifecycle
         }, 3));
     }
 
-    private function withEmailLock(string $email, Closure $callback): mixed
+    public function withEmailLock(string $email, Closure $callback): mixed
     {
         $key = hash_hmac('sha256', Applicant::normalizeEmail($email), (string) config('app.key'));
 
@@ -232,6 +241,9 @@ class ApplicantLifecycle
             'reviewed_by' => $actor->id,
             'revision' => $applicant->revision + 1,
         ])->save();
+        OtpRequest::query()->where('purpose', OtpPurpose::Registration)
+            ->where('applicant_id', $applicant->id)->where('status', OtpRequestStatus::Pending)
+            ->update(['status' => OtpRequestStatus::Locked]);
         $this->event($applicant, 'status:'.$status->value, $status->value, actor: $actor);
     }
 

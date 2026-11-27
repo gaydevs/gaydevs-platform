@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApplicationAuthController;
 use App\Http\Controllers\CurrentSessionController;
 use App\Http\Controllers\LogoutAllController;
 use App\Http\Controllers\LogoutController;
@@ -9,9 +10,18 @@ use App\Http\Controllers\SocialPreviewController;
 use App\Http\Controllers\UserPreferenceController;
 use App\Http\Controllers\UserSearchController;
 use App\Http\Controllers\VerifyOtpController;
+use App\Http\Middleware\EnsureApplicantSession;
+use App\Http\Middleware\EnsureApplicationFrontend;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureUserIsPollAdmin;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('applications')->middleware(EnsureApplicationFrontend::class)->group(function (): void {
+    Route::post('/otp', [ApplicationAuthController::class, 'issue']);
+    Route::post('/verify', [ApplicationAuthController::class, 'verify']);
+    Route::get('/session', [ApplicationAuthController::class, 'session'])->middleware(EnsureApplicantSession::class);
+    Route::post('/logout', [ApplicationAuthController::class, 'logout']);
+});
 
 Route::get('/ping', static fn (): string => 'pong');
 Route::get('/users', UserSearchController::class);

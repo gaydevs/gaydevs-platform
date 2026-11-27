@@ -19,6 +19,8 @@ class OtpIssuer
 {
     private const TRANSACTION_ATTEMPTS = 3;
 
+    public function __construct(private OtpPrimitives $otp) {}
+
     public function issue(User $user, VisitorObservation $observation): IssuedOtp
     {
         return DB::transaction(function () use ($user, $observation): IssuedOtp {
@@ -30,7 +32,12 @@ class OtpIssuer
                 throw new UserNotActiveException;
             }
 
-            $code = $this->uniqueCode($lockedUser, $observation);
+            $subject = OtpRequest::query()->where('user_id', $lockedUser->id)->where('purpose', OtpPurpose::Login);
+            try {
+                $code = $this->otp->generate($subject);
+            } catch (\RuntimeException) {
+                throw new OtpGenerationFailedException($lockedUser->id, $observation->id);
+            }
 
             $request = OtpRequest::query()->create([
                 'user_id' => $lockedUser->id,
@@ -45,36 +52,9 @@ class OtpIssuer
                 ),
             ]);
 
-            OtpRequest::query()
-                ->where('user_id', $lockedUser->id)
-                ->where('purpose', OtpPurpose::Login)
-                ->where('status', OtpRequestStatus::Pending->value)
-                ->whereKeyNot($request->id)
-                ->update([
-                    'status' => OtpRequestStatus::Superseded->value,
-                    'superseded_at' => now(),
-                    'superseded_by_id' => $request->id,
-                    'updated_at' => now(),
-                ]);
+            $this->otp->supersede($subject, $request);
 
             return new IssuedOtp($request, $code, $lockedUser->email);
         }, self::TRANSACTION_ATTEMPTS);
-    }
-
-    private function uniqueCode(User $user, VisitorObservation $observation): string
-    {
-        $hashes = $user->otpRequests()->where('purpose', OtpPurpose::Login)->pluck('code_hash');
-        $digits = (int) config('passwordless.otp.digits');
-        $maxGenerationAttempts = (int) config('passwordless.otp.max_generation_attempts');
-        $largestCode = (10 ** $digits) - 1;
-
-        for ($attempt = 0; $attempt < $maxGenerationAttempts; $attempt++) {
-            $code = str_pad((string) random_int(0, $largestCode), $digits, '0', STR_PAD_LEFT);
-            if ($hashes->doesntContain(fn (string $hash): bool => Hash::check($code, $hash))) {
-                return $code;
-            }
-        }
-
-        throw new OtpGenerationFailedException($user->id, $observation->id);
     }
 }
