@@ -18,7 +18,7 @@ async function setup(write: (init: RequestInit) => Promise<Response>) {
     if (path.endsWith('/sanctum/csrf-cookie')) return new Response(null, { status: 204 })
     if (path.endsWith('/notes/ana')) {
       expect(new Headers(init.headers).get('X-Notes-Actor')).toBe(admin.id)
-      return init.method === 'PUT' ? put(init) : json({ member, content: 'Texto' })
+      return init.method === 'PUT' ? put(init) : json({ member, content: 'Texto', version: 1 })
     }
     throw new Error('Unexpected request: ' + path)
   }))
@@ -41,7 +41,7 @@ test('delayed HTTP response can be ignored without waiting or retrying', async (
   fireEvent.click(within(dialog).getByRole('button', { name: 'Ignorar' }))
   expect(proceed).toHaveBeenCalledOnce()
   expect(put.mock.calls[0][0].signal?.aborted).toBe(true)
-  await act(async () => resolve(json({ member, content: 'Texto novo' })))
+  await act(async () => resolve(json({ member, content: 'Texto novo', version: 2 })))
   expect(put).toHaveBeenCalledOnce()
   expect(proceed).toHaveBeenCalledOnce()
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -53,7 +53,7 @@ test('HTTP 504 and 500 expose retry, keeping the same payload until successful n
     attempts++
     if (attempts === 1) return new Response('Gateway Timeout', { status: 504 })
     if (attempts === 2) return json({ message: 'Falha simulada' }, 500)
-    return json({ member, content: JSON.parse(String(init.body)).content })
+    return json({ member, content: JSON.parse(String(init.body)).content, version: 2 })
   })
   const failure = await screen.findByRole('dialog', { name: 'Não foi possível salvar' })
   expect(proceed).not.toHaveBeenCalled()

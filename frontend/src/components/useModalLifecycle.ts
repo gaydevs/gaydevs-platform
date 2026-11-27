@@ -19,7 +19,7 @@ function tabbableElements(dialog: HTMLElement) {
 }
 
 /** Shared focus containment, Escape handling and scroll lock for every modal. */
-export function useModalLifecycle(onClose: () => void, dialogRef: RefObject<HTMLElement | null>, focusSelector?: string) {
+export function useModalLifecycle(onClose: (() => void) | undefined, dialogRef: RefObject<HTMLElement | null>, focusSelector?: string) {
   const closeRef = useRef(onClose)
   useEffect(() => { closeRef.current = onClose }, [onClose])
   useEffect(() => {
@@ -47,7 +47,7 @@ export function useModalLifecycle(onClose: () => void, dialogRef: RefObject<HTML
       if (!isTop() || event.defaultPrevented) return
       if (event.key === 'Escape') {
         event.preventDefault()
-        closeRef.current()
+        closeRef.current?.()
         return
       }
       if (event.key !== 'Tab') return

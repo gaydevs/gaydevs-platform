@@ -10,6 +10,7 @@ import { useAuth } from './features/auth/useAuth'
 import { useLoginHash, type LoginStep } from './features/auth/useLoginHash'
 import { getPoll, listPolls, type PollListResponse } from './features/pollsApi'
 import { getMemberNote, listNoteMembers, saveMemberNote, type MemberNote } from './features/notesApi'
+import { NoteVersionConflict } from './features/noteVersion'
 import { readHistory } from './navigation/history'
 
 vi.mock('./features/notesApi', () => ({ getMemberNote: vi.fn(), listNoteMembers: vi.fn(), saveMemberNote: vi.fn() }))
@@ -143,11 +144,11 @@ describe('notes navigation while autosave is pending', () => {
     vi.mocked(useAuth).mockReturnValue({ user: { id: 'admin', name: 'Admin', member_type: 'admin' }, restoring: false, refresh: vi.fn(), logout })
     vi.mocked(useLoginHash).mockReturnValue({ step: null, open: vi.fn(), showStep: vi.fn(), close: vi.fn() })
     vi.mocked(listNoteMembers).mockResolvedValue([member])
-    vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto' })
+    vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto', version: 1 })
     let resolveSave!: (value: MemberNote) => void
     vi.mocked(saveMemberNote).mockImplementation(() => new Promise(resolve => { resolveSave = resolve }))
     render(<App />)
-    return { logout, finish: () => resolveSave({ member, content: 'Texto novo' }) }
+    return { logout, finish: () => resolveSave({ member, content: 'Texto novo', version: 2 }) }
   }
   async function edit() {
     await userEvent.click(await screen.findByRole('button', { name: /Gdev Exemplo/ }))
@@ -238,6 +239,38 @@ describe('notes navigation while autosave is pending', () => {
     await act(async () => finish())
   }, 15000)
 
+  it('keeps the original Back destination pending until a conflict is resolved', async () => {
+    setup()
+    vi.mocked(saveMemberNote).mockRejectedValueOnce(new NoteVersionConflict({ member, content: 'Remoto', version: 2 }))
+      .mockImplementationOnce(async (_actor, _member, content) => ({ member, content, version: 3 }))
+    await edit()
+    act(() => window.history.back())
+    const conflict = await screen.findByRole('dialog', { name: 'Conflito de anotação' })
+    await waitFor(() => expect(window.location.pathname).toBe(base + '/gdev-1'))
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(conflict).toBeInTheDocument()
+    expect(saveMemberNote).toHaveBeenCalledOnce()
+    await userEvent.click(within(conflict).getByRole('button', { name: 'Sobrescrever' }))
+    await waitFor(() => expect(window.location.pathname).toBe(base))
+    expect(vi.mocked(saveMemberNote).mock.calls.map(call => call[3])).toEqual([1, 2])
+    expect(await screen.findByRole('heading', { name: '/gdevs/notes' })).toBeInTheDocument()
+  }, 15000)
+
+  it('does not logout while a conflicting note awaits a decision', async () => {
+    const { logout } = setup()
+    vi.mocked(saveMemberNote).mockRejectedValueOnce(new NoteVersionConflict({ member, content: 'Remoto', version: 2 }))
+    await edit()
+    await userEvent.click(screen.getByRole('button', { name: 'abrir menu' }))
+    await userEvent.click(screen.getByRole('button', { name: 'sair' }))
+    const conflict = await screen.findByRole('dialog', { name: 'Conflito de anotação' })
+    expect(logout).not.toHaveBeenCalled()
+    vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Remoto', version: 2 })
+    await userEvent.click(within(conflict).getByRole('button', { name: 'Recarregar' }))
+    await waitFor(() => expect(logout).toHaveBeenCalledOnce())
+    expect(saveMemberNote).toHaveBeenCalledOnce()
+  }, 15000)
+
   it.each(['section', 'back', 'logout'])('ignores a pending save and resumes %s immediately', async destination => {
     const { finish, logout } = setup()
     await edit()
@@ -276,7 +309,7 @@ describe('notes required login', () => {
       return { user, restoring: false, refresh: async () => { setUser(logged); return logged }, logout: async () => setUser(null) }
     })
     vi.mocked(listNoteMembers).mockResolvedValue([member])
-    vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto privado' })
+    vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto privado', version: 1 })
     render(<App />)
     await screen.findByRole('dialog')
     expect(window.location.hash).toBe('#login')
@@ -302,13 +335,13 @@ describe('notes required login', () => {
     expect(editor).toBeInTheDocument()
     if (action === 'cancel') {
       await userEvent.click(within(dialog).getByRole('button', { name: 'cancelar saída' }))
-      await act(async () => finish({ member, content: 'Texto privado novo' }))
+      await act(async () => finish({ member, content: 'Texto privado novo', version: 2 }))
       expect(window.location.pathname).toBe(base + '/ana')
       expect(editor).toBeInTheDocument()
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     } else {
       if (action === 'ignore') await userEvent.click(within(dialog).getByRole('button', { name: 'Ignorar' }))
-      await act(async () => finish({ member, content: 'Texto privado novo' }))
+      await act(async () => finish({ member, content: 'Texto privado novo', version: 2 }))
       await waitFor(() => expect(window.location.pathname).toBe(base))
       expect(await screen.findByRole('button', { name: /Ana/ })).toBeInTheDocument()
       expect(readHistory().position?.index).toBe((entry.position?.index ?? 0) - 2)
@@ -357,7 +390,7 @@ describe('route identifier normalization', () => {
     vi.mocked(useLoginHash).mockReturnValue({ step: null, open: vi.fn(), showStep: vi.fn(), close: vi.fn() })
     vi.mocked(listNoteMembers).mockResolvedValue([])
     vi.mocked(listPolls).mockResolvedValue({ polls: [], next_cursor: null, has_more: false, synced_at: '2026-11-27T12:00:00Z' })
-    vi.mocked(getMemberNote).mockResolvedValue({ member: { id: 'ana', name: 'Ana' }, content: 'Texto' })
+    vi.mocked(getMemberNote).mockResolvedValue({ member: { id: 'ana', name: 'Ana' }, content: 'Texto', version: 1 })
     vi.mocked(getPoll).mockResolvedValue({
       id: 'poll-1', slug: 'qual-jogo', question: 'Qual jogo?', created_at: '2026-10-27T10:00:00.000Z',
       creator: { id: 'creator', name: 'Criador' }, started_at: '2026-10-27T10:00:00.000Z', started_on: null,

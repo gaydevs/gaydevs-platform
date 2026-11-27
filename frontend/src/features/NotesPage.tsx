@@ -3,6 +3,7 @@ import { SectionAuthGate } from '../components/SectionAuthGate'
 import { SectionSubmenuBar } from '../components/SectionSubmenuBar'
 import { NotesBrand } from '../components/NotesBrand'
 import { RestrictedAccessDialog } from '../components/RestrictedAccessDialog'
+import { NoteConflictDialog } from './NoteConflictDialog'
 import { PendingSaveDialog } from '../components/PendingSaveDialog'
 import { useSectionBrandVisibility } from '../components/useSectionBrandVisibility'
 import { ApiError, type AuthenticatedUser } from './auth/api'
@@ -42,13 +43,15 @@ function NoteList({ actorId, base, onNavigate, onBrandVisibilityChange, onHome }
 }
 
 function LoadedNote({ actorId, note, registerGuard }: { actorId: string; note: MemberNote; registerGuard?: RegisterLeaveGuard }) {
-  const autosave = useNoteAutosave(actorId, note.member.id, note.content, registerGuard)
+  const autosave = useNoteAutosave(actorId, note.member.id, note.content, note.version, registerGuard)
   return <>
     <div className="section-heading notes-detail-heading">
       <div className="notes-heading"><Avatar name={note.member.name} /><h1 id="note-title">{note.member.name}</h1></div>
     </div>
-    {autosave.status === 'session-changed' ? <p className="poll-error" role="alert">Sessão alterada. Recarregue a página e autentique-se novamente.</p> : <div className="poll-form notes-form"><Suspense fallback={<NoteEditorLoading />}><NoteRichEditor content={note.content} onChange={autosave.change} /></Suspense></div>}
-    {autosave.leaveOpen && <PendingSaveDialog
+    {autosave.status === 'session-changed' ? <p className="poll-error" role="alert">Sessão alterada. Recarregue a página e autentique-se novamente.</p> : <div className="poll-form notes-form"><Suspense fallback={<NoteEditorLoading />}><NoteRichEditor key={autosave.editorSnapshot.generation} content={autosave.editorSnapshot.content} onChange={autosave.change} readOnly={!!autosave.conflict} /></Suspense></div>}
+    {autosave.conflict && <NoteConflictDialog busy={autosave.resolutionBusy} error={autosave.resolutionError}
+      onReload={() => void autosave.resolveConflict('reload')} onOverwrite={() => void autosave.resolveConflict('overwrite')} />}
+    {!autosave.conflict && autosave.leaveOpen && <PendingSaveDialog
       brand={<NotesBrand wordmark="/gdevs/notes" linked={false} />}
       eyebrow="ANOTAÇÕES"
       status={autosave.status}

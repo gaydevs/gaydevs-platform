@@ -55,10 +55,10 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 
 ## Integridade concorrente (High Risk)
 - [x] T037 Registrar aprovação de spec (66c652c) e plano (eb6da36).
-- [ ] T038 Implementar migration, CAS atômico e contrato de conflito privado.
-- [ ] T039 Testar concorrência real, ordem invertida, autorização e contrato em SQLite/MySQL.
-- [ ] T040 Implementar revisão e reconciliação no autosave e cliente HTTP.
-- [ ] T041 Implementar modal bloqueante, resolução e proteção de rascunho/navegação.
-- [ ] T042 Cobrir todos os cenários da spec, executar regressões e publicar evidências.
+- [x] T038 Implementar migration, CAS atômico e contrato de conflito privado. Versionamento inteiro e atualização condicional; criação protegida pela chave única; conflito tipado e conteúdo exato.
+- [ ] T039 Testar concorrência real, ordem invertida, autorização e contrato em SQLite/MySQL. Testes implementados; SQLite: 15 testes, 169 assertions, incluindo dois processos independentes para criação/atualização. MySQL aguarda CI.
+- [x] T040 Implementar revisão e reconciliação no autosave e cliente HTTP.
+- [x] T041 Implementar modal bloqueante, resolução e proteção de rascunho/navegação.
+- [ ] T042 Cobrir todos os cenários da spec, executar regressões e publicar evidências. 30 novos testes (6 backend, 24 frontend); 138 testes frontend relacionados aprovados em execuções locais, TypeScript, ESLint e Pint aprovados. Suíte completa local interrompida por EXECUTOR_LOST; dois novos testes App repetidos e aprovados. CI completa, MySQL e validação manual do novo modal pendentes. Dois achados Minor permanecem separados.
 
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.

@@ -5,25 +5,25 @@ import { useNoteAutosave, type LeaveGuard } from './useNoteAutosave'
 import { ApiError } from './auth/api'
 import { saveMemberNote, type MemberNote } from './notesApi'
 
-vi.mock('./notesApi', () => ({ saveMemberNote: vi.fn() }))
-const response = (content: string): MemberNote => ({ member: { id: 'ana', name: 'Ana' }, content })
+vi.mock('./notesApi', () => ({ saveMemberNote: vi.fn(), getMemberNote: vi.fn() }))
+const response = (content: string, version = 1): MemberNote => ({ member: { id: 'ana', name: 'Ana' }, content, version })
 beforeEach(() => { vi.useFakeTimers(); vi.resetAllMocks() })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
 test('debounces and serializes writes without overwriting the latest edit', async () => {
   let resolveFirst!: (value: MemberNote) => void
-  vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { resolveFirst = resolve })).mockResolvedValueOnce(response('third'))
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', ''))
+  vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { resolveFirst = resolve })).mockResolvedValueOnce(response('third', 2))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0))
   act(() => { result.current.change('first'); result.current.change('second') })
   await act(async () => { await vi.advanceTimersByTimeAsync(699) })
   expect(saveMemberNote).not.toHaveBeenCalled()
   await act(async () => { await vi.advanceTimersByTimeAsync(1) })
-  expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin', 'ana', 'second', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin', 'ana', 'second', 0, expect.any(AbortSignal))
   act(() => result.current.change('third'))
   await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
   expect(saveMemberNote).toHaveBeenCalledTimes(1)
   await act(async () => resolveFirst(response('second')))
-  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'third', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'third', 1, expect.any(AbortSignal))
   expect(result.current.status).toBe('saved')
 })
 
@@ -31,7 +31,7 @@ test('failed save keeps draft and navigation guarded until retry succeeds', asyn
   vi.mocked(saveMemberNote).mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce(response('draft'))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0, register))
   const proceed = vi.fn()
   act(() => result.current.change('draft'))
   await act(async () => { expect(guard?.(proceed)).toBe(true) })
@@ -51,7 +51,7 @@ test('canceling an exit does not discard or navigate away from the draft', async
   vi.mocked(saveMemberNote).mockImplementation(() => new Promise(done => { resolve = done }))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0, register))
   const proceed = vi.fn()
   act(() => result.current.change('draft'))
   act(() => { expect(guard?.(proceed)).toBe(true) })
@@ -66,7 +66,7 @@ test('session mismatch blocks retries and subsequent writes under a different ac
   vi.mocked(saveMemberNote).mockRejectedValueOnce(new ApiError('Sessão alterada', 409))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin-a', 'ana', '', register))
+  const { result } = renderHook(() => useNoteAutosave('admin-a', 'ana', '', 0, register))
   act(() => result.current.change('private draft'))
   await act(async () => vi.advanceTimersByTimeAsync(700))
   expect(result.current.status).toBe('session-changed')
@@ -75,17 +75,17 @@ test('session mismatch blocks retries and subsequent writes under a different ac
   await act(async () => result.current.retry())
   act(() => result.current.change('another draft'))
   await act(async () => vi.advanceTimersByTimeAsync(2000))
-  expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin-a', 'ana', 'private draft', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin-a', 'ana', 'private draft', 0, expect.any(AbortSignal))
   expect(proceed).not.toHaveBeenCalled()
 })
 
 test('unmount aborts the in-flight write and prevents a queued write from the old account', async () => {
   let finish!: (value: MemberNote) => void
   vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
-  const { result, unmount } = renderHook(() => useNoteAutosave('admin-a', 'ana', ''))
+  const { result, unmount } = renderHook(() => useNoteAutosave('admin-a', 'ana', '', 0))
   act(() => result.current.change('first'))
   await act(async () => vi.advanceTimersByTimeAsync(700))
-  const signal = vi.mocked(saveMemberNote).mock.calls[0][3]
+  const signal = vi.mocked(saveMemberNote).mock.calls[0][4]
   act(() => result.current.change('queued'))
   unmount()
   expect(signal?.aborted).toBe(true)
@@ -99,11 +99,11 @@ test('ignore aborts the write, drops queued edits and resumes only once before u
   vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0, register))
   const proceed = vi.fn()
   act(() => result.current.change('first'))
   act(() => { expect(guard?.(proceed)).toBe(true) })
-  const signal = vi.mocked(saveMemberNote).mock.calls[0][3]
+  const signal = vi.mocked(saveMemberNote).mock.calls[0][4]
   act(() => result.current.change('queued'))
   act(() => { result.current.ignoreLeave(); result.current.ignoreLeave(); result.current.retry(); result.current.change('ignored') })
   expect(signal?.aborted).toBe(true)
@@ -122,7 +122,7 @@ test('ignore aborts the write, drops queued edits and resumes only once before u
 test('clean editor and reverted pending edit do not save or interrupt navigation', async () => {
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'original', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'original', 0, register))
   const proceed = vi.fn()
   expect(guard?.(proceed)).toBe(false)
   act(() => { result.current.change('edited'); result.current.change('original') })
@@ -138,7 +138,7 @@ test('a delayed save remains pending until it resolves, then navigation needs no
   vi.mocked(saveMemberNote).mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(response('draft')), 20000)))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0, register))
   const proceed = vi.fn()
   act(() => result.current.change('draft'))
   act(() => { expect(guard?.(proceed)).toBe(true) })
@@ -159,7 +159,7 @@ test('repeated failures remain retryable and retain the same draft until success
     .mockResolvedValueOnce(response('draft'))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0, register))
   const proceed = vi.fn()
   act(() => result.current.change('draft'))
   await act(async () => { expect(guard?.(proceed)).toBe(true) })
@@ -178,7 +178,7 @@ test.each([401, 403, 409])('saving with authorization error %s cannot retry', as
   vi.mocked(saveMemberNote).mockRejectedValue(new ApiError('Denied', status))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0, register))
   const proceed = vi.fn()
   act(() => result.current.change('draft'))
   await act(async () => { expect(guard?.(proceed)).toBe(true) })
@@ -194,7 +194,7 @@ test('an oversized note is not transmitted and can be corrected before retry', a
   vi.mocked(saveMemberNote).mockResolvedValue(response('short'))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0, register))
   const proceed = vi.fn()
   act(() => result.current.change('x'.repeat(10001)))
   await act(async () => { expect(guard?.(proceed)).toBe(true) })
@@ -202,7 +202,7 @@ test('an oversized note is not transmitted and can be corrected before retry', a
   expect(saveMemberNote).not.toHaveBeenCalled()
   act(() => { result.current.cancelLeave(); result.current.change('short') })
   await act(async () => { expect(guard?.(proceed)).toBe(true) })
-  expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin', 'ana', 'short', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin', 'ana', 'short', 0, expect.any(AbortSignal))
   expect(proceed).toHaveBeenCalledOnce()
 })
 
@@ -214,11 +214,11 @@ test('a failed response after reverting to the confirmed content keeps persisten
     .mockResolvedValueOnce(response('A'))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'A', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'A', 0, register))
 
   act(() => result.current.change('B'))
   await act(async () => vi.advanceTimersByTimeAsync(700))
-  expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin', 'ana', 'B', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin', 'ana', 'B', 0, expect.any(AbortSignal))
   act(() => result.current.change('A'))
   await act(async () => reject(new TypeError('Response lost after commit')))
   expect(result.current.status).toBe('error')
@@ -232,11 +232,11 @@ test('a failed response after reverting to the confirmed content keeps persisten
   expect(result.current.leaveOpen).toBe(true)
   expect(result.current.status).toBe('error')
   expect(proceed).not.toHaveBeenCalled()
-  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'A', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'A', 0, expect.any(AbortSignal))
 
   await act(async () => result.current.retry())
   expect(saveMemberNote).toHaveBeenCalledTimes(3)
-  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'A', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'A', 0, expect.any(AbortSignal))
   expect(result.current.status).toBe('saved')
   expect(result.current.leaveOpen).toBe(false)
   expect(proceed).toHaveBeenCalledOnce()
@@ -251,14 +251,14 @@ test('failed ignored logout restores autosave and preserves edits made during lo
   let failLogout!: (error: Error) => void
   vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve }))
     .mockResolvedValueOnce(response('latest'))
-    .mockResolvedValueOnce(response('after'))
+    .mockResolvedValueOnce(response('after', 2))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'A', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'A', 0, register))
   const logout = vi.fn(() => new Promise<void>((_resolve, reject) => { failLogout = reject }))
   act(() => result.current.change('B'))
   act(() => { expect(guard?.(logout)).toBe(true) })
-  const signal = vi.mocked(saveMemberNote).mock.calls[0][3]
+  const signal = vi.mocked(saveMemberNote).mock.calls[0][4]
   act(() => result.current.ignoreLeave())
   expect(logout).toHaveBeenCalledOnce()
   expect(signal?.aborted).toBe(true)
@@ -272,12 +272,12 @@ test('failed ignored logout restores autosave and preserves edits made during lo
   expect(unload.defaultPrevented).toBe(true)
   await act(async () => finishOld(response('B')))
   await act(async () => vi.advanceTimersByTimeAsync(700))
-  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'latest', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'latest', 0, expect.any(AbortSignal))
   expect(result.current.status).toBe('saved')
   act(() => result.current.change('after'))
   const proceed = vi.fn()
   await act(async () => { expect(guard?.(proceed)).toBe(true) })
-  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'after', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'after', 1, expect.any(AbortSignal))
   expect(proceed).toHaveBeenCalledOnce()
   expect(logout).toHaveBeenCalledOnce()
 })
@@ -287,7 +287,7 @@ test('failed ignored logout reconciles an aborted write even if draft equals the
   vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { finish = resolve })).mockResolvedValueOnce(response('A'))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'A', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'A', 0, register))
   act(() => result.current.change('B'))
   await act(async () => vi.advanceTimersByTimeAsync(700))
   act(() => result.current.change('A'))
@@ -298,7 +298,7 @@ test('failed ignored logout reconciles an aborted write even if draft equals the
   expect(event.defaultPrevented).toBe(true)
   await act(async () => finish(response('B')))
   await act(async () => vi.advanceTimersByTimeAsync(700))
-  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'A', expect.any(AbortSignal))
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'A', 0, expect.any(AbortSignal))
   expect(result.current.status).toBe('saved')
 })
 
@@ -308,7 +308,7 @@ test('successful ignored logout does not restart saves while awaiting exit or af
   vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result, unmount } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const { result, unmount } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0, register))
   const logout = vi.fn(() => new Promise<void>(resolve => { finishLogout = resolve }))
   act(() => result.current.change('draft'))
   act(() => { expect(guard?.(logout)).toBe(true) })
@@ -327,7 +327,7 @@ test('failed ignored logout cannot re-enable saving after authorization loss', a
   vi.mocked(saveMemberNote).mockRejectedValueOnce(new ApiError('Denied', 409))
   let guard: LeaveGuard | undefined
   const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
-  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', 0, register))
   act(() => result.current.change('draft'))
   await act(async () => { expect(guard?.(async () => { throw new Error('logout') })).toBe(true) })
   expect(result.current.status).toBe('session-changed')

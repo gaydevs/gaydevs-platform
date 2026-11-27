@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\UserNote;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -37,7 +38,7 @@ class UserNoteController
         $authorId = $this->authorId($request);
         $member = User::query()->findOrFail($member);
 
-        return $this->noteResponse($member, UserNote::query()->where('author_id', $authorId)->where('user_id', $member->id)->value('content') ?? '');
+        return $this->noteResponse($member, $this->snapshot($authorId, $member->id));
     }
 
     public function update(Request $request, string $member): JsonResponse
@@ -47,24 +48,60 @@ class UserNoteController
 
         $validated = $request->validate([
             'content' => ['present', 'nullable', 'string', 'max:10000'],
+            'expected_version' => ['required', 'integer:strict', 'min:0', 'max:9007199254740990'],
+            'version' => ['missing'],
             'id' => ['missing'],
             'author_id' => ['missing'],
             'user_id' => ['missing'],
         ]);
         $content = $validated['content'] ?? '';
 
+        $expected = $validated['expected_version'];
+
         try {
-            UserNote::query()->upsert(
-                [['id' => (string) Str::uuid7(), 'author_id' => $authorId, 'user_id' => $member->id, 'content' => $content]],
-                ['author_id', 'user_id'],
-                ['content'],
-            );
+            if ($expected === 0) {
+                try {
+                    UserNote::query()->create([
+                        'author_id' => $authorId,
+                        'user_id' => $member->id,
+                        'content' => $content,
+                    ]);
+                    $written = true;
+                } catch (UniqueConstraintViolationException $error) {
+                    // Only a collision on the scoped pair is a version conflict.
+                    if (! UserNote::query()->where('author_id', $authorId)->where('user_id', $member->id)->exists()) {
+                        throw $error;
+                    }
+                    $written = false;
+                }
+            } else {
+                $written = UserNote::query()
+                    ->where('author_id', $authorId)
+                    ->where('user_id', $member->id)
+                    ->where('version', $expected)
+                    ->update(['content' => $content, 'version' => $expected + 1]) === 1;
+            }
+
+            if (! $written) {
+                return response()->json([
+                    'reason' => 'note_version_conflict',
+                    'message' => 'A anotação foi alterada em outra gravação.',
+                    'note' => $this->noteData($member, $this->snapshot($authorId, $member->id)),
+                ], 409)->header('Cache-Control', 'private, no-store');
+            }
         } catch (QueryException) {
             // Never report SQL bindings containing the private note.
             abort(500, 'Não foi possível salvar a anotação.');
         }
 
-        return $this->noteResponse($member, $content);
+        return $this->noteResponse($member, ['content' => $content, 'version' => $expected + 1]);
+    }
+
+    private function snapshot(string $authorId, string $memberId): array
+    {
+        $note = UserNote::query()->where('author_id', $authorId)->where('user_id', $memberId)->first(['content', 'version']);
+
+        return ['content' => $note?->content ?? '', 'version' => $note?->version ?? 0];
     }
 
     private function authorId(Request $request): string
@@ -84,11 +121,13 @@ class UserNoteController
         return Str::limit(Str::squish($text), 157, '…');
     }
 
-    private function noteResponse(User $member, string $content): JsonResponse
+    private function noteData(User $member, array $snapshot): array
     {
-        return response()->json([
-            'member' => ['id' => $member->id, 'name' => $member->name],
-            'content' => $content,
-        ])->header('Cache-Control', 'private, no-store');
+        return ['member' => ['id' => $member->id, 'name' => $member->name], ...$snapshot];
+    }
+
+    private function noteResponse(User $member, array $snapshot): JsonResponse
+    {
+        return response()->json($this->noteData($member, $snapshot))->header('Cache-Control', 'private, no-store');
     }
 }

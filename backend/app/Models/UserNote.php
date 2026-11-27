@@ -10,4 +10,6 @@ class UserNote extends Model
     use HasUuidV7;
 
     protected $fillable = ['author_id', 'user_id', 'content'];
+
+    protected $casts = ['version' => 'integer'];
 }

@@ -2,6 +2,7 @@ import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
+import { useLayoutEffect } from 'react'
 import { NoteEditorLoading } from './NotesLoadingStates'
 
 const extensions = [
@@ -9,9 +10,10 @@ const extensions = [
   Markdown.configure({ markedOptions: { gfm: false } }),
 ]
 
-export function NoteRichEditor({ content, onChange }: { content: string; onChange: (value: string) => void }) {
+export function NoteRichEditor({ content, onChange, readOnly = false }: { content: string; onChange: (value: string) => void; readOnly?: boolean }) {
   const editor = useEditor({
     extensions,
+    editable: !readOnly,
     // Neutralize HTML before the Markdown parser can interpret it.
     content: content.replace(/</g, '&lt;'),
     contentType: 'markdown',
@@ -20,6 +22,7 @@ export function NoteRichEditor({ content, onChange }: { content: string; onChang
       attributes: { role: 'textbox', 'aria-label': 'Anotações', 'aria-multiline': 'true', class: 'notes-editor-content' },
       transformPastedHTML: () => '',
       handlePaste: (view, event) => {
+        if (!view.editable) return true
         const text = event.clipboardData?.getData('text/plain')
         if (text) view.dispatch(view.state.tr.insertText(text))
         return true
@@ -31,6 +34,7 @@ export function NoteRichEditor({ content, onChange }: { content: string; onChang
     },
     onUpdate: ({ editor }) => onChange(editor.isEmpty ? '' : editor.getMarkdown()),
   })
+  useLayoutEffect(() => { editor?.setEditable(!readOnly, false) }, [editor, readOnly])
   const active = useEditorState({
     editor,
     selector: ({ editor }) => editor ? {
@@ -40,7 +44,7 @@ export function NoteRichEditor({ content, onChange }: { content: string; onChang
   })
   if (!editor) return <NoteEditorLoading />
   return <div className="notes-editor">
-    <BubbleMenu editor={editor} options={{ placement: 'top', offset: 8 }} >
+    {!readOnly && <BubbleMenu editor={editor} options={{ placement: 'top', offset: 8 }} >
       <div className="notes-bubble-menu" role="toolbar" aria-label="Formatação">
         <button type="button" aria-label="Negrito" aria-pressed={active?.bold} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></button>
         <button type="button" aria-label="Itálico" aria-pressed={active?.italic} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></button>
@@ -48,7 +52,7 @@ export function NoteRichEditor({ content, onChange }: { content: string; onChang
         <button type="button" aria-label="Lista" aria-pressed={active?.bullet} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleBulletList().run()}>• ≡</button>
         <button type="button" aria-label="Lista numerada" aria-pressed={active?.ordered} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. ≡</button>
       </div>
-    </BubbleMenu>
+    </BubbleMenu>}
     <EditorContent editor={editor} />
   </div>
 }

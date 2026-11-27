@@ -15,6 +15,7 @@ return new class extends Migration
             $table->unique(['author_id', 'user_id']);
             $table->index('user_id');
             $table->text('content');
+            $table->unsignedBigInteger('version')->default(1);
             $table->timestamps();
         });
     }

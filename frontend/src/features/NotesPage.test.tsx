@@ -59,8 +59,8 @@ test('renders Markdown as formatted editable text without HTML execution', async
 })
 
 test('automatically saves a visual edit, without a save button', async () => {
-  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto' })
-  let resolveSave!: (value: { member: typeof member; content: string }) => void
+  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto', version: 1 })
+  let resolveSave!: (value: { member: typeof member; content: string; version: number }) => void
   vi.mocked(saveMemberNote).mockImplementation(() => new Promise(resolve => { resolveSave = resolve }))
   render(<NotesPage memberId="ana" base={base} user={admin} restoring={false} onNavigate={vi.fn()} />)
   const editor = await screen.findByRole('textbox', { name: 'Anotações' }, { timeout: 5000 })
@@ -71,14 +71,14 @@ test('automatically saves a visual edit, without a save button', async () => {
   await waitFor(() => expect(saveMemberNote).toHaveBeenCalled(), { timeout: 2500 })
   expect(screen.queryByText(/salvando|anotação salva/i)).not.toBeInTheDocument()
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  await act(async () => resolveSave({ member, content: 'Texto novo' }))
+  await act(async () => resolveSave({ member, content: 'Texto novo', version: 2 }))
   expect(screen.queryByText(/salvando|anotação salva/i)).not.toBeInTheDocument()
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 })
 
 test('blocks exit during unsaved changes, permits cancel and retry after failure', async () => {
-  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto' })
-  vi.mocked(saveMemberNote).mockRejectedValueOnce(new Error('network')).mockResolvedValue({ member, content: 'Texto novo' })
+  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto', version: 1 })
+  vi.mocked(saveMemberNote).mockRejectedValueOnce(new Error('network')).mockResolvedValue({ member, content: 'Texto novo', version: 2 })
   let guard: LeaveGuard | undefined
   const registerGuard = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
   const proceed = vi.fn()
@@ -174,14 +174,14 @@ test('loading and loaded cards share the responsive grid and maintain alphabetic
 })
 
 test('detail displays name and editor skeletons while loading, then the actual note', async () => {
-  let resolveNote!: (value: { member: typeof member; content: string }) => void
+  let resolveNote!: (value: { member: typeof member; content: string; version: number }) => void
   vi.mocked(getMemberNote).mockImplementation(() => new Promise(resolve => { resolveNote = resolve }))
   render(<NotesPage memberId="ana" base={base} user={admin} restoring={false} onNavigate={vi.fn()} />)
   const loading = screen.getByRole('status', { name: 'Carregando anotação' })
   expect(loading.querySelector('.notes-loading-detail-name.poll-loading__shine')).not.toBeNull()
   expect(loading.querySelector('.notes-editor-loading .poll-loading__shine')).not.toBeNull()
   expect(loading).not.toHaveTextContent('Carregando')
-  await act(async () => resolveNote({ member, content: 'Texto' }))
+  await act(async () => resolveNote({ member, content: 'Texto', version: 1 }))
   await screen.findByRole('textbox', { name: 'Anotações' }, { timeout: 5000 })
   expect(screen.queryByRole('status', { name: 'Carregando anotação' })).not.toBeInTheDocument()
   expect(screen.queryByRole('status', { name: 'Carregando editor' })).not.toBeInTheDocument()
@@ -205,8 +205,8 @@ test('editor fallback uses the same shimmer without visible loading text', () =>
 })
 
 test('a background save failure stays silent until exit, and retry in modal completes navigation', async () => {
-  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto' })
-  vi.mocked(saveMemberNote).mockRejectedValueOnce(new Error('network')).mockRejectedValueOnce(new Error('network')).mockResolvedValue({ member, content: 'Texto novo' })
+  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto', version: 1 })
+  vi.mocked(saveMemberNote).mockRejectedValueOnce(new Error('network')).mockRejectedValueOnce(new Error('network')).mockResolvedValue({ member, content: 'Texto novo', version: 2 })
   let guard: LeaveGuard | undefined
   const registerGuard = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
   const proceed = vi.fn()
@@ -243,8 +243,8 @@ test('switching admins clears previews and ignores a late response for the previ
 })
 
 test('switching admins removes the previous editor and cancels pending autosave', async () => {
-  vi.mocked(getMemberNote).mockResolvedValueOnce({ member, content: 'Privado do primeiro' })
-    .mockResolvedValueOnce({ member, content: 'Privado do segundo' })
+  vi.mocked(getMemberNote).mockResolvedValueOnce({ member, content: 'Privado do primeiro', version: 1 })
+    .mockResolvedValueOnce({ member, content: 'Privado do segundo', version: 1 })
   const props = { base, memberId: 'ana', restoring: false, onNavigate: vi.fn() }
   const { rerender } = render(<NotesPage {...props} user={admin} />)
   const editor = await screen.findByRole('textbox', { name: 'Anotações' }, { timeout: 5000 })
@@ -259,7 +259,7 @@ test('switching admins removes the previous editor and cancels pending autosave'
 })
 
 test('session mismatch hides the old editor and instructs reload without offering retry', async () => {
-  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Private' })
+  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Private', version: 1 })
   vi.mocked(saveMemberNote).mockRejectedValue(new ApiError('Sessão alterada', 409))
   let guard: LeaveGuard | undefined
   const registerGuard = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
@@ -287,8 +287,8 @@ test.each([null, 'ana'])('visitor sees the skeleton and requests login on route 
 
 
 test.each(['saving', 'error', 'session-changed'])('Ignorar leaves without confirmation in state %s', async state => {
-  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto' })
-  let finish!: (result: { member: typeof member; content: string }) => void
+  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto', version: 1 })
+  let finish!: (result: { member: typeof member; content: string; version: number }) => void
   if (state === 'saving') vi.mocked(saveMemberNote).mockImplementation(() => new Promise(resolve => { finish = resolve }))
   else vi.mocked(saveMemberNote).mockRejectedValue(state === 'error' ? new Error('network') : new ApiError('Sessão alterada', 409))
   let guard: LeaveGuard | undefined
@@ -304,7 +304,7 @@ test.each(['saving', 'error', 'session-changed'])('Ignorar leaves without confir
   await userEvent.click(within(dialog).getByRole('button', { name: 'Ignorar' }))
   expect(proceed).toHaveBeenCalledOnce()
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  if (state === 'saving') await act(async () => finish({ member, content: 'Texto novo' }))
+  if (state === 'saving') await act(async () => finish({ member, content: 'Texto novo', version: 2 }))
   expect(proceed).toHaveBeenCalledOnce()
   expect(saveMemberNote).toHaveBeenCalledOnce()
 })
