@@ -301,3 +301,39 @@ test.each([null, 'ana'])('403 from notes endpoint presents restricted modal on %
   expect(screen.getByRole('status', { name: memberId ? 'Carregando anotação' : 'Carregando gdevs' })).toBeInTheDocument()
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
 })
+
+test.each([null, 'ana'])('session restoration delays login prompt on %s until authentication is resolved', memberId => {
+  const onLogin = vi.fn()
+  const props = { memberId, base, user: null, onLogin, onNavigate: vi.fn() }
+  const { rerender } = render(<NotesPage {...props} restoring />)
+  expect(onLogin).not.toHaveBeenCalled()
+  rerender(<NotesPage {...props} restoring={false} />)
+  expect(onLogin).toHaveBeenCalledOnce()
+  expect(getMemberNote).not.toHaveBeenCalled()
+  expect(listNoteMembers).not.toHaveBeenCalled()
+})
+
+test('permission lost while refreshing removes previously displayed private preview', async () => {
+  vi.mocked(listNoteMembers).mockResolvedValueOnce([member]).mockRejectedValueOnce(new ApiError('Forbidden', 403))
+  render(<NotesPage memberId={null} base={base} user={admin} restoring={false} onNavigate={vi.fn()} />)
+  expect(await screen.findByText(member.preview)).toBeInTheDocument()
+  await act(async () => document.dispatchEvent(new Event('visibilitychange')))
+  expect(await screen.findByRole('dialog', { name: 'Área restrita' })).toBeInTheDocument()
+  expect(screen.queryByText(member.preview)).not.toBeInTheDocument()
+  expect(screen.queryByText(member.name)).not.toBeInTheDocument()
+  expect(screen.getByRole('status', { name: 'Carregando gdevs' })).toBeInTheDocument()
+})
+
+test('refresh updates preview without replacing cards with a skeleton', async () => {
+  vi.mocked(listNoteMembers).mockResolvedValueOnce([member])
+  let finish!: (items: typeof member[]) => void
+  vi.mocked(listNoteMembers).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  render(<NotesPage memberId={null} base={base} user={admin} restoring={false} onNavigate={vi.fn()} />)
+  expect(await screen.findByText(member.preview)).toBeInTheDocument()
+  await act(async () => document.dispatchEvent(new Event('visibilitychange')))
+  expect(screen.getByText(member.preview)).toBeInTheDocument()
+  expect(screen.queryByRole('status', { name: 'Carregando gdevs' })).not.toBeInTheDocument()
+  await act(async () => finish([{ ...member, preview: 'Gravação tardia' }]))
+  expect(screen.getByText('Gravação tardia')).toBeInTheDocument()
+  expect(screen.queryByText(member.preview)).not.toBeInTheDocument()
+})

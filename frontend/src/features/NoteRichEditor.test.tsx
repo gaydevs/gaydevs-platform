@@ -40,3 +40,36 @@ test.each([1, 2, 3] as const)('H%i applies and removes the correct heading, with
   render(<NoteRichEditor content={markdown} onChange={vi.fn()} />)
   expect(await screen.findByRole('heading', { level, name: 'Texto de teste' })).toBeInTheDocument()
 })
+
+test.each([
+  ['Negrito', 'strong', '**Texto** de teste'],
+  ['Itálico', 'em', '*Texto* de teste'],
+  ['Lista', 'ul li', '- Texto de teste'],
+  ['Lista numerada', 'ol li', '1. Texto de teste'],
+])('%s toggles formatting and survives reopening', async (label, selector, expected) => {
+  const onChange = vi.fn()
+  const { unmount } = render(<NoteRichEditor content="Texto de teste" onChange={onChange} />)
+  const field = await screen.findByRole('textbox', { name: 'Anotações' })
+  const editor = (field as HTMLElement & { editor: Editor }).editor
+  act(() => { editor.commands.setTextSelection({ from: 1, to: 6 }) })
+  const button = screen.getByRole('button', { name: label })
+  fireEvent.click(button)
+  await waitFor(() => expect(field.querySelector(selector)).not.toBeNull())
+  await waitFor(() => expect(button).toHaveAttribute('aria-pressed', 'true'))
+  const markdown = onChange.mock.lastCall?.[0]
+  expect(markdown.trim()).toBe(expected)
+  fireEvent.click(button)
+  await waitFor(() => expect(field.querySelector(selector)).toBeNull())
+  expect(onChange.mock.lastCall?.[0].trim()).toBe('Texto de teste')
+  unmount()
+  render(<NoteRichEditor content={markdown} onChange={vi.fn()} />)
+  expect((await screen.findByRole('textbox', { name: 'Anotações' })).querySelector(selector)).not.toBeNull()
+})
+
+test('clearing editor emits an empty note', async () => {
+  const onChange = vi.fn()
+  render(<NoteRichEditor content="Texto" onChange={onChange} />)
+  const field = await screen.findByRole('textbox', { name: 'Anotações' })
+  act(() => { (field as HTMLElement & { editor: Editor }).editor.commands.clearContent() })
+  expect(onChange).toHaveBeenLastCalledWith('')
+})
