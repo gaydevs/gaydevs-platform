@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { BrandLogo } from '../../components/BrandLogo'
 import { ModalHeader } from '../../components/ModalHeader'
+import { useModalLifecycle } from '../../components/useModalLifecycle'
 import { OtpVerificationStep } from './OtpVerificationStep'
 import { UserSearchStep } from './UserSearchStep'
 import type { LoginStep } from './useLoginHash'
@@ -81,19 +82,9 @@ export function LoginDialog({ step, onStepChange, onClose, onAuthenticated }: Lo
     if (step === 'otp' && otpContext === null) onStepChange('search')
   }, [step, otpContext, onStepChange])
 
-  useEffect(() => {
-    // Trava o scroll da página; cada etapa define o próprio foco inicial.
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeDialog()
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [closeDialog])
+  const dialogRef = useRef<HTMLElement>(null)
+  // Each login step already focuses its own input.
+  useModalLifecycle(closeDialog, dialogRef)
 
   useEffect(() => () => {
     // Evita que o timer de fechamento tente atualizar um componente desmontado.
@@ -106,7 +97,7 @@ export function LoginDialog({ step, onStepChange, onClose, onAuthenticated }: Lo
   }
 
   return <div className={`login-overlay${closing ? ' login-overlay--closing' : ''}`} role="presentation" onMouseDown={closeFromBackdrop}>
-    <section className={`login-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="login-title">
+    <section ref={dialogRef} tabIndex={-1} className={`login-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="login-title">
       <ModalHeader closeLabel="fechar login" onClose={closeDialog}>
         <BrandLogo
           wordmark={step === 'otp' ? '/gdevs/login/verify-otp' : '/gdevs/login'}

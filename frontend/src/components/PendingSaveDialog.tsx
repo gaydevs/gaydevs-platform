@@ -24,7 +24,7 @@ export function PendingSaveDialog({ brand, eyebrow, status, savingTitle, session
   const failed = status === 'error'
 
   return <div className="login-overlay" role="presentation">
-    <section ref={dialogRef} className="login-dialog poll-close-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <section ref={dialogRef} tabIndex={-1} className="login-dialog poll-close-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <ModalHeader closeLabel="cancelar saída" onClose={onCancel}>{brand}</ModalHeader>
       <div className="poll-close-dialog__body">
         <p className="login-dialog__eyebrow">{eyebrow}</p>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { ModalHeader } from '../components/ModalHeader'
+import { useModalLifecycle } from '../components/useModalLifecycle'
 import { OverflowMenu } from '../components/OverflowMenu'
 import { PollsBrand } from '../components/PollsBrand'
 import { LoadingSpinner } from '../components/LoadingSpinner'
@@ -69,17 +70,11 @@ export function PollSuggestionsDialog({ suggestions, onClose, onNavigate, basePa
     closeTimer.current = window.setTimeout(onClose, 220)
   }, [onClose])
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') close() }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', closeOnEscape)
-      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
-    }
-  }, [close])
+  const dialogRef = useRef<HTMLElement>(null)
+  useModalLifecycle(close, dialogRef, '.modal-header__close')
+  useEffect(() => () => {
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
+  }, [])
 
   const closeFromBackdrop = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) close()
@@ -109,7 +104,7 @@ export function PollSuggestionsDialog({ suggestions, onClose, onNavigate, basePa
   }
 
   return <div className={`login-overlay${closing ? ' login-overlay--closing' : ''}`} role="presentation" onMouseDown={closeFromBackdrop}>
-    <section className={`login-dialog login-dialog--scrollable poll-suggestions-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-suggestions-title">
+    <section ref={dialogRef} tabIndex={-1} className={`login-dialog login-dialog--scrollable poll-suggestions-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-suggestions-title">
       <ModalHeader closeLabel="fechar sugestões" onClose={close}>
         <PollsBrand wordmark="/gdevs/polls/suggestions" linked={false} />
       </ModalHeader>
