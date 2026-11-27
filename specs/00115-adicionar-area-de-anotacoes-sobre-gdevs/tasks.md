@@ -13,6 +13,10 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 - [x] T007 Criar ícone e marca /gdevs/notes; replicar layout principal/secundário de Enquetes e prévia limitada nos cards.
 - [x] T008 Integrar editor Tiptap visual com BubbleMenu e serialização Markdown segura.
 - [x] T009 Implementar autosave sequencial, estados, proteção de saída e modal de espera/cancelamento/retry.
-- [ ] T010 Validar acesso, prévia, segurança, formatação, autosave e navegação; verificar layout mobile/desktop; atualizar PR. Conferência visual em navegador real e teste específico de logout pendentes.
+- [ ] T010 Validar acesso, prévia, segurança, formatação, autosave e navegação; verificar layout mobile/desktop; atualizar PR. Teste de logout passou; conferência visual completa do app em navegador real pendente.
+
+## Refinamento visual
+- [x] T011 Omitir textos vazios e estados de autosave fora do modal; ajustar alinhamento e esqueletos nas duas telas.
+- [x] T012 Cobrir os quatro ajustes com testes automatizados e verificar a geometria do card em navegador. 26 testes frontend relacionados passaram, incluindo os quatro refinamentos e logout. Fixture de layout isolada em Chromium: 320, 390, 768 e 1440 px; primeira linha alinhada ao centro do avatar (0 px de diferença). Revisão visual completa da aplicação ainda pendente.
 
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.

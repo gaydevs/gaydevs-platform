@@ -2,6 +2,7 @@ import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
+import { NoteEditorLoading } from './NotesLoadingStates'
 
 const extensions = [
   StarterKit.configure({ link: false, underline: false, strike: false, code: false, codeBlock: false, blockquote: false, horizontalRule: false, heading: { levels: [1, 2, 3] } }),
@@ -38,7 +39,7 @@ export function NoteRichEditor({ content, onChange }: { content: string; onChang
       bullet: editor.isActive('bulletList'), ordered: editor.isActive('orderedList'),
     } : null,
   })
-  if (!editor) return null
+  if (!editor) return <NoteEditorLoading />
   return <div className="notes-editor">
     <BubbleMenu editor={editor} options={{ placement: 'top', offset: 8 }} >
       <div className="notes-bubble-menu" role="toolbar" aria-label="Formatação">

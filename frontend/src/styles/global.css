@@ -340,14 +340,13 @@ section, article, div, li { min-width: 0; }
 }
 
 /* Anotações: mesmas superfícies e espaçamentos das enquetes. */
-.notes-card { display: flex; align-items: flex-start; gap: 16px; text-align: left; color: var(--text); font: inherit; overflow-wrap: anywhere; }
-.notes-avatar { display: grid; place-items: center; flex: 0 0 48px; width: 48px; height: 48px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--cyan); font: 600 1rem var(--font-mono); }
-.notes-card__body { display: grid; gap: 8px; min-width: 0; }
-.notes-card__name { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 700; }
+.notes-card { --notes-avatar-size: 48px; display: flex; align-items: flex-start; gap: 16px; text-align: left; color: var(--text); font: inherit; overflow-wrap: anywhere; }
+.notes-avatar { display: grid; place-items: center; flex: 0 0 var(--notes-avatar-size, 48px); width: var(--notes-avatar-size, 48px); height: var(--notes-avatar-size, 48px); border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--cyan); font: 600 1rem var(--font-mono); }
+.notes-card__body { display: grid; gap: 8px; min-width: 0; flex: 1; }
+.notes-card__name { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 700; line-height: 1.25; padding-top: max(0px, calc((var(--notes-avatar-size) - 1.25em) / 2)); }
 .notes-card__preview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; color: var(--text-muted); }
 .notes-heading { display: flex; align-items: center; gap: 16px; }
 .notes-heading h1 { min-width: 0; overflow-wrap: anywhere; }
-.notes-save-status { margin-top: 8px; }
 .notes-form { max-width: none; }
 .notes-editor { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
 .notes-editor:focus-within { border-color: var(--cyan); }
@@ -361,3 +360,12 @@ section, article, div, li { min-width: 0; }
 .notes-bubble-menu button { min-width: 44px; min-height: 44px; border: 0; border-radius: var(--radius-sm); color: var(--text); background: transparent; font: inherit; cursor: pointer; }
 .notes-bubble-menu button[aria-pressed="true"], .notes-bubble-menu button:hover { color: var(--cyan); background: #ffffff12; }
 .notes-saving-spinner { display: grid; place-items: center; min-width: 44px; }
+
+/* Skeletons use the same shimmer as polls and retain the geometry of notes. */
+.notes-loading-avatar { border: 0; }
+.notes-loading-name > span { width: min(260px, 85%); height: 1.25em; border-radius: var(--radius-sm); }
+.notes-loading-preview { width: min(350px, 95%); height: 1em; border-radius: var(--radius-pill); }
+.notes-loading-detail-name { width: min(420px, 75%); height: clamp(2.5rem, 8vw, 5.5rem); border-radius: var(--radius-md); }
+.notes-loading-line { width: 85%; height: 1em; margin-bottom: 1em; border-radius: var(--radius-pill); }
+.notes-loading-line:nth-child(2) { width: 65%; }
+.notes-loading-line:nth-child(3) { width: 40%; }

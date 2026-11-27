@@ -6,6 +6,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner'
 import { useSectionBrandVisibility } from '../components/useSectionBrandVisibility'
 import type { AuthenticatedUser } from './auth/api'
 import { getMemberNote, listNoteMembers, type MemberNote, type NoteMember } from './notesApi'
+import { NoteListLoading, NoteDetailLoading, NoteEditorLoading } from './NotesLoadingStates'
 import { useNoteAutosave, type RegisterLeaveGuard, type SaveStatus } from './useNoteAutosave'
 
 const NoteRichEditor = lazy(() => import('./NoteRichEditor').then(module => ({ default: module.NoteRichEditor })))
@@ -40,12 +41,10 @@ function NoteList({ base, onNavigate, onBrandVisibilityChange }: { base: string;
   }, [])
   return <section className="polls-page polls-page--landing container" aria-labelledby="notes-title">
     <div className="section-heading polls-landing-heading"><h1 className="polls-hero-title" id="notes-title"><NotesBrand className="polls-hero-brand" linked={false} iconRef={brand} /></h1></div>
-    {error ? <p className="poll-error" role="alert">Não foi possível carregar os gdevs.</p> : members === null ? <p role="status">Carregando gdevs…</p> : members.length === 0 ? <p className="poll-empty">Nenhum gdev encontrado.</p> :
-      <div className="poll-list notes-list">{members.map(member => <button key={member.id} className="poll-card notes-card" type="button" onClick={() => onNavigate(`${base}/${member.id}`)}><Avatar name={member.name} /><span className="notes-card__body"><span className="notes-card__name">{member.name}</span><span className="notes-card__preview">{member.preview || 'Sem anotações'}</span></span></button>)}</div>}
+    {error ? <p className="poll-error" role="alert">Não foi possível carregar os gdevs.</p> : members === null ? <NoteListLoading /> : members.length === 0 ? <p className="poll-empty">Nenhum gdev encontrado.</p> :
+      <div className="poll-list notes-list">{members.map(member => <button key={member.id} className="poll-card notes-card" type="button" onClick={() => onNavigate(`${base}/${member.id}`)}><Avatar name={member.name} /><span className="notes-card__body"><span className="notes-card__name">{member.name}</span>{member.preview?.trim() && <span className="notes-card__preview">{member.preview}</span>}</span></button>)}</div>}
   </section>
 }
-
-const saveLabels: Record<SaveStatus, string> = { saved: 'Anotação salva', pending: 'Salvando…', saving: 'Salvando…', error: 'Não foi possível salvar' }
 
 function SaveDialog({ status, cancel, retry }: { status: SaveStatus; cancel: () => void; retry: () => void }) {
   const cancelButton = useRef<HTMLButtonElement>(null)
@@ -81,10 +80,8 @@ function LoadedNote({ note, registerGuard }: { note: MemberNote; registerGuard?:
   return <>
     <div className="section-heading notes-detail-heading">
       <div className="notes-heading"><Avatar name={note.member.name} /><h1 id="note-title">{note.member.name}</h1></div>
-      <p className="poll-date-meta notes-save-status" role="status">{saveLabels[autosave.status]}</p>
-      {autosave.status === 'error' && <button className="action-link action-link--secondary" type="button" onClick={autosave.retry}>Tentar de novo</button>}
     </div>
-    <div className="poll-form notes-form"><Suspense fallback={<p role="status">Carregando editor…</p>}><NoteRichEditor content={note.content} onChange={autosave.change} /></Suspense></div>
+    <div className="poll-form notes-form"><Suspense fallback={<NoteEditorLoading />}><NoteRichEditor content={note.content} onChange={autosave.change} /></Suspense></div>
     {autosave.leaveOpen && <SaveDialog status={autosave.status} cancel={autosave.cancelLeave} retry={autosave.retry} />}
   </>
 }
@@ -99,13 +96,15 @@ function NoteEditor({ memberId, registerGuard }: { memberId: string; registerGua
     }).catch(() => { if (!controller.signal.aborted) setError(true) })
     return () => controller.abort()
   }, [memberId])
-  return <section className="polls-page container" aria-labelledby="note-title">
-    {note ? <LoadedNote note={note} registerGuard={registerGuard} /> : <><h1 id="note-title">Anotações</h1>{error ? <p className="poll-error" role="alert">Não foi possível carregar a anotação.</p> : <p role="status">Carregando…</p>}</>}
+  return <section className="polls-page container" aria-labelledby={note ? "note-title" : undefined}>
+    {note ? <LoadedNote note={note} registerGuard={registerGuard} /> : error ? <p className="poll-error" role="alert">Não foi possível carregar a anotação.</p> : <NoteDetailLoading />}
   </section>
 }
 
 export function NotesPage({ memberId, base, user, restoring, onNavigate, onBrandVisibilityChange, registerGuard }: { memberId: string | null; base: string; user: AuthenticatedUser | null; restoring: boolean; onNavigate: (path: string) => void; onBrandVisibilityChange?: (visible: boolean) => void; registerGuard?: RegisterLeaveGuard }) {
-  if (restoring) return <section className="polls-page container"><p role="status">Identificando gdev…</p></section>
+  if (restoring) return memberId
+    ? <section className="polls-page container"><NoteDetailLoading /></section>
+    : <section className="polls-page polls-page--landing container"><div className="section-heading polls-landing-heading"><h1 className="polls-hero-title"><NotesBrand className="polls-hero-brand" linked={false} /></h1></div><NoteListLoading /></section>
   if (user?.member_type !== 'admin') return <section className="polls-page container"><p className="poll-error" role="alert">Área restrita.</p></section>
   return memberId ? <NoteEditor key={`${user.id}:${memberId}`} memberId={memberId} registerGuard={registerGuard} /> : <NoteList key={user.id} base={base} onNavigate={onNavigate} onBrandVisibilityChange={onBrandVisibilityChange} />
 }

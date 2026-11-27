@@ -180,4 +180,16 @@ describe('notes navigation while autosave is pending', () => {
     await waitFor(() => expect(window.location.pathname).toBe(base))
     expect(await screen.findByRole('heading', { name: '/gdevs/notes' })).toBeInTheDocument()
   }, 15000)
+
+  it('guards logout and proceeds only after saving', async () => {
+    const { finish, logout } = setup()
+    await edit()
+    await userEvent.click(screen.getByRole('button', { name: 'abrir menu' }))
+    await userEvent.click(screen.getByRole('button', { name: 'sair' }))
+    await screen.findByRole('dialog', { name: 'Salvando anotação' })
+    expect(logout).not.toHaveBeenCalled()
+    await act(async () => finish())
+    await waitFor(() => expect(logout).toHaveBeenCalledOnce())
+  }, 15000)
+
 })
