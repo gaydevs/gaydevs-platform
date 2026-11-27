@@ -45,14 +45,14 @@ Refinamentos de interface solicitados diretamente em 27/11/2026, sem alteração
 - Uma ficha por par (autor, membro); a unicidade deve ser garantida na persistência.
 - A identidade do autor nunca é fornecida pelo frontend como fonte de autorização.
 - Não introduzir acesso global, compartilhamento ou exceções para admins específicos.
-- Não atribuir notas preexistentes de autor desconhecido a um usuário por inferência; preservar dados e não expô-los indevidamente. A estratégia depende da verificação de ambientes e será definida no plano.
+- Funcionalidade ainda não lançada e sem anotações antigas, conforme confirmação do gdev em 27/11/2026. Não há requisito de migração de dados preexistentes.
 - Preservar UI, formatação e autosave já acordados; verificar troca de sessão e ausência de conteúdo residual.
 - Testes automatizados obrigatórios para os cenários de autorização, isolamento de leitura/prévia/escrita, unicidade e tentativa de falsificar autor.
 
 ### Critérios de sucesso
 - Nenhum acesso cruzado entre autores em todos os endpoints; zero possibilidade de sobrescrever outra ficha por troca de parâmetros.
 - Regressões de menu, autorização, autosave e persistência aprovadas.
-- Nenhum dado legado sem autoria comprovada exposto ou reassociado arbitrariamente.
+- O esquema inicial já nasce com isolamento obrigatório por autor.
 
 ### Risco
 High Risk por alteração de autorização em nível de registro e confidencialidade, conforme constitution. A feature ainda não consta em develop; PR #120 permanece aberto. A implementação desta revisão está pausada até aprovação do plano, conforme SDD normal. As tasks anteriores são históricas para o escopo já aprovado.

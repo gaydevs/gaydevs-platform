@@ -22,23 +22,24 @@ Isolar notas por autor autenticado, preservando a interface existente e a restri
 - Não incluir conteúdo em respostas públicas, busca pública, logs/auditoria com payload, previews sociais ou cache compartilhado. Não usar dados pessoais reais nos testes. Não alterar autenticação nem introduzir novas permissões.
 
 ## Validação e risco
-- Testes backend: dois admins independentes lendo, criando, atualizando e limpando o mesmo alvo; isolamento de prévias e de existência de registros; admin alvo não vê notas de outro sobre si; adulteração de campos e header não altera registros; visitante, membro comum e admin inativo bloqueados nos três endpoints; membro inexistente; unicidade, id estável e integridade referencial; cache privado/no-store e erros sem payload; migração nova e legado sem autoria preservado e inacessível.
+- Testes backend: dois admins independentes lendo, criando, atualizando e limpando o mesmo alvo; isolamento de prévias e de existência de registros; admin alvo não vê notas de outro sobre si; adulteração de campos e header não altera registros; visitante, membro comum e admin inativo bloqueados nos três endpoints; membro inexistente; unicidade, id estável e integridade referencial; cache privado/no-store e erros sem payload; migration inicial com o esquema final.
 - Testes frontend: marca e submenu, ordenação/cards/prévia, editor visual, formatação e round-trip, debounce, gravações concorrentes, erro/retry, cancelamento de saída, navegação interna/histórico/logout, beforeunload e conteúdo seguro; verificação visual mobile/desktop. Testar listagem com prévia limitada e sem acesso não autorizado.
 - Verificar diff, executar testes diretamente relacionados e lint/typecheck aplicáveis.
 - Testes frontend adicionais: menu admin/visitante/membro; troca de admin durante GET e autosave (inclusive espera por CSRF); header vinculado ao autor esperado; 409 sem reenvio sob outra identidade; limpeza de estado na troca de sessão; regressões do editor, carregamento e navegação.
 - Verificar suite de backend e frontend, Pint, TypeScript, ESLint e build; não declarar validação visual real se indisponível. Testar MySQL quando houver ambiente autorizado; registrar limitação se apenas SQLite estiver disponível.
 
-## Migração e compatibilidade
-- Verificado: o PR #120 está aberto e nem origin/main nem origin/develop contêm a migration inicial de user_notes. O deploy backend normal é disparado em main/master e permite workflow_dispatch. Não foi consultado banco de produção ou teste; não assumir ausência de notas em ambientes de preview.
-- Preservar a migration já publicada na branch. Adicionar uma migration de transição: arquivar a tabela antiga como user_notes_legacy, sem atribuir autor, e criar a nova user_notes com constraints explícitas de nomes distintos para evitar colisões MySQL. Preparar a tabela nova antes da troca; validar estado prévio e recuperação de etapas parciais de DDL. Não descartar a tabela legada nem transferir conteúdo para a nova. Nenhum endpoint/modelo de aplicação consulta o arquivo legado. Não expor o legado em backups públicos, logs ou UI.
-- Em instalações novas, a migration inicial vazia seguida da transição deve criar o esquema final normalmente. Em ambientes de teste já migrados, conservar as notas antigas inacessíveis. Antes de rollout em ambiente persistente, confirmar estado do schema e backup protegido por operador autorizado; suspender acesso ao endpoint antigo durante a transição. Eventual restauração de autoria exige evidência e decisão explícita futura.
-- Rollback não pode reativar o modelo compartilhado: bloquear rollback destrutivo se houver notas novas; preservar ambas as tabelas e utilizar correção forward-only/retirada das rotas em caso de incidente. Não realizar deploy nesta etapa.
+## Migration
+- O PR #120 permanece aberto; a migration inicial ainda não consta em main/develop. O gdev confirmou em 27/11/2026 que não existem anotações antigas.
+- Corrigir diretamente a migration de criação de user_notes nesta branch antes do merge, criando o esquema final com id, author_id, user_id e UNIQUE(author_id, user_id).
+- Não criar tabela legada, migration de transição ou rotina de conversão/backfill.
+- Executar migrations em banco descartável de testes. Se algum ambiente persistente já tiver aplicado a versão anterior da migration, interromper o rollout e verificar o esquema antes de qualquer alteração. Não realizar reset destrutivo nem deploy nesta etapa.
 
 ## Constituição e estrutura
 - High Risk mantido: autorização por registro e privacidade. Spec aprovada; este plano exige aprovação separada antes de tasks/implementação. Uma branch/spec, issue #115 e PR #120 preservados.
-- Arquivos de implementação previstos: backend/app/Models/UserNote.php, backend/app/Http/Controllers/UserNoteController.php, backend/routes/api.php se necessário, nova migration e backend/tests/Feature/UserNotesTest.php; frontend/src/features/notesApi.ts, NotesPage.tsx, useNoteAutosave.ts e testes relacionados. Reutilizar middleware admin existente sem alterar a autorização de Enquetes.
+- Arquivos de implementação previstos: backend/app/Models/UserNote.php, backend/app/Http/Controllers/UserNoteController.php, backend/routes/api.php se necessário, migration inicial de user_notes e backend/tests/Feature/UserNotesTest.php; frontend/src/features/notesApi.ts, NotesPage.tsx, useNoteAutosave.ts e testes relacionados. Reutilizar middleware admin existente sem alterar a autorização de Enquetes.
 - Contrato e modelo descritos nos artefatos data-model.md e contracts/notes-api.md. Sem violação arquitetural planejada.
 
 ## Aprovação
 Fast-track aprovado por um gdev antes da implementação (2026-11-27). Checkpoint Medium Risk original aprovado; implementação inicial publicada. Revisão de escopo com novo checkpoint Medium Risk aprovado em 27/11/2026, incluindo Tiptap. A prévia permanece exclusivamente admin e o autosave mantém o mesmo mecanismo de autorização.
-\nAprovação da revisão de privacidade: spec aprovada explicitamente em 27/11/2026 (commit 4577cea). Plano aguardando aprovação; nenhuma task de implementação nova autorizada.\n
+
+Aprovação da revisão de privacidade: spec aprovada explicitamente em 27/11/2026 (commit 4577cea). Plano aguardando aprovação; nenhuma task de implementação nova autorizada.
