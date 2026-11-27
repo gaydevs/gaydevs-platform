@@ -46,7 +46,9 @@ async function csrf(): Promise<void> {
 
 /** Centraliza headers, cookies, CSRF e conversão de respostas de erro. */
 export async function request<T>(path: string, init: RequestInit = {}, stateChanging = false): Promise<T> {
+  init.signal?.throwIfAborted()
   if (stateChanging) await csrf()
+  init.signal?.throwIfAborted()
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
   if (init.body !== undefined) headers.set('Content-Type', 'application/json')

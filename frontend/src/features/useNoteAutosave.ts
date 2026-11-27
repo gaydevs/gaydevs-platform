@@ -13,6 +13,7 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
   const inFlight = useRef(false)
   const activeRequest = useRef<AbortController | null>(null)
   const sessionChanged = useRef(false)
+  const abandoned = useRef(false)
   const timer = useRef<number | null>(null)
   const mounted = useRef(true)
   const leave = useRef<(() => void) | null>(null)
@@ -23,11 +24,11 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
     if (timer.current !== null) window.clearTimeout(timer.current)
     timer.current = null
   }, [])
-  const dirty = useCallback(() => inFlight.current || latest.current !== persisted.current, [])
+  const dirty = useCallback(() => !abandoned.current && (inFlight.current || latest.current !== persisted.current), [])
 
   const flush = useCallback(async function flushLatest() {
     clearTimer()
-    if (!mounted.current || inFlight.current || sessionChanged.current) return
+    if (!mounted.current || abandoned.current || inFlight.current || sessionChanged.current) return
     const finish = () => {
       setStatus('saved')
       const proceed = leave.current
@@ -64,7 +65,7 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
   }, [actorId, clearTimer, dirty, memberId])
 
   const change = useCallback((content: string) => {
-    if (sessionChanged.current || !mounted.current) return
+    if (abandoned.current || sessionChanged.current || !mounted.current) return
     latest.current = content
     clearTimer()
     if (!dirty()) { setStatus('saved'); return }
@@ -101,5 +102,16 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
   }, [clearTimer, dirty, guard, registerGuard])
 
   const cancelLeave = () => { leave.current = null; setLeaveOpen(false) }
-  return { change, status, leaveOpen, cancelLeave, retry: () => void flush() }
+  const ignoreLeave = () => {
+    const proceed = leave.current
+    if (!proceed || abandoned.current) return
+    abandoned.current = true
+    leave.current = null
+    clearTimer()
+    activeRequest.current?.abort()
+    inFlight.current = false
+    setLeaveOpen(false)
+    proceed()
+  }
+  return { change, status, leaveOpen, cancelLeave, ignoreLeave, retry: () => void flush() }
 }

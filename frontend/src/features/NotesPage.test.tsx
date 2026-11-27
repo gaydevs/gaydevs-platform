@@ -83,7 +83,7 @@ test('blocks exit during unsaved changes, permits cancel and retry after failure
   const dialog = await screen.findByRole('dialog')
   await within(dialog).findByRole('button', { name: 'Tentar de novo' })
   expect(proceed).not.toHaveBeenCalled()
-  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+  fireEvent.keyDown(window, { key: 'Escape' })
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   expect(proceed).not.toHaveBeenCalled()
   expect(screen.queryByText('Não foi possível salvar')).not.toBeInTheDocument()
@@ -233,12 +233,36 @@ test('session mismatch hides the old editor and instructs reload without offerin
   expect(proceed).not.toHaveBeenCalled()
 })
 
-test('visitor cannot load notes on either route', () => {
-  const props = { base, user: null, restoring: false, onNavigate: vi.fn() }
-  const { rerender } = render(<NotesPage {...props} memberId={null} />)
-  expect(screen.getByRole('alert')).toHaveTextContent('Área restrita')
-  rerender(<NotesPage {...props} memberId="ana" />)
-  expect(screen.getByRole('alert')).toHaveTextContent('Área restrita')
+test.each([null, 'ana'])('visitor sees the skeleton and requests login on route %s', memberId => {
+  const onLogin = vi.fn()
+  render(<NotesPage base={base} user={null} restoring={false} onNavigate={vi.fn()} onLogin={onLogin} memberId={memberId} />)
+  expect(screen.getByRole('status', { name: memberId ? 'Carregando anotação' : 'Carregando gdevs' })).toBeInTheDocument()
+  expect(screen.queryByText('Área restrita.')).not.toBeInTheDocument()
+  expect(onLogin).toHaveBeenCalledOnce()
   expect(listNoteMembers).not.toHaveBeenCalled()
   expect(getMemberNote).not.toHaveBeenCalled()
+})
+
+
+test.each(['saving', 'error', 'session-changed'])('Ignorar leaves without confirmation in state %s', async state => {
+  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto' })
+  let finish!: (result: { member: typeof member; content: string }) => void
+  if (state === 'saving') vi.mocked(saveMemberNote).mockImplementation(() => new Promise(resolve => { finish = resolve }))
+  else vi.mocked(saveMemberNote).mockRejectedValue(state === 'error' ? new Error('network') : new ApiError('Sessão alterada', 409))
+  let guard: LeaveGuard | undefined
+  const registerGuard = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
+  const proceed = vi.fn()
+  render(<NotesPage memberId="ana" base={base} user={admin} restoring={false} onNavigate={vi.fn()} registerGuard={registerGuard} />)
+  const editor = await screen.findByRole('textbox', { name: 'Anotações' }, { timeout: 5000 })
+  fireEvent.paste(editor, { clipboardData: { getData: () => ' novo' } })
+  act(() => { expect(guard?.(proceed)).toBe(true) })
+  const title = state === 'saving' ? 'Salvando anotação' : state === 'error' ? 'Não foi possível salvar' : 'Sessão alterada'
+  const dialog = await screen.findByRole('dialog', { name: title })
+  expect(dialog).toHaveTextContent('Alterações pendentes podem não ser salvas')
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Ignorar' }))
+  expect(proceed).toHaveBeenCalledOnce()
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  if (state === 'saving') await act(async () => finish({ member, content: 'Texto novo' }))
+  expect(proceed).toHaveBeenCalledOnce()
+  expect(saveMemberNote).toHaveBeenCalledOnce()
 })

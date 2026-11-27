@@ -32,3 +32,15 @@ test('autosave keeps its original expected actor even if session changes during 
   expect(init.cache).toBe('no-store')
   expect(fetchMock).toHaveBeenCalledTimes(2)
 })
+
+test('abandoned save does not send PUT after CSRF resolves', async () => {
+  let finishCsrf!: (response: Response) => void
+  const fetchMock = vi.fn().mockImplementationOnce(() => new Promise(resolve => { finishCsrf = resolve }))
+  vi.stubGlobal('fetch', fetchMock)
+  const controller = new AbortController()
+  const saving = saveMemberNote('admin-a', 'ana', 'private draft', controller.signal)
+  controller.abort()
+  finishCsrf(new Response(null, { status: 204 }))
+  await expect(saving).rejects.toMatchObject({ name: 'AbortError' })
+  expect(fetchMock).toHaveBeenCalledOnce()
+})

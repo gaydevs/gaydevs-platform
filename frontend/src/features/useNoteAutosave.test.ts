@@ -93,3 +93,28 @@ test('unmount aborts the in-flight write and prevents a queued write from the ol
   await act(async () => vi.advanceTimersByTimeAsync(2000))
   expect(saveMemberNote).toHaveBeenCalledOnce()
 })
+
+test('ignore aborts the write, drops queued edits and resumes only once before unmount', async () => {
+  let finish!: (value: MemberNote) => void
+  vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  let guard: LeaveGuard | undefined
+  const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const proceed = vi.fn()
+  act(() => result.current.change('first'))
+  act(() => { expect(guard?.(proceed)).toBe(true) })
+  const signal = vi.mocked(saveMemberNote).mock.calls[0][3]
+  act(() => result.current.change('queued'))
+  act(() => { result.current.ignoreLeave(); result.current.ignoreLeave(); result.current.retry(); result.current.change('ignored') })
+  expect(signal?.aborted).toBe(true)
+  expect(proceed).toHaveBeenCalledOnce()
+  expect(result.current.leaveOpen).toBe(false)
+  expect(guard?.(vi.fn())).toBe(false)
+  const event = new Event('beforeunload', { cancelable: true })
+  window.dispatchEvent(event)
+  expect(event.defaultPrevented).toBe(false)
+  await act(async () => finish(response('first')))
+  await act(async () => vi.advanceTimersByTimeAsync(2000))
+  expect(saveMemberNote).toHaveBeenCalledOnce()
+  expect(proceed).toHaveBeenCalledOnce()
+})

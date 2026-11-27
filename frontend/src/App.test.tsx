@@ -160,7 +160,7 @@ describe('notes navigation while autosave is pending', () => {
     await userEvent.click(screen.getByRole('link', { name: 'abrir anotações' }))
     const dialog = await screen.findByRole('dialog', { name: 'Salvando anotação' })
     expect(window.location.pathname).toBe(base + '/gdev-1')
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'cancelar saída' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(window.location.pathname).toBe(base + '/gdev-1')
     await userEvent.click(screen.getByRole('link', { name: 'abrir anotações' }))
@@ -192,4 +192,79 @@ describe('notes navigation while autosave is pending', () => {
     await waitFor(() => expect(logout).toHaveBeenCalledOnce())
   }, 15000)
 
+
+  it.each(['section', 'back', 'logout'])('ignores a pending save and resumes %s immediately', async destination => {
+    const { finish, logout } = setup()
+    await edit()
+    if (destination === 'section') await userEvent.click(screen.getByRole('link', { name: 'abrir anotações' }))
+    else if (destination === 'back') act(() => window.history.back())
+    else {
+      await userEvent.click(screen.getByRole('button', { name: 'abrir menu' }))
+      await userEvent.click(screen.getByRole('button', { name: 'sair' }))
+    }
+    const dialog = await screen.findByRole('dialog', { name: 'Salvando anotação' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Ignorar' }))
+    if (destination === 'logout') await waitFor(() => expect(logout).toHaveBeenCalledOnce())
+    else {
+      await waitFor(() => expect(window.location.pathname).toBe(base))
+      await waitFor(() => expect(listNoteMembers).toHaveBeenCalledTimes(2))
+    }
+    await act(async () => finish())
+    expect(saveMemberNote).toHaveBeenCalledOnce()
+    if (destination === 'logout') expect(logout).toHaveBeenCalledOnce()
+  }, 15000)
+
+})
+
+
+describe('notes required login', () => {
+  const base = '/gaydevs/platform/notes'
+  const member = { id: 'ana', name: 'Ana' }
+  async function setup(path: string, role: 'admin' | 'member') {
+    window.history.replaceState(null, '', path)
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    const actual = await vi.importActual<typeof import('./features/auth/useLoginHash')>('./features/auth/useLoginHash')
+    vi.mocked(useLoginHash).mockImplementation(actual.useLoginHash)
+    const logged = { id: 'author', name: 'Autor', member_type: role }
+    vi.mocked(useAuth).mockImplementation(() => {
+      const [user, setUser] = useState<typeof logged | null>(null)
+      return { user, restoring: false, refresh: async () => { setUser(logged); return logged }, logout: async () => setUser(null) }
+    })
+    vi.mocked(listNoteMembers).mockResolvedValue([member])
+    vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto privado' })
+    render(<App />)
+    await screen.findByRole('dialog')
+    expect(window.location.hash).toBe('#login')
+    expect(screen.getByRole('status', { name: path === base ? 'Carregando gdevs' : 'Carregando anotação' })).toBeInTheDocument()
+    expect(listNoteMembers).not.toHaveBeenCalled()
+    expect(getMemberNote).not.toHaveBeenCalled()
+  }
+
+  it.each([base, base + '/ana'])('cancel redirects %s to platform home', async path => {
+    await setup(path, 'admin')
+    await userEvent.click(screen.getByRole('button', { name: 'fechar login' }))
+    await waitFor(() => expect(window.location.pathname).toBe('/gaydevs/platform'))
+    expect(window.location.hash).toBe('')
+    expect(listNoteMembers).not.toHaveBeenCalled()
+    expect(getMemberNote).not.toHaveBeenCalled()
+  }, 15000)
+
+  it.each([base, base + '/ana'])('admin returns to original route %s', async path => {
+    await setup(path, 'admin')
+    await userEvent.click(screen.getByRole('button', { name: 'concluir login' }))
+    if (path === base) expect(await screen.findByRole('button', { name: /Ana/ })).toBeInTheDocument()
+    else expect(await screen.findByRole('textbox', { name: 'Anotações' }, { timeout: 5000 })).toHaveTextContent('Texto privado')
+    expect(window.location.pathname).toBe(path)
+    expect(window.location.hash).toBe('')
+  }, 15000)
+
+  it.each([base, base + '/ana'])('non-admin receives restricted area after login at %s', async path => {
+    await setup(path, 'member')
+    await userEvent.click(screen.getByRole('button', { name: 'concluir login' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Área restrita.')
+    expect(window.location.pathname).toBe(path)
+    expect(window.location.hash).toBe('')
+    expect(listNoteMembers).not.toHaveBeenCalled()
+    expect(getMemberNote).not.toHaveBeenCalled()
+  }, 15000)
 })

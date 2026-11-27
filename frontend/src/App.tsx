@@ -35,7 +35,7 @@ export default function App() {
   const [brandVisible, setBrandVisible] = useState(true)
   const [auditPoll, setAuditPoll] = useState<Poll | null>(null)
   const [pollError, setPollError] = useState<string | null>(null)
-  const pollsLoginPrompt = useRef(false)
+  const sectionLoginPrompt = useRef(false)
   const loginCompleted = useRef(false)
   const [pathname, setPathname] = useState(() => typeof window === 'undefined' ? '/' : window.location.pathname)
   const leaveGuard = useRef<LeaveGuard | null>(null)
@@ -134,7 +134,7 @@ export default function App() {
   const isLandingPage = !isPollsSection && !isNotesSection
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
-  const homePath = pollsPath.slice(0, -pollsMarker.length) || '/'
+  const homePath = (isNotesSection ? notesPath.slice(0, -'/notes'.length) : pollsPath.slice(0, -pollsMarker.length)) || '/'
   const showNotesSectionBar = isNotesSection && (noteMemberId !== null || !brandVisible)
   const showPollsSectionBar = isPollsSection && (!isPollsLanding || !brandVisible)
   const openAudit = useCallback((poll: Poll) => {
@@ -142,14 +142,14 @@ export default function App() {
     else openLogin()
   }, [auth.user, openLogin])
   const showPollError = useCallback((message: string) => setPollError(message), [])
-  const openPollsLogin = useCallback(() => {
-    pollsLoginPrompt.current = true
+  const openSectionLogin = useCallback(() => {
+    sectionLoginPrompt.current = true
     loginCompleted.current = false
     openLogin()
   }, [openLogin])
   const closeLogin = useCallback(() => {
-    const redirectToHome = pollsLoginPrompt.current && !loginCompleted.current
-    pollsLoginPrompt.current = false
+    const redirectToHome = sectionLoginPrompt.current && !loginCompleted.current
+    sectionLoginPrompt.current = false
     loginCompleted.current = false
     closeLoginHash()
     if (redirectToHome) navigate(homePath)
@@ -166,7 +166,7 @@ export default function App() {
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
     {isNotesSection && auth.user?.member_type === 'admin' && <NotesSectionBar visible={showNotesSectionBar} path={notesPath} onNavigate={navigate} />}
     <main id="conteudo">
-      {isNotesSection ? <NotesPage memberId={noteMemberId} base={notesPath} user={auth.user} restoring={auth.restoring} onNavigate={navigate} onBrandVisibilityChange={setBrandVisible} registerGuard={registerLeaveGuard} /> : pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
+      {isNotesSection ? <NotesPage memberId={noteMemberId} base={notesPath} user={auth.user} restoring={auth.restoring} onLogin={openSectionLogin} onNavigate={navigate} onBrandVisibilityChange={setBrandVisible} registerGuard={registerLeaveGuard} /> : pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openSectionLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
       <Hero content={hero} mobile={images.heroMobile} desktop={images.heroDesktop} onBrandVisibilityChange={setBrandVisible} />
       <About content={about} />
       <Topics content={topics} />
