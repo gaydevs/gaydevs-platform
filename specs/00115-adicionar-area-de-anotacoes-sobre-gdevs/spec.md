@@ -84,7 +84,7 @@ Refinamentos e respectivos testes autorizados pelo gdev na conversa de 27/11/202
 
 ## Revisão de integridade concorrente (27/11/2026)
 
-**Estado:** revisão de escopo High Risk, aguardando aprovação explícita desta spec antes do plano técnico. Achado Major da segunda revisão CodeRabbit (PR #120, discussão 4723530517). Manter o isolamento por autor e a mesma branch/issue. Não implementar histórico de versões nem polling do editor.
+**Estado:** revisão de escopo High Risk; spec aprovada explicitamente pelo gdev em 27/11/2026 na conversa após commit 66c652c. Plano técnico aguarda aprovação separada. Achado Major da segunda revisão CodeRabbit (PR #120, discussão 4723530517). Manter o isolamento por autor e a mesma branch/issue. Não implementar histórico de versões nem polling do editor.
 
 ### Critérios de aceite
 - Cada ficha tem uma revisão monotônica; uma gravação concorrente baseada em revisão obsoleta não pode sobrescrever uma versão já confirmada. A criação concorrente de uma ficha vazia também respeita essa garantia. O servidor continua responsável pela identidade do autor e pela validação atômica da revisão.
