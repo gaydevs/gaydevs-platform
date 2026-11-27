@@ -15,14 +15,14 @@ export interface HeroContent {
 }
 export interface EventItem { title: string; description?: string; photoId?: string }
 export interface EventFormat {
-  id: 'jogaydev' | 'meetups' | 'roles' | 'talks' | 'summit'
+  id: 'jogaydev' | 'meetups' | 'roles' | 'comitivas' | 'talks' | 'summit'
   title: string
   paragraphs: string[]
   label?: string
   flow?: string[]
   items: EventItem[]
 }
-export type CommitType = 'init' | 'feat' | 'play' | 'meet' | 'role' | 'lore' | 'refactor' | 'build' | 'launch'
+export type CommitType = 'init' | 'feat' | 'play' | 'meet' | 'role' | 'comitiva' | 'lore' | 'refactor' | 'build' | 'launch'
 export interface TimelineItem { date: string; type: CommitType; title: string; description?: string }
 export interface CommunitySpace { path: string; commands: string[]; label: string; description: string }
 export interface LoreProfile { name: string; filename: string; attributes: Record<string, string>; paragraphs: Paragraph[] }
