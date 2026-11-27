@@ -1,8 +1,8 @@
 # 00095 — Auditar e reconciliar automaticamente o estado do SDD
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/95
-Estado: rascunho — aprovação humana pendente.
-Risco proposto: High (automações com escrita no Project, fechamento de issues e impacto sobre gates humanos).
+Estado: spec e risco High aprovados; plano pendente de aprovação.
+Risco aprovado: High (automações com escrita no Project, fechamento de issues e impacto sobre gates humanos).
 Prioridade: Medium, conforme GitHub; sem blockers na consulta inicial.
 
 ## Problema e objetivo
@@ -65,4 +65,4 @@ O estado do Project pode divergir da etapa efetiva do SDD, inclusive após scrip
 
 ## Aprovação humana
 
-Pendente. Registrar aprovação explícita de um gdev com data e referência antes do plan. Nenhuma implementação autorizada nesta etapa.
+Spec e risco High aprovados explicitamente pelo gdev solicitante em 27/11/2026, resposta "aprova" à spec publicada em fb7b8c2. Plano requer aprovação separada antes de tasks e implementação.
