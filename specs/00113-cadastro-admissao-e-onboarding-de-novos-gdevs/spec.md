@@ -25,7 +25,7 @@ Oferecer uma porta de entrada pública para a comunidade GayDevs, com candidatur
    - Ler e aceitar termos básicos e regras do grupo principal SFW, primeiro grupo de ingresso.
    - Respeitar a restrição de conteúdo adulto e flerte ao único grupo NSFW, `/gdevs/off-topic-nsfw`, no contexto dos grupos.
    - Autorizar especificamente o tratamento de dados pessoais e sensíveis para análise e administração da candidatura/comunidade, e separadamente a consulta aos perfis externos informados.
-   - Disponibilizar aviso de privacidade antes da coleta do e-mail.
+   - Disponibilizar aviso breve e link à política pública antes da coleta do e-mail; exigir autorização específica de dados pessoais/sensíveis antes de solicitar OTP e registrar aceite vigente após prova de controle do e-mail. Exigir autorização de perfis antes da consulta. Na etapa final, agrupar os sete aceites persistidos em cinco checks curtos, com links ao conteúdo completo. Política pública /privacy no rodapé, controlador pessoa física identificável pelos canais de contato da administração, sem publicação do nome civil. Retenção proporcional sem exclusão automática e atendimento manual aos titulares. Não acrescentar captura automática de perfis nesta feature.
 9. Ao submeter, validar todos os dados e aceites; registrar a submissão e notificar o admin por e-mail com acesso à análise. A tela final informa que deve aguardar avaliação e convida a chamar o scrum master no WhatsApp.
 10. Em nova autenticação: candidatura incompleta retoma do ponto salvo; pendente exibe a mesma tela final sem reenviar notificação; recusada permite iniciar nova candidatura preservando o registro anterior; e-mail de membro existente é direcionado ao login, sem nova candidatura. Mensagens pré-OTP não devem revelar associação de terceiros à comunidade.
 
@@ -72,7 +72,7 @@ Dashboard/indicadores de funil; exclusão automática de candidaturas; edição 
 - REQ-004: Campos obrigatórios/opcionais, confirmação explícita da ausência de GitHub, interesse de colaboração registrado e origem obrigatória em texto livre com autocomplete.
 - REQ-005: Validação segura de formato/domínio nas três redes, disponibilidade automática no GitHub com distinção entre inexistência e resultado inconclusivo, e conferência manual de existência no LinkedIn e Instagram.
 - REQ-006: Contato do scrum master fornecido exclusivamente após verificação e links de redes sociais.
-- REQ-007: Termos e autorizações individuais, aviso de privacidade, versões e datas persistidas.
+- REQ-007: Termos e autorizações individuais, cinco checks resumidos com links a conteúdo integral, política pública no rodapé, consentimento específico antes de solicitar OTP e antes de consultar perfis; versões e datas persistidas.
 - REQ-008: Submissão idempotente, estado pending, notificação administrativa e tela final com WhatsApp.
 - REQ-009: Fila administrativa por submissão, consulta (incluindo origem da candidatura), observações e decisões exclusivas de admin.
 - REQ-010: Aprovação atômica com vínculo único applicant/user, recusa sem usuário e histórico preservado.
@@ -110,6 +110,10 @@ Dashboard/indicadores de funil; exclusão automática de candidaturas; edição 
 - Decisões para o plan: pesos exatos da barra e etapas, configuração dos limites e validade de OTP/sessões, persistência de aceites/eventos, validação externa e tratamento de falhas de notificação.
 - Questões a validar no gate de spec: texto final e finalidades do aviso de privacidade/consentimentos; forma de disponibilizar o onboarding ao membro aprovado (primeiro acesso e/ou revisita). Não presumir aprovação legal da retenção por prazo indeterminado.
 - A política de retenção e resposta a pedidos de titulares exige avaliação própria; exclusão automática está fora do escopo, sem afastar obrigações legais.
+
+## Ajuste aprovado de privacidade (T029)
+
+Em 2026-11-27, o gdev solicitante aprovou na conversa ChatGPT: política pública no rodapé; cinco checks resumidos e links para textos integrais; contato pela administração sem publicar nome civil (identidade do controlador acessível pelo atendimento); retenção justificada sem exclusão automática; procedimentos internos LGPD. Em seguida autorizou a execução com “prossiga”. Não equivale a parecer jurídico ou aprovação de release.
 
 ## Aprovação humana
 

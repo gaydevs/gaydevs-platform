@@ -9,7 +9,7 @@ export interface Fields {
   collaboration_interest: boolean | null; github_skip_confirmed: boolean
 }
 export interface Consent { consent_key: string; version: string; accepted_at: string }
-export interface Terms { version: string; privacy_notice: string; consents: {key: string; version: string; text: string}[] }
+export interface Terms { version: string; privacy_notice: string; privacy_sections?: {id:string; title:string; text:string}[]; consents: {key: string; version: string; text: string}[] }
 export interface Config { enabled: boolean; sitekey?: string; action?: string; cooldown?: number }
 export interface Session { status: Status; current_step?: Step | 'submitted'; revision?: number; fields?: Fields; whatsapp_url?: string; consents?: Consent[]; terms_version?: string; profile_checks?: Record<string, 'valid' | 'invalid' | 'inconclusive'> }
 export interface Summary { id: string; first_name: string; last_name: string; submitted_at: string; status: Status }
@@ -22,8 +22,8 @@ export async function getCandidate(): Promise<Session | null> {
   try { return await request<Session>('applications/session') }
   catch (e) { if (e instanceof ApiError && e.status === 401) return null; throw e }
 }
-export const issueCode = (email: string, token: string) => change<OtpRequest>('applications/otp', {email, turnstile_token: token})
-export const verifyCode = (id: string, code: string) => change<{status: Status | 'member'}>('applications/verify', {otp_request_id: id, code})
+export const issueCode = (email: string, token: string, version: string) => change<OtpRequest>('applications/otp', {email, turnstile_token: token, consents:{personal_data:version}})
+export const verifyCode = (id: string, code: string, version: string) => change<{status: Status | 'member'}>('applications/verify', {otp_request_id: id, code, consents:{personal_data:version}})
 export const saveStep = (step: Step, data: object) => change<Session>('applications/steps/' + step, data, 'PATCH')
 export const submitApplication = (revision: number) => change<Session>('applications/submit', {revision})
 export const exitCandidate = () => change<void>('applications/logout', {})

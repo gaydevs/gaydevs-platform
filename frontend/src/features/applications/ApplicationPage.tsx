@@ -64,18 +64,21 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
     } finally {setBusy(false)}
   }
   const requestCode = () => run(async () => {
-    try {setChallenge(await api.issueCode(email,token));setCode('');setUntil(Date.now()+(config?.cooldown ?? 60)*1000)}
+    try {setChallenge(await api.issueCode(email,token,accepts.personal_data ?? ''));setCode('');setUntil(Date.now()+(config?.cooldown ?? 60)*1000)}
     finally {setToken('');setWidgetKey(k=>k+1)}
   })
   const verify = () => run(async () => {
     if(!challenge)return
-    const result=await api.verifyCode(challenge.otp_request_id,code)
+    const result=await api.verifyCode(challenge.otp_request_id,code,accepts.personal_data ?? '')
     setCode('');setChallenge(null);setEmail('');setToken('')
     if(result.status==='member'){setMember(true);return}
     restore(await api.getCandidate());await onMemberRefresh()
   })
   const accepted = (key:string) => accepts[key]===terms?.version
-  const consent = (key:string, text:string) => <label className="application-check" key={key}><input type="checkbox" checked={accepted(key)} required onChange={e=>setAccepts(a=>({...a,[key]:e.target.checked ? terms!.version : ''}))}/><span>{text}</span></label>
+  const privacy = home.replace(/\/$/, '') + '/privacy'
+  const consent = (keys:string[], text:string, href?:string, linkText='ler detalhes') => <div key={keys.join(',')}><label className="application-check"><input type="checkbox" checked={keys.every(accepted)} required onChange={e=>setAccepts(a=>({...a,...Object.fromEntries(keys.map(key=>[key,e.target.checked ? terms!.version : '']))}))}/><span>{text}</span></label>{href && <a className="poll-inline-link" href={href} target="_blank" rel="noopener noreferrer">{linkText} ↗</a>}</div>
+  const privacyConsent = () => consent(['personal_data'],'Autorizo o tratamento dos meus dados pessoais e sensíveis.',privacy,'política de privacidade')
+  const profileConsent = () => consent(['external_profiles'],'Autorizo a consulta e coleta de dados públicos dos perfis informados.',privacy+'#perfis','consulta de perfis')
   const save = () => run(async () => {
     if(!session || !terms)return
     const revision=session.revision!
@@ -107,25 +110,26 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
     session?.status==='rejected' ? <><p>Você pode iniciar uma nova candidatura confirmando seu e-mail.</p><button className="action-link" onClick={()=>void run(async()=>{await api.exitCandidate();restore(null)})}>nova candidatura</button></> :
     session?.status==='pending' ? <p>Aguarde a avaliação da administração. Chame o scrum master pelo WhatsApp para conversar sobre seu ingresso.</p> :
     !config?.enabled || !terms ? <><p>Cadastro temporariamente indisponível.</p><button className="action-link action-link--secondary" onClick={()=>void run(reload)}>tentar novamente</button></> :
+    session?.status==='draft' && !session.consents?.some(c=>c.consent_key==='personal_data' && c.version===terms.version) ? <><p>Confirme novamente seu e-mail para aceitar a versão atual da política de privacidade.</p><button className="action-link" onClick={()=>void run(async()=>{await api.exitCandidate();restore(null);setChallenge(null);setToken('')})}>confirmar e-mail novamente</button></> :
     <form className="application-form" onSubmit={form}>
       <fieldset disabled={busy} className="application-fieldset">
       {!session ? <>
         {!challenge ? <><p>Uma comunidade para gays e devs: tecnologia, carreira, amizade e eventos no WhatsApp, na plataforma e no Instagram. <a href={home}>Conheça nossa proposta.</a></p>
-        <details open><summary>Aviso de privacidade</summary><p>{terms.privacy_notice}</p></details>
+        <p>{terms.privacy_notice}</p>{privacyConsent()}
         <label className="application-field">E-mail<FieldControl type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label></> :
         <><p>Enviamos um código para seu e-mail. Ele expira em 10 minutos.</p><label className="application-field">Código de confirmação<FieldControl required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))}/></label></>}
         {(!challenge || remaining===0) && config.sitekey && <Turnstile key={widgetKey} sitekey={config.sitekey} action={config.action??'application_otp'} onToken={setToken} onError={captchaError}/>}
         {challenge && <><button type="button" className="action-link action-link--secondary" disabled={remaining>0||!token} onClick={()=>void requestCode()}>{remaining>0?`reenviar em ${remaining}s`:'reenviar código'}</button><button type="button" className="application-text-button" onClick={()=>{setChallenge(null);setCode('');setToken('');setWidgetKey(k=>k+1)}}>alterar e-mail</button></>}
       </> : <>
         {step==='identification' && <>{input('first_name','Nome')}{input('last_name','Sobrenome')}{input('whatsapp','WhatsApp com DDD','tel')}</>}
-        {step==='profiles' && <>{social('linkedin','LinkedIn *',true)}{social('github','GitHub')}{!fields.github && <label className="application-check"><input type="checkbox" checked={confirmSkip} required onChange={e=>setConfirmSkip(e.target.checked)}/><span>O GitHub ajuda os gdevs a conhecer seus projetos. Confirmo que quero continuar sem ele.</span></label>}{social('instagram','Instagram')}{terms.consents.filter(c=>c.key==='external_profiles').map(c=>consent(c.key,c.text))}</>}
+        {step==='profiles' && <>{social('linkedin','LinkedIn *',true)}{social('github','GitHub')}{!fields.github && <label className="application-check"><input type="checkbox" checked={confirmSkip} required onChange={e=>setConfirmSkip(e.target.checked)}/><span>O GitHub ajuda os gdevs a conhecer seus projetos. Confirmo que quero continuar sem ele.</span></label>}{social('instagram','Instagram')}{profileConsent()}</>}
         {step==='origin' && <><label className="application-field">Como conheceu o gaydevs?<FieldControl required maxLength={255} value={fields.referral_source??''} onFocus={()=>setSuggestOpen(true)} onChange={e=>{update('referral_source',e.target.value);setSuggestOpen(true)}}/></label>{suggestOpen && <div className="application-suggestions" aria-label="sugestões de origem">{matchingSuggestions(fields.referral_source??'').map(s=><button type="button" key={s} onClick={()=>{update('referral_source',s);setSuggestOpen(false)}}>{s}</button>)}</div>}<p>Escolha uma sugestão ou escreva sua própria resposta.</p><fieldset className="application-fieldset"><legend>Quer colaborar com a plataforma?</legend>{[true,false].map(v=><label className="application-check" key={String(v)}><input required type="radio" name="collaboration" checked={fields.collaboration_interest===v} onChange={()=>update('collaboration_interest',v)}/>{v?'Sim':'Não'}</label>)}</fieldset></>}
-        {step==='terms' && <><p>Acompanhe a comunidade e o scrum master:</p><div className="application-actions">{[...publicLinks,...footer.authorLinks].map(l=><ActionLink key={l.href} link={l} secondary/>)}</div>{terms.consents.map(c=>consent(c.key,c.text))}</>}
+        {step==='terms' && <><p>Acompanhe a comunidade e o scrum master:</p><div className="application-actions">{[...publicLinks,...footer.authorLinks].map(l=><ActionLink key={l.href} link={l} secondary/>)}</div>{consent(['gay_dev'],'Sou gay e trabalho ou estudo desenvolvimento de software.')}{consent(['community','values'],'Conheço a proposta e os valores da comunidade.',privacy+'#comunidade','sobre a comunidade')}{consent(['sfw','nsfw'],'Aceito as regras dos grupos SFW e NSFW.',privacy+'#convivencia','regras de convivência')}{privacyConsent()}{profileConsent()}</>}
         {step==='ready' && <p>Revise os dados se necessário. Ao enviar, sua candidatura ficará disponível para avaliação da administração.</p>}
       </>}
       <div className="application-actions">
         {session && steps.indexOf(step)>0 && <button type="button" className="action-link action-link--secondary" onClick={()=>{setFieldErrors({});setError('');setStep(steps[steps.indexOf(step)-1])}}>voltar</button>}
-        <button className="action-link" type="submit" disabled={busy||(!session&&!challenge&&!token)||(!session&&Boolean(challenge)&&code.length!==6)}>{busy?'aguarde…':session?step==='ready'?'enviar candidatura':'continuar':challenge?'confirmar código':'enviar código'}</button>
+        <button className="action-link" type="submit" disabled={busy||(!session&&!challenge&&(!token||!accepted('personal_data')))||(!session&&Boolean(challenge)&&code.length!==6)}>{busy?'aguarde…':session?step==='ready'?'enviar candidatura':'continuar':challenge?'confirmar código':'enviar código'}</button>
       </div></fieldset>
     </form>}
     {session?.whatsapp_url && ['draft','pending'].includes(session.status) && <ActionLink link={{label:'falar com o scrum master',href:session.whatsapp_url}} secondary/>}

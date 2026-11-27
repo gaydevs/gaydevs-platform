@@ -10,7 +10,7 @@ class ApplicationTerms
     // Only a human-reviewed release may replace the draft and set this to true.
     public const FINALIZED = false;
 
-    public const VERSION = '2026-11-27-draft-1';
+    public const VERSION = '2026-11-27-draft-2';
 
     public function texts(): array
     {
@@ -20,8 +20,8 @@ class ApplicationTerms
             'values' => 'Compreendo o caráter progressista, de esquerda, inclusivo e seguro da comunidade, sem declaração de preferência partidária.',
             'sfw' => 'Li e aceito as regras básicas do grupo principal SFW, primeiro grupo de ingresso: respeito, convivência e ausência de conteúdo adulto ou flerte.',
             'nsfw' => 'Respeitarei a restrição de conteúdo adulto e flerte ao único grupo NSFW, /gdevs/off-topic-nsfw.',
-            'personal_data' => 'Autorizo especificamente o tratamento dos dados pessoais e sensíveis informados para análise da candidatura e administração da comunidade.',
-            'external_profiles' => 'Autorizo a consulta limitada aos perfis externos que informei para validar os links e analisar minha candidatura.',
+            'personal_data' => 'Autorizo o tratamento dos meus dados pessoais e sensíveis, inclusive a informação sobre orientação sexual, para analisar minha candidatura, administrar a comunidade e conhecer o perfil dos integrantes, conforme o aviso de privacidade.',
+            'external_profiles' => 'Autorizo a consulta e a coleta de dados públicos dos perfis informados para validar os links, analisar minha candidatura e compor o perfil da comunidade.',
         ];
     }
 
@@ -29,7 +29,15 @@ class ApplicationTerms
     {
         return [
             'version' => self::VERSION,
-            'privacy_notice' => 'Minuta para validação do responsável: GayDevs trata e-mail, identificação, contatos, perfis, origem, interesse de colaboração, aceites e decisões para analisar candidaturas e administrar a comunidade. O acesso é restrito à administração autorizada; serviços de e-mail, antispam e plataformas dos perfis participam das operações necessárias. O histórico é preservado sem exclusão automática; a retenção deverá observar a finalidade e os direitos dos titulares. Para exercer seus direitos ou esclarecer dúvidas, utilize o canal de privacidade divulgado pela comunidade antes da ativação do cadastro.',
+            'privacy_notice' => 'Usamos seus dados pessoais e sensíveis para analisar a candidatura, administrar a comunidade e conhecer o perfil dos integrantes. Consulte a política de privacidade e fale com a administração pelos contatos do rodapé.',
+            'privacy_sections' => [
+                ['id' => 'responsavel', 'title' => 'Responsável e contato', 'text' => 'A pessoa física responsável pela administração do GayDevs é a controladora dos dados. Sua identificação e o atendimento aos titulares estão disponíveis pelos canais de contato da administração no rodapé de todas as páginas.'],
+                ['id' => 'dados', 'title' => 'Dados e finalidades', 'text' => 'Tratamos e-mail, nome, WhatsApp, links de perfis, origem da candidatura, interesse em colaboração, aceites, etapas e decisões para cadastro, admissão e administração da comunidade. A participação pode revelar orientação sexual, um dado sensível. Usamos consentimento específico para os dados da candidatura; registros de autenticação, cookies necessários, IP e controles antispam servem à segurança, à prevenção de fraude e ao funcionamento da plataforma. Não publicamos dados de candidatos.'],
+                ['id' => 'perfis', 'title' => 'Perfis externos', 'text' => 'Com sua autorização, consultamos os perfis públicos informados para validar links e analisar candidaturas; GitHub via API oficial, LinkedIn e Instagram por conferência manual. A composição do perfil da comunidade usa informações necessárias a essa finalidade, preferencialmente agregadas. Não coletamos perfis privados nem fazemos captura automatizada de LinkedIn ou Instagram.'],
+                ['id' => 'compartilhamento', 'title' => 'Acesso e compartilhamento', 'text' => 'Os dados cadastrais são acessíveis à administração autorizada. Hospedagem, e-mail e proteção antispam processam os dados necessários à operação; a validação do GitHub consulta o identificador informado. Esses serviços podem envolver tratamento fora do Brasil. Não comercializamos dados pessoais nem publicamos candidaturas.'],
+                ['id' => 'retencao', 'title' => 'Retenção e segurança', 'text' => 'Preservamos registros enquanto necessários às finalidades informadas, ao histórico e à prevenção de fraudes e abusos, com fundamento legal aplicável e acesso restrito. Não há exclusão automática. Quando a conservação deixar de ser justificada, avaliamos eliminação ou anonimização, inclusive por solicitação.'],
+                ['id' => 'direitos', 'title' => 'Seus direitos', 'text' => 'Você pode solicitar gratuitamente confirmação e acesso, correção, anonimização, bloqueio ou eliminação quando cabível, informação sobre compartilhamento, portabilidade conforme regulamentação, revisão de decisões automatizadas quando aplicável, revogação do consentimento e informações sobre suas consequências. A recusa ou revogação dos aceites necessários pode impedir a candidatura ou a continuidade da participação. Você também pode peticionar à ANPD. Contate a administração pelos links do rodapé.'],
+            ],
             'consents' => collect($this->texts())->map(fn ($text, $key) => ['key' => $key, 'version' => self::VERSION, 'text' => $text])->values()->all(),
         ];
     }

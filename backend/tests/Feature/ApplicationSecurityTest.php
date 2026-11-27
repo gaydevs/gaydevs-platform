@@ -34,6 +34,7 @@ beforeEach(function () {
 
 test('candidate write requires valid CSRF token when framework protection is active', function () {
     $candidate = Applicant::factory()->draft()->create();
+    app(ApplicationTerms::class)->record($candidate, ['personal_data']);
     $this->withCookie(ApplicantSessions::COOKIE, app(ApplicantSessions::class)->issue($candidate));
     $payload = ['revision' => $candidate->revision, 'first_name' => 'Test', 'last_name' => 'Candidate', 'whatsapp' => '+12025550123'];
     $this->patchJson('/applications/steps/identification', $payload)->assertStatus(419);

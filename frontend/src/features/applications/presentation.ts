@@ -14,7 +14,7 @@ export function handleValue(network: keyof typeof prefixes, value: string): stri
 }
 export const emptyFields: Fields = {email:'', first_name:null, last_name:null, whatsapp:null, linkedin:null, github:null, instagram:null, referral_source:null, collaboration_interest:null, github_skip_confirmed:false}
 export function platformRoute(path: string) {
-  const base = path.match(/^(.*?)(?:\/polls(?:\/|$)|\/apply\/?$|\/admin\/applications(?:\/|$)|\/onboarding\/?$)/)?.[1] ?? path.replace(/\/$/, '')
+  const base = path.match(/^(.*?)(?:\/polls(?:\/|$)|\/apply\/?$|\/admin\/applications(?:\/|$)|\/onboarding\/?$|\/privacy\/?$)/)?.[1] ?? path.replace(/\/$/, '')
   const relative = path.slice(base.length).replace(/^\/|\/$/g, '')
   return {base, relative, path: (segment: string) => (base || '') + '/' + segment}
 }

@@ -50,3 +50,13 @@ test('first authentication of admitted member opens onboarding',async()=>{
   expect(window.location.pathname).toBe('/gaydevs/platform/onboarding')
   await waitFor(()=>expect(api.markOnboardingSeen).toHaveBeenCalled())
 })
+
+test('privacy deep link is public even for a member with onboarding pending',async()=>{
+  window.history.replaceState(null,'','/gaydevs/platform/privacy')
+  vi.mocked(useAuth).mockReturnValue({user:{id:'member',name:'New',member_type:'member',onboarding_eligible:true,onboarding_required:true},restoring:false,refresh:vi.fn(),logout:vi.fn()})
+  vi.mocked(api.getTerms).mockResolvedValue({version:'v1',privacy_notice:'Aviso',privacy_sections:[{id:'direitos',title:'Seus direitos',text:'Contate a administração.'}],consents:[]})
+  render(<App/>)
+  expect(await screen.findByRole('heading',{name:'Seus direitos'})).toBeVisible()
+  expect(screen.getByRole('link',{name:'Privacidade'})).toHaveAttribute('href','/gaydevs/platform/privacy')
+  expect(window.location.pathname).toBe('/gaydevs/platform/privacy')
+})

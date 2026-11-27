@@ -102,6 +102,8 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 - T015 concluída: ajuste de REQ-005 e plan aprovado pelo gdev solicitante em 2026-11-27 (conversa ChatGPT: “ok, pode seguir sua decisao”). Validação de existência automática somente GitHub; LinkedIn/Instagram sintaxe/domínio e conferência manual. Implementação e testes existentes já atendem ao escopo ajustado. Sem alteração de código; pendências atuais T029/T032.
 
+- T029 (implementação validada localmente): escopo e decisões aprovados pelo gdev solicitante em 2026-11-27; política pública /privacy, link permanente no rodapé, cinco checks resumidos (sete chaves persistidas), consentimento antes de solicitar OTP e registro após prova de e-mail; bloqueio de gravação sem aceite vigente; procedimentos em docs/privacy-operations.md. Testes focados no Survivor: backend 31 pass / 232 assertions; frontend 11 pass / 2 arquivos; lint, typecheck, Pint dos arquivos alterados e build aprovados. Gate FINALIZED permanece false até revisão dos textos e validação operacional, sem ativar cadastro. T029 segue aberta para esses gates.
+
 ## Limites
 
 Sem dashboard, exclusão automática de candidaturas, edição cadastral administrativa ou automação de inclusão WhatsApp/gdevs-team. Aprovação de conteúdo final de privacidade, review e release continuam humanas. Não gerar issues automaticamente a partir destas tasks.

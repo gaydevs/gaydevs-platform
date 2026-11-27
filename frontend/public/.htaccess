@@ -13,7 +13,7 @@
     RewriteRule ^ - [L]
 
     # Candidate and administrative routes have no social preview.
-    RewriteRule ^(?:apply|onboarding|admin/applications)(?:/.*)?$ index.html [L]
+    RewriteRule ^(?:apply|onboarding|admin/applications|privacy)(?:/.*)?$ index.html [L]
 
     # Do not propagate an optional trailing slash to the backend preview path.
     RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot) [NC]

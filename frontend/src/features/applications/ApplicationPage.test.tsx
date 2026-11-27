@@ -10,7 +10,7 @@ import type { Session } from './api'
 vi.mock('./api',()=>({getConfig:vi.fn(),getTerms:vi.fn(),getCandidate:vi.fn(),issueCode:vi.fn(),verifyCode:vi.fn(),saveStep:vi.fn(),submitApplication:vi.fn(),exitCandidate:vi.fn()}))
 vi.mock('./Turnstile',()=>({Turnstile:({onToken}:{onToken:(v:string)=>void})=><button type="button" onClick={()=>onToken('test-token')}>validar antispam</button>}))
 const terms={version:'v1',privacy_notice:'Aviso de teste',consents:['gay_dev','community','values','sfw','nsfw','personal_data','external_profiles'].map(key=>({key,version:'v1',text:key}))}
-const draft:Session={status:'draft',current_step:'identification',revision:1,fields:{...emptyFields,email:'test@example.test'},whatsapp_url:'https://wa.me/5511999999999',consents:[]}
+const draft:Session={status:'draft',current_step:'identification',revision:1,fields:{...emptyFields,email:'test@example.test'},whatsapp_url:'https://wa.me/5511999999999',consents:[{consent_key:'personal_data',version:'v1',accepted_at:'2026-11-27T00:00:00Z'}]}
 beforeEach(()=>{
   vi.mocked(api.getConfig).mockResolvedValue({enabled:true,sitekey:'test',cooldown:60})
   vi.mocked(api.getTerms).mockResolvedValue(terms)
@@ -37,9 +37,11 @@ test('public wizard shows privacy before email and requires antispam, then resto
   await ui.type(screen.getByLabelText('E-mail'),'test@example.test')
   expect(screen.getByRole('button',{name:'enviar código'})).toBeDisabled()
   await ui.click(screen.getByRole('button',{name:'validar antispam'}))
+  expect(screen.getByRole('button',{name:'enviar código'})).toBeDisabled()
+  await ui.click(screen.getByLabelText('Autorizo o tratamento dos meus dados pessoais e sensíveis.'))
   await ui.click(screen.getByRole('button',{name:'enviar código'}))
   expect(await screen.findByText('20%')).toBeVisible()
-  expect(api.issueCode).toHaveBeenCalledWith('test@example.test','test-token')
+  expect(api.issueCode).toHaveBeenCalledWith('test@example.test','test-token','v1')
   vi.mocked(api.getCandidate).mockResolvedValue(draft)
   await ui.type(screen.getByLabelText('Código de confirmação'),'123456')
   await ui.click(screen.getByRole('button',{name:'confirmar código'}))
@@ -56,9 +58,9 @@ test('restores profiles and stores pasted handle with independent authorization 
   await ui.paste('https://www.linkedin.com/in/example/')
   expect(linkedin).toHaveValue('example')
   await ui.click(screen.getByLabelText(/Confirmo que quero continuar sem ele/))
-  await ui.click(screen.getByLabelText('external_profiles'))
+  await ui.click(screen.getByLabelText('Autorizo a consulta e coleta de dados públicos dos perfis informados.'))
   await ui.click(screen.getByRole('button',{name:'continuar'}))
-  await waitFor(()=>expect(api.saveStep).toHaveBeenCalledWith('profiles',expect.objectContaining({linkedin:'example',github_skip_confirmed:true,consents:{external_profiles:'v1'}})))
+  await waitFor(()=>expect(api.saveStep).toHaveBeenCalledWith('profiles',expect.objectContaining({linkedin:'example',github_skip_confirmed:true,consents:{personal_data:'v1',external_profiles:'v1'}})))
   expect(await screen.findByText('75%')).toBeVisible()
 })
 test('origin allows custom text and matches any word in suggestions',async()=>{
@@ -90,10 +92,12 @@ test('requires each consent independently and submits from the saved ready step'
   vi.mocked(api.submitApplication).mockResolvedValue({...draft,status:'pending',current_step:'submitted',revision:6})
   page()
   await screen.findByRole('heading',{name:'nossos combinados'})
-  for(const c of terms.consents) expect(screen.getByLabelText(c.key)).not.toBeChecked()
+  const checks=screen.getAllByRole('checkbox')
+  expect(checks).toHaveLength(5)
+  expect(screen.getByLabelText('Autorizo o tratamento dos meus dados pessoais e sensíveis.')).toBeChecked()
   await ui.click(screen.getByRole('button',{name:'continuar'}))
   expect(api.saveStep).not.toHaveBeenCalled()
-  for(const c of terms.consents) await ui.click(screen.getByLabelText(c.key))
+  for(const check of checks) if(!(check as HTMLInputElement).checked) await ui.click(check)
   await ui.click(screen.getByRole('button',{name:'continuar'}))
   await screen.findByRole('heading',{name:'tudo pronto?'})
   expect(api.saveStep).toHaveBeenCalledWith('terms',{revision:4,consents:Object.fromEntries(terms.consents.map(c=>[c.key,'v1']))})

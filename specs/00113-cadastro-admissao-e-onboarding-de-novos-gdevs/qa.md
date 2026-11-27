@@ -44,3 +44,8 @@ Revisão de implementação, não aprovação humana. Evidência automatizada em
 | 19 | Eventos e aceites preservados (ApplicantFoundation/Lifecycle/Workflow) | Testado |
 
 Smoke automatizado Chromium 390x844 e 1366x900 com API simulada: seis telas por resolução, sem overflow horizontal ou erros JS. CI do código 42fb0a8: [execução verde](https://github.com/gaydevs/gaydevs-platform/actions/runs/46012469208); upgrades e concorrência aprovados em SQLite e MySQL. QA final ainda precisa de inspeção visual humana, integração HTTPS, deep links, cookies/CSRF reais, Turnstile com chaves de teste e mail fake, aprovação/login/onboarding ponta a ponta e compatibilidade do host. Não utilizar dados reais. Ver docs/applications-operations.md.
+
+## T029 — ajuste de privacidade
+
+- Testar acesso direto a /privacy e link no rodapé (inclusive usuário com onboarding pendente), aceite antes do OTP, recusa de versão obsoleta, ausência de gravação de dados sem aceite vigente, cinco checks que enviam sete chaves e links para as seções.
+- Verificar manualmente canal efetivo, identificação do controlador via atendimento, fornecedores/transferência internacional, configuração e textos finais antes de release. T032 mantém QA integrado.

@@ -22,13 +22,16 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ApplicationAuthController extends Controller
 {
-    public function issue(Request $request, ApplicationOtp $otp, ApplicationRateLimiter $limits): Response
+    public function issue(Request $request, ApplicationOtp $otp, ApplicationRateLimiter $limits, ApplicationTerms $terms, ApplicationAvailability $availability): Response
     {
         $limits->request($request->ip());
+        $availability->ensure();
         $data = $request->validate([
             'email' => ['required', 'string', 'max:255', 'email:rfc'],
             'turnstile_token' => ['required', 'string', 'max:2048'],
+            'consents' => ['required', 'array'],
         ]);
+        $terms->validateAcceptance($data['consents'], ['personal_data']);
         $challenge = $otp->issue($data['email'], $data['turnstile_token'], $request->ip(), $this->observation($request));
 
         return response()->json([
@@ -37,7 +40,7 @@ class ApplicationAuthController extends Controller
         ], 202);
     }
 
-    public function verify(Request $request, ApplicationOtp $otp, ApplicationRateLimiter $limits, ApplicantSessions $sessions, AuthenticatedSessionManager $members): Response
+    public function verify(Request $request, ApplicationOtp $otp, ApplicationRateLimiter $limits, ApplicantSessions $sessions, AuthenticatedSessionManager $members, ApplicationTerms $terms): Response
     {
         $limits->verify($request->ip());
         if ($request->bearerToken() !== null) {
@@ -46,11 +49,16 @@ class ApplicationAuthController extends Controller
         $data = $request->validate([
             'otp_request_id' => ['required', 'uuid'],
             'code' => ['required', 'digits:'.config('passwordless.otp.digits')],
+            'consents' => ['required', 'array'],
         ]);
 
+        $terms->validateAcceptance($data['consents'], ['personal_data']);
         $token = null;
         $subject = $otp->verify($data['otp_request_id'], (string) $data['code'], $request->ip(), $this->observation($request),
-            function (Applicant|User $subject) use ($sessions, &$token): void {
+            function (Applicant|User $subject) use ($sessions, $terms, &$token): void {
+                if ($subject instanceof Applicant && $subject->status === ApplicantStatus::Draft) {
+                    $terms->record($subject, ['personal_data']);
+                }
                 $token = $subject instanceof Applicant ? $sessions->issue($subject) : null;
             });
         if ($subject === null) {

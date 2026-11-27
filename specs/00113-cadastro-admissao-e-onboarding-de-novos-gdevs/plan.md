@@ -4,6 +4,10 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/113 · Spec: [spec.md]
 Aprovação da spec: gdev solicitante, 2026-11-27, conversa ChatGPT (três blocos, 14 requisitos e complemento de origem); commit f8312ee.
 Estado: aprovado — 2026-11-27 (gdev solicitante). High Risk, SDD normal.
 
+## Ajuste T029 — aprovado em 2026-11-27
+
+Reutilizar GET /applications/terms como fonte versionada do aviso, política e regras; publicar rota React /privacy com link permanente no Footer e âncoras para os textos, sem exigir login ou habilitação de candidaturas. Manter as sete chaves de consentimento no banco, agrupar community/values e sfw/nsfw no frontend para cinco checks, abrir documentos em nova aba para preservar o wizard. Exigir versão atual de personal_data em issue/verify OTP, registrar após OTP válido na mesma transação da autenticação e bloquear gravações de draft sem aceite atual (exceto reaceite explícito na etapa de termos); draft antigo reautentica. Manter consentimento de external_profiles separado antes da consulta. Sem migration, sem coleta automática adicional. Versionar novo conteúdo, manter FINALIZED=false até validação humana/operacional do texto e release. Registrar procedimentos internos em docs/privacy-operations.md. Testar ausência de consentimento, versões antigas, link público, restauração e agrupamento.
+
 ## Abordagem
 
 Manter a aplicação Laravel 13/Sanctum e React/TypeScript existentes, sem novo framework, serviço ou biblioteca de UI. Reutilizar componentes, estilos, transporte de e-mail, visitor observations e proteção CSRF existentes. Separar candidatura, admissão e onboarding em módulos, dentro da mesma feature.

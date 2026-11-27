@@ -24,6 +24,7 @@ import { PollAuditDialog, PollErrorDialog, PollsPage, PollsSectionBar } from './
 import type { Poll } from './features/pollsApi'
 import { ApplicationPage } from './features/applications/ApplicationPage'
 import { AdminApplications } from './features/applications/AdminApplications'
+import { PrivacyPage } from './features/applications/PrivacyPage'
 import { OnboardingPage } from './features/applications/OnboardingPage'
 import { getConfig } from './features/applications/api'
 import { platformRoute } from './features/applications/presentation'
@@ -75,7 +76,8 @@ export default function App() {
   const isApply = route.relative === 'apply'
   const isAdmin = /^admin\/applications(?:\/[^/]+)?$/.test(route.relative)
   const isOnboarding = route.relative === 'onboarding'
-  const isLandingPage = !isPollsSection && !isApply && !isAdmin && !isOnboarding
+  const isPrivacy = route.relative === 'privacy'
+  const isLandingPage = !isPrivacy && !isPollsSection && !isApply && !isAdmin && !isOnboarding
   const [applicationsEnabled, setApplicationsEnabled] = useState(false)
   useEffect(() => {
     if (!isLandingPage) return
@@ -86,13 +88,14 @@ export default function App() {
   const onboardingShown = useRef<string | null>(null)
   useEffect(() => {
     if (!auth.user) { onboardingShown.current = null; return }
+    if (isPrivacy) return
     if (!auth.user.onboarding_required || onboardingShown.current === auth.user.id) return
     onboardingShown.current = auth.user.id
     if (!isOnboarding) {
       window.history.replaceState(null, '', route.base + '/onboarding')
       window.dispatchEvent(new PopStateEvent('popstate'))
     }
-  }, [auth.user, isOnboarding, route.base])
+  }, [auth.user, isOnboarding, isPrivacy, route.base])
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
   const homePath = pollsPath.slice(0, -pollsMarker.length) || '/'
@@ -126,7 +129,7 @@ export default function App() {
     <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={auth.logout} onNavigate={navigate} />
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
     <main id="conteudo">
-      {isApply ? <ApplicationPage home={route.base || '/'} onLogin={login.open} onMemberRefresh={refreshAuth} /> :
+      {isPrivacy ? <PrivacyPage home={route.base || '/'} /> : isApply ? <ApplicationPage home={route.base || '/'} onLogin={login.open} onMemberRefresh={refreshAuth} /> :
       isAdmin ? <AdminApplications key={pathname} id={route.relative.split('/')[2]} user={auth.user} restoring={auth.restoring} base={route.path('admin/applications')} onNavigate={navigate} onLogin={login.open} /> :
       isOnboarding ? <OnboardingPage user={auth.user} restoring={auth.restoring} onLogin={login.open} onDone={async () => { await refreshAuth(); navigate(route.path('polls')) }} /> :
       pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
@@ -141,7 +144,7 @@ export default function App() {
       <FinalCta content={finalCta} links={applicationsEnabled ? [{label: 'quero ser um gdev', href: route.path('apply')}, ...publicLinks] : publicLinks} />
       </>}
     </main>
-    <Footer content={footer} developerLinks={developerLinks} />
+    <Footer content={footer} developerLinks={developerLinks} privacyHref={route.path('privacy')} />
     {/* Montar só quando aberto garante estado novo a cada reabertura. */}
     {loginStep && <LoginDialog step={loginStep} onStepChange={showLoginStep} onClose={closeLogin} onAuthenticated={handleLoginAuthenticated} />}
     {auditPoll && auth.user && <PollAuditDialog key={auditPoll.slug} poll={auditPoll} onClose={() => setAuditPoll(null)} />}

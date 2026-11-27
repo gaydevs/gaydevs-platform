@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\VisitorObservation;
 use App\Services\ApplicantSessions;
 use App\Services\ApplicationRateLimiter;
+use App\Services\ApplicationTerms;
 use App\Services\EmailRateLimiter;
 use App\Services\EmailSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,21 +42,21 @@ beforeEach(function () {
 
 function requestApplicationCode($test, string $email): array
 {
-    $response = $test->postJson('/applications/otp', ['email' => $email, 'turnstile_token' => 'test-token'])->assertAccepted();
+    $response = $test->postJson('/applications/otp', ['email' => $email, 'turnstile_token' => 'test-token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertAccepted();
 
     return [$response->json('otp_request_id'), Mail::sent(ApplicationOtpMail::class)->last()->code];
 }
 
 function verifyApplicationCode($test, array $challenge)
 {
-    return $test->postJson('/applications/verify', ['otp_request_id' => $challenge[0], 'code' => $challenge[1]]);
+    return $test->postJson('/applications/verify', ['otp_request_id' => $challenge[0], 'code' => $challenge[1], 'consents' => ['personal_data' => ApplicationTerms::VERSION]]);
 }
 
 test('disabled or misconfigured registration fails closed and never sends mail', function () {
     config(['applications.enabled' => false]);
-    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token'])->assertServiceUnavailable();
+    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertServiceUnavailable();
     config(['applications.enabled' => true, 'applications.whatsapp' => null]);
-    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token'])->assertServiceUnavailable();
+    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertServiceUnavailable();
     expect(Applicant::count())->toBe(0);
     Mail::assertNothingSent();
     Http::assertNothingSent();
@@ -63,7 +64,7 @@ test('disabled or misconfigured registration fails closed and never sends mail',
 
 test('turnstile rejects invalid action hostname and failures before creating records', function () {
     config(['applications.turnstile.hostname' => 'wrong.test']);
-    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token'])->assertUnprocessable();
+    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertUnprocessable();
     expect(Applicant::count())->toBe(0)->and(OtpRequest::count())->toBe(0);
     Mail::assertNothingSent();
 });
@@ -131,15 +132,15 @@ test('rate limiter counts invalid inputs and turnstile requests before validatio
     config(['applications.limits.ip_hour' => 2]);
     $this->postJson('/applications/otp', [])->assertUnprocessable();
     $this->postJson('/applications/otp', [])->assertUnprocessable();
-    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token'])->assertTooManyRequests();
+    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertTooManyRequests();
     Mail::assertNothingSent();
 });
 
 test('email cooldown and shared mail budget prevent extra sends', function () {
     config(['applications.limits.mail_day' => 1]);
     requestApplicationCode($this, 'a@example.test');
-    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token'])->assertTooManyRequests();
-    $this->postJson('/applications/otp', ['email' => 'b@example.test', 'turnstile_token' => 'token'])->assertTooManyRequests();
+    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertTooManyRequests();
+    $this->postJson('/applications/otp', ['email' => 'b@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertTooManyRequests();
     Mail::assertSentCount(1);
     expect(Applicant::count())->toBe(1);
 });
@@ -188,7 +189,7 @@ test('candidate session ignores caller supplied id and redacts private visitor h
 
 test('stateless requests cannot issue OTP or retrieve candidate session', function () {
     $this->withHeaders(['Origin' => 'https://untrusted.example', 'Referer' => 'https://untrusted.example/']);
-    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token'])->assertUnauthorized();
+    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertUnauthorized();
     $this->getJson('/applications/session')->assertUnauthorized();
     Mail::assertNothingSent();
 });
@@ -236,7 +237,7 @@ test('failed application email consumes both budgets and leaves capacity for mem
     $sender = Mockery::mock(EmailSender::class);
     $sender->shouldReceive('sendReserved')->once()->andThrow(new RuntimeException('simulated transport failure'));
     app()->instance(EmailSender::class, $sender);
-    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token'])->assertServiceUnavailable();
+    $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertServiceUnavailable();
     expect(RateLimiter::attempts(EmailRateLimiter::HOURLY_KEY))->toBe(1);
     app(ApplicationRateLimiter::class)->mail();
     expect(fn () => app(ApplicationRateLimiter::class)->mail())->toThrow(RateLimitExceededException::class);
@@ -246,11 +247,23 @@ test('failed application email consumes both budgets and leaves capacity for mem
 
 test('turnstile rejects action mismatch and limits repeated invalid challenges', function () {
     config(['applications.turnstile.action' => 'wrong_action', 'applications.limits.ip_hour' => 2]);
-    $payload = ['email' => 'a@example.test', 'turnstile_token' => 'token'];
+    $payload = ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]];
     $this->postJson('/applications/otp', $payload)->assertUnprocessable();
     $this->postJson('/applications/otp', $payload)->assertUnprocessable();
     $this->postJson('/applications/otp', $payload)->assertTooManyRequests();
     Http::assertSentCount(2);
     Mail::assertNothingSent();
     expect(Applicant::count())->toBe(0);
+});
+
+test('current privacy acceptance is required before issuing OTP and recorded after proof', function () {
+    $this->postJson('/applications/otp', ['email' => 'privacy@example.test', 'turnstile_token' => 'token'])->assertUnprocessable();
+    $this->postJson('/applications/otp', ['email' => 'privacy@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => 'obsolete']])->assertUnprocessable();
+    expect(Applicant::count())->toBe(0)->and(OtpRequest::count())->toBe(0);
+    Http::assertNothingSent();
+    Mail::assertNothingSent();
+    $challenge = requestApplicationCode($this, 'privacy@example.test');
+    $this->postJson('/applications/verify', ['otp_request_id' => $challenge[0], 'code' => $challenge[1]])->assertUnprocessable();
+    verifyApplicationCode($this, $challenge)->assertOk();
+    expect(Applicant::sole()->consents()->where('consent_key', 'personal_data')->where('version', ApplicationTerms::VERSION)->exists())->toBeTrue();
 });

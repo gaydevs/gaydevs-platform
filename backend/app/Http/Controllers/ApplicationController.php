@@ -61,6 +61,9 @@ class ApplicationController extends Controller
             throw ValidationException::withMessages(['consents' => 'Informe os aceites.']);
         }
         $this->ensureStep($applicant, $index, $revision);
+        if ($step !== 'terms' && ! $applicant->consents()->where('consent_key', 'personal_data')->where('version', ApplicationTerms::VERSION)->exists()) {
+            throw ValidationException::withMessages(['consents' => 'Confirme o aviso de privacidade antes de continuar.']);
+        }
         $values = match ($step) {
             'identification' => $this->data->identification($request->only(['first_name', 'last_name', 'whatsapp'])),
             'profiles' => $this->data->profiles($request->only(['linkedin', 'github', 'instagram', 'github_skip_confirmed'])),

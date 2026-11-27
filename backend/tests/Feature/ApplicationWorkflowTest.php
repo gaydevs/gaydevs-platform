@@ -36,6 +36,7 @@ beforeEach(function () {
 function workflowCandidate($test): Applicant
 {
     $a = Applicant::factory()->draft()->create();
+    app(ApplicationTerms::class)->record($a, ['personal_data']);
     $test->withCookie(ApplicantSessions::COOKIE, app(ApplicantSessions::class)->issue($a));
 
     return $a;
@@ -176,4 +177,11 @@ test('outbox defers pre-send failure and never repeats ambiguous delivery', func
     expect($worker->process())->toBe(0)->and($worker->process())->toBe(0);
     expect(DB::table('application_notifications')->where('applicant_id', $a->id)->value('status'))->toBe('unknown')
         ->and($a->refresh()->status)->toBe(ApplicantStatus::Pending);
+});
+
+test('draft without current privacy acceptance cannot write personal data', function () {
+    $a = Applicant::factory()->draft()->create();
+    $this->withCookie(ApplicantSessions::COOKIE, app(ApplicantSessions::class)->issue($a));
+    $this->patchJson('/applications/steps/identification', ['revision' => $a->revision, 'first_name' => 'Test', 'last_name' => 'Candidate', 'whatsapp' => '+12025550123'])->assertUnprocessable();
+    expect($a->refresh()->first_name)->toBeNull();
 });
