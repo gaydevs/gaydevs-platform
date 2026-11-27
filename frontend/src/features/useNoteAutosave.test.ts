@@ -245,3 +245,96 @@ test('a failed response after reverting to the confirmed content keeps persisten
   window.dispatchEvent(confirmed)
   expect(confirmed.defaultPrevented).toBe(false)
 })
+
+test('failed ignored logout restores autosave and preserves edits made during logout', async () => {
+  let finishOld!: (value: MemberNote) => void
+  let failLogout!: (error: Error) => void
+  vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve }))
+    .mockResolvedValueOnce(response('latest'))
+    .mockResolvedValueOnce(response('after'))
+  let guard: LeaveGuard | undefined
+  const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'A', register))
+  const logout = vi.fn(() => new Promise<void>((_resolve, reject) => { failLogout = reject }))
+  act(() => result.current.change('B'))
+  act(() => { expect(guard?.(logout)).toBe(true) })
+  const signal = vi.mocked(saveMemberNote).mock.calls[0][3]
+  act(() => result.current.ignoreLeave())
+  expect(logout).toHaveBeenCalledOnce()
+  expect(signal?.aborted).toBe(true)
+  act(() => result.current.change('latest'))
+  await act(async () => vi.advanceTimersByTimeAsync(2000))
+  expect(saveMemberNote).toHaveBeenCalledOnce()
+  await act(async () => failLogout(new Error('Logout failed')))
+  expect(result.current.status).toBe('pending')
+  const unload = new Event('beforeunload', { cancelable: true })
+  window.dispatchEvent(unload)
+  expect(unload.defaultPrevented).toBe(true)
+  await act(async () => finishOld(response('B')))
+  await act(async () => vi.advanceTimersByTimeAsync(700))
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'latest', expect.any(AbortSignal))
+  expect(result.current.status).toBe('saved')
+  act(() => result.current.change('after'))
+  const proceed = vi.fn()
+  await act(async () => { expect(guard?.(proceed)).toBe(true) })
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'after', expect.any(AbortSignal))
+  expect(proceed).toHaveBeenCalledOnce()
+  expect(logout).toHaveBeenCalledOnce()
+})
+
+test('failed ignored logout reconciles an aborted write even if draft equals the last confirmed content', async () => {
+  let finish!: (value: MemberNote) => void
+  vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { finish = resolve })).mockResolvedValueOnce(response('A'))
+  let guard: LeaveGuard | undefined
+  const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'A', register))
+  act(() => result.current.change('B'))
+  await act(async () => vi.advanceTimersByTimeAsync(700))
+  act(() => result.current.change('A'))
+  act(() => { expect(guard?.(async () => { throw new Error('logout') })).toBe(true) })
+  await act(async () => result.current.ignoreLeave())
+  const event = new Event('beforeunload', { cancelable: true })
+  window.dispatchEvent(event)
+  expect(event.defaultPrevented).toBe(true)
+  await act(async () => finish(response('B')))
+  await act(async () => vi.advanceTimersByTimeAsync(700))
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'A', expect.any(AbortSignal))
+  expect(result.current.status).toBe('saved')
+})
+
+test('successful ignored logout does not restart saves while awaiting exit or after completion', async () => {
+  let finish!: (value: MemberNote) => void
+  let finishLogout!: () => void
+  vi.mocked(saveMemberNote).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  let guard: LeaveGuard | undefined
+  const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
+  const { result, unmount } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  const logout = vi.fn(() => new Promise<void>(resolve => { finishLogout = resolve }))
+  act(() => result.current.change('draft'))
+  act(() => { expect(guard?.(logout)).toBe(true) })
+  act(() => { result.current.ignoreLeave(); result.current.ignoreLeave(); result.current.change('during logout') })
+  await act(async () => vi.advanceTimersByTimeAsync(2000))
+  expect(logout).toHaveBeenCalledOnce()
+  expect(saveMemberNote).toHaveBeenCalledOnce()
+  await act(async () => finishLogout())
+  unmount()
+  await act(async () => finish(response('draft')))
+  await act(async () => vi.advanceTimersByTimeAsync(2000))
+  expect(saveMemberNote).toHaveBeenCalledOnce()
+})
+
+test('failed ignored logout cannot re-enable saving after authorization loss', async () => {
+  vi.mocked(saveMemberNote).mockRejectedValueOnce(new ApiError('Denied', 409))
+  let guard: LeaveGuard | undefined
+  const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', '', register))
+  act(() => result.current.change('draft'))
+  await act(async () => { expect(guard?.(async () => { throw new Error('logout') })).toBe(true) })
+  expect(result.current.status).toBe('session-changed')
+  await act(async () => result.current.ignoreLeave())
+  act(() => result.current.change('new'))
+  await act(async () => { result.current.retry(); await vi.advanceTimersByTimeAsync(2000) })
+  expect(result.current.status).toBe('session-changed')
+  expect(saveMemberNote).toHaveBeenCalledOnce()
+  expect(guard?.(vi.fn())).toBe(true)
+})

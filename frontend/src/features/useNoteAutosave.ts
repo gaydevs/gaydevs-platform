@@ -2,10 +2,21 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError } from './auth/api'
 import { saveMemberNote } from './notesApi'
 
-export type LeaveGuard = (proceed: () => void) => boolean
+export type LeaveAction = () => void | Promise<void>
+export type LeaveGuard = (proceed: LeaveAction) => boolean
 export type RegisterLeaveGuard = (guard: LeaveGuard) => () => void
 export type SaveStatus = 'saved' | 'pending' | 'saving' | 'error' | 'session-changed'
 export const NOTE_SAVE_DELAY = 700
+
+// Navigation is synchronous, but logout must be allowed to report a failed exit.
+function runLeaveAction(action: LeaveAction, onFailure: () => void) {
+  try {
+    const result = action()
+    if (result) void result.catch(onFailure)
+  } catch {
+    onFailure()
+  }
+}
 
 export function useNoteAutosave(actorId: string, memberId: string, initial: string, registerGuard?: RegisterLeaveGuard) {
   const latest = useRef(initial)
@@ -17,7 +28,7 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
   const abandoned = useRef(false)
   const timer = useRef<number | null>(null)
   const mounted = useRef(true)
-  const leave = useRef<(() => void) | null>(null)
+  const leave = useRef<LeaveAction | null>(null)
   const [status, setStatus] = useState<SaveStatus>('saved')
   const [leaveOpen, setLeaveOpen] = useState(false)
 
@@ -35,7 +46,7 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
       const proceed = leave.current
       leave.current = null
       setLeaveOpen(false)
-      proceed?.()
+      if (proceed) runLeaveAction(proceed, () => { /* The exit action owns its error feedback. */ })
     }
     if (!dirty()) { finish(); return }
     const content = latest.current
@@ -69,8 +80,10 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
   }, [actorId, clearTimer, dirty, memberId])
 
   const change = useCallback((content: string) => {
-    if (abandoned.current || sessionChanged.current || !mounted.current) return
+    if (sessionChanged.current || !mounted.current) return
     latest.current = content
+    // An asynchronous exit may fail; retain edits without sending them yet.
+    if (abandoned.current) return
     clearTimer()
     if (!dirty()) { setStatus('saved'); return }
     if (!inFlight.current) {
@@ -112,10 +125,18 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
     abandoned.current = true
     leave.current = null
     clearTimer()
+    if (inFlight.current) persistenceUncertain.current = true
     activeRequest.current?.abort()
     inFlight.current = false
     setLeaveOpen(false)
-    proceed()
+    runLeaveAction(proceed, () => {
+      if (!mounted.current) return
+      abandoned.current = false
+      if (sessionChanged.current) return
+      if (!dirty()) { setStatus('saved'); return }
+      setStatus('pending')
+      timer.current = window.setTimeout(() => void flush(), NOTE_SAVE_DELAY)
+    })
   }
   return { change, status, leaveOpen, cancelLeave, ignoreLeave, retry: () => void flush() }
 }

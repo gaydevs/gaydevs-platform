@@ -193,6 +193,50 @@ describe('notes navigation while autosave is pending', () => {
   }, 15000)
 
 
+  it('recovers editing and navigation protection when ignored logout fails', async () => {
+    const { finish, logout } = setup()
+    let rejectLogout!: (error: Error) => void
+    logout.mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { rejectLogout = reject }))
+    await edit()
+    await userEvent.click(screen.getByRole('button', { name: 'abrir menu' }))
+    await userEvent.click(screen.getByRole('button', { name: 'sair' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Salvando anotação' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Ignorar' }))
+    expect(logout).toHaveBeenCalledOnce()
+    const editor = screen.getByRole('textbox', { name: 'Anotações' })
+    fireEvent.paste(editor, { clipboardData: { getData: () => ' durante logout' } })
+    expect(saveMemberNote).toHaveBeenCalledOnce()
+    await act(async () => rejectLogout(new Error('Logout failed')))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível sair. Tente novamente.')
+    expect(screen.getByRole('textbox', { name: 'Anotações' })).toBeInTheDocument()
+    await act(async () => finish())
+    // Leaving before the restored debounce expires must be guarded again.
+    await userEvent.click(screen.getByRole('link', { name: 'abrir anotações' }))
+    const restored = await screen.findByRole('dialog', { name: 'Salvando anotação' })
+    expect(restored).toBeInTheDocument()
+    expect(saveMemberNote).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(saveMemberNote).mock.calls[1][2]).toContain('durante logout')
+    await act(async () => finish())
+    await waitFor(() => expect(window.location.pathname).toBe(base))
+    expect(logout).toHaveBeenCalledOnce()
+  }, 15000)
+
+  it('reports logout failure after a confirmed save without disabling subsequent autosave', async () => {
+    const { finish, logout } = setup()
+    logout.mockRejectedValueOnce(new Error('Logout failed'))
+    await edit()
+    await userEvent.click(screen.getByRole('button', { name: 'abrir menu' }))
+    await userEvent.click(screen.getByRole('button', { name: 'sair' }))
+    await screen.findByRole('dialog', { name: 'Salvando anotação' })
+    await act(async () => finish())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível sair. Tente novamente.')
+    const editor = screen.getByRole('textbox', { name: 'Anotações' })
+    fireEvent.paste(editor, { clipboardData: { getData: () => ' nova edição' } })
+    await waitFor(() => expect(saveMemberNote).toHaveBeenCalledTimes(2), { timeout: 4000 })
+    expect(vi.mocked(saveMemberNote).mock.calls[1][2]).toContain('nova edição')
+    await act(async () => finish())
+  }, 15000)
+
   it.each(['section', 'back', 'logout'])('ignores a pending save and resumes %s immediately', async destination => {
     const { finish, logout } = setup()
     await edit()

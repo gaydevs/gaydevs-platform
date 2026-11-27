@@ -32,6 +32,7 @@ export default function App() {
   const { open: openLogin, close: closeLoginHash, showStep: showLoginStep, step: loginStep } = login
   const refreshAuth = auth.refresh
   const logout = auth.logout
+  const [logoutError, setLogoutError] = useState(false)
   const [brandVisible, setBrandVisible] = useState(true)
   const [auditPoll, setAuditPoll] = useState<Poll | null>(null)
   const [pollError, setPollError] = useState<string | null>(null)
@@ -118,10 +119,23 @@ export default function App() {
     if (target.href !== window.location.href && leaveGuard.current?.(proceed)) return
     proceed()
   }, [])
-  const guardedLogout = useCallback(async () => {
-    if (leaveGuard.current?.(() => { void logout() })) return
-    await logout()
+  const logoutWithFeedback = useCallback(async () => {
+    setLogoutError(false)
+    try {
+      await logout()
+    } catch (error) {
+      setLogoutError(true)
+      throw error
+    }
   }, [logout])
+  const guardedLogout = useCallback(async () => {
+    if (leaveGuard.current?.(logoutWithFeedback)) return
+    try {
+      await logoutWithFeedback()
+    } catch {
+      // The account header reports the failure; do not leave an unhandled rejection.
+    }
+  }, [logoutWithFeedback])
   const pollsMarker = '/polls'
   const pollsIndex = pathname.indexOf(pollsMarker)
   const pollIdentifier = pollsIndex >= 0 ? pathname.slice(pollsIndex + pollsMarker.length).replace(/^\/+|\/+$/g, '') || null : null
@@ -162,7 +176,7 @@ export default function App() {
 
   return <>
     <a className="skip-link" href="#conteudo">{accessibility.skip}</a>
-    <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={guardedLogout} onNavigate={navigate} />
+    <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={guardedLogout} logoutError={Boolean(auth.user) && logoutError} onNavigate={navigate} />
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
     {isNotesSection && auth.user?.member_type === 'admin' && <NotesSectionBar visible={showNotesSectionBar} path={notesPath} onNavigate={navigate} />}
     <main id="conteudo">

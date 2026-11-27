@@ -8,10 +8,11 @@ interface AccountHeaderProps {
   brandVisible: boolean
   onLogin: () => void
   onLogout: () => Promise<void>
+  logoutError?: boolean
   onNavigate: (path: string) => void
 }
 
-export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout, onNavigate }: AccountHeaderProps) {
+export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout, logoutError = false, onNavigate }: AccountHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const currentPathname = typeof window === 'undefined' ? '/' : window.location.pathname
@@ -36,6 +37,7 @@ export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout
   }, [menuOpen])
 
   return <header className={`account-header${brandVisible ? '' : ' account-header--scrolled'}`} aria-label="acesso do gdev">
+    {logoutError && user && <span className="account-header__logout-error" role="alert">Não foi possível sair. Tente novamente.</span>}
     <BrandLogo className="account-header__brand" href={homePath} onClick={goHome} />
     {restoring
       ? <span className="account-header__status">identificando gdev…</span>
