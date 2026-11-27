@@ -71,4 +71,13 @@ Spec aprovada explicitamente após commit 15eb617. Mantido o fluxo SDD High Risk
 - Executar suíte frontend, typecheck, lint e build; suíte backend de regressão para confirmar que autorização e isolamento continuam intactos. Sem nova dependência, migration ou endpoint.
 
 ### Extração dos modais (27/11/2026)
-Refinamento interno autorizado pelo gdev: RestrictedAccessDialog, PendingSaveDialog e useModalLifecycle em components, sem dependência de Anotações, mantendo textos, CSS, ações e políticas de fechamento. O gate global, proteção de navegação, autosave genérico e migração dos modais das Enquetes ficam na issue #122 (Refactor, bloqueada por #115); não alterar autorização ou persistência nesta extração.
+Refinamento interno autorizado pelo gdev: RestrictedAccessDialog, PendingSaveDialog e useModalLifecycle em components, sem dependência de Anotações, mantendo textos, CSS, ações e políticas de fechamento. A refatoração estrutural completa do gate global, autosave e base visual dos modais permanece na issue #122 (Refactor, bloqueada por #115). A migração do ciclo de vida de foco/scroll dos oito modais foi antecipada na #115 por solicitação do gdev; não alterar autorização ou persistência nesta extração.
+
+
+### Correções de revisão e responsividade (27/11/2026)
+- useNoteAutosave: sinalizar persistência incerta após falha e recuperar autosave se a continuação assíncrona de logout falhar, sem reenviar após troca de sessão ou saída efetiva.
+- Compartilhar histórico entre App e useLoginHash por history.ts e usePlatformHistory.ts; identificar entradas por cadeia, índice e chave; preservar destino original e prever fallback após 1s sem confirmação (pode descartar entradas futuras).
+- Aplicar useModalLifecycle aos oito modais de Login, Anotações e Enquetes, com contenção de Tab/Shift+Tab, foco inicial, Escape, restauração de foco, scroll e pilha de modais. Manter política de fechamento existente.
+- NoteRichEditor: não despachar transação de colagem sem texto; retorno único, sem aceitar HTML. trimRouteIdentifier remove apenas barras das extremidades das rotas em tempo linear, preservando conteúdo interno.
+- CSS Grid na classe compartilhada .notes-list para cards e skeletons, com breakpoints de 640px e 1024px; sem dependências novas.
+- Regressões automatizadas para todos os achados, integração de rotas e editor, além de layout Chromium com dados simulados em nove larguras (320–1440px). Validação manual informada pelo gdev; CI completa no commit f462113 inclui testes SQLite/MySQL, frontend, auditorias, lint e build; Quality Gate aprovado e todos os achados anteriores marcados FIXED. Não houve deploy.

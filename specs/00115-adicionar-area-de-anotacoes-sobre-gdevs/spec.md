@@ -70,3 +70,14 @@ Refinamento aprovado explicitamente pelo gdev em 27/11/2026, na conversa após c
 Plano do refinamento aprovado explicitamente pelo gdev em 27/11/2026 após commit ff7e31a; implementação autorizada.
 
 Refinamento visual solicitado diretamente pelo gdev: modal Área restrita sobre os esqueletos existentes, com botão Home, sem alteração da política de autorização aprovada. Respostas 403 de leitura usam o mesmo aviso.
+
+
+## Refinamentos finais de revisão (27/11/2026)
+
+- Listagem responsiva de gdevs e esqueletos: uma coluna abaixo de 640px, duas de 640 a 1023px e três a partir de 1024px; preservar ordenação alfabética, ordem de teclado e prévia de até duas linhas.
+- Se o salvamento falhar, manter a proteção de saída mesmo quando o texto atual coincidir com a última versão confirmada: o estado remoto pode ser incerto. Se o logout falhar após Ignorar, restaurar o autosave e a proteção de navegação enquanto a ficha permanecer aberta.
+- Preservar a entrada correta do histórico ao atravessar rotas de login com alterações pendentes; permitir salvar, ignorar ou cancelar, com recuperação caso o navegador não confirme a travessia.
+- Todos os oito modais existentes devem conter foco por teclado, preservar o fechamento específico de cada modal e compartilhar o ciclo de vida de foco/scroll.
+- Colagem sem texto (incluindo imagem) não altera conteúdo nem seleção nem dispara autosave; colagem de texto puro continua disponível.
+
+Refinamentos e respectivos testes autorizados pelo gdev na conversa de 27/11/2026. Correções de revisão não alteram o modelo de dados, contratos de API ou autorização.
