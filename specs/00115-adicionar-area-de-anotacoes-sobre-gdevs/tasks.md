@@ -23,10 +23,10 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 
 ## Isolamento por autor (High Risk)
 - [x] T014 Registrar aprovações da spec (4577cea) e plano (38af8fc).
-- [ ] T015 Corrigir migration inicial, UUIDv7, unicidade e modelo.
-- [ ] T016 Restringir todos os endpoints ao autor autenticado; validar identidade esperada e campos de propriedade.
-- [ ] T017 Vincular requisições e autosave ao autor esperado; limpar estado na troca de sessão.
-- [ ] T018 Testar isolamento, autorização, integridade, troca de sessão e regressões.
-- [ ] T019 Executar verificações e publicar revisão no PR #120.
+- [x] T015 Corrigir migration inicial, UUIDv7, unicidade e modelo.
+- [x] T016 Restringir todos os endpoints ao autor autenticado; validar identidade esperada e campos de propriedade.
+- [x] T017 Vincular requisições e autosave ao autor esperado; limpar estado na troca de sessão.
+- [x] T018 Testar isolamento, autorização, integridade, troca de sessão e regressões. Backend: 177 passaram, 2 ignorados, 1.097 assertions; frontend: 160 passaram, após repetir dois timeouts sob carga com menos workers. Teste MySQL e revisão visual completa pendentes.
+- [x] T019 Executar verificações e publicar revisão no PR #120. Commit ddf7b4c, TypeScript, ESLint nos arquivos alterados, Pint e build aprovados; build alerta para chunk lazy do editor >500 kB. Project retornou a Specifying; revisão seguinte pendente.
 
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.
