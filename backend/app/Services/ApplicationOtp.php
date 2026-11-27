@@ -12,7 +12,6 @@ use App\Models\OtpRequest;
 use App\Models\User;
 use App\Models\VisitorObservation;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
@@ -40,17 +39,12 @@ class ApplicationOtp
             $subject = $this->lifecycle->startLocked($email);
             $requests = OtpRequest::query()->where('purpose', OtpPurpose::Registration)->where('email', $email);
             $code = $this->otp->generate($requests);
-            $request = OtpRequest::query()->create([
+            $request = $this->otp->create([
                 'purpose' => OtpPurpose::Registration,
                 'email' => $email,
                 'applicant_id' => $subject instanceof Applicant ? $subject->id : null,
                 'user_id' => $subject instanceof User ? $subject->id : null,
-                'visitor_observation_id' => $observation->id,
-                'code_hash' => Hash::make($code),
-                'status' => OtpRequestStatus::Pending,
-                'failed_attempts' => 0,
-                'expires_at' => now()->addMinutes((int) config('passwordless.otp.expires_in_minutes')),
-            ]);
+            ], $observation, $code);
             $this->otp->supersede($requests, $request);
 
             return new IssuedOtp($request, $code, $email);
@@ -85,8 +79,7 @@ class ApplicationOtp
 
                 return null;
             }
-            if ($request->expires_at->isPast()) {
-                $request->update(['status' => OtpRequestStatus::Expired]);
+            if ($this->otp->expire($request)) {
                 $this->otp->record($request, $observation, OtpAttemptResult::Expired);
 
                 return null;

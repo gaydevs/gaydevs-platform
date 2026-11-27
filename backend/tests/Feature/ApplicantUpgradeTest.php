@@ -7,18 +7,11 @@ use App\Models\VisitorObservation;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Support\IsolatedApplicationDatabase;
 
 test('upgrade preserves legacy OTP history and does not invent recipients after a user update', function () {
-    $originalConnection = DB::getDefaultConnection();
-    $connection = 'application_upgrade_test';
-    config(["database.connections.{$connection}" => array_merge(config('database.connections.sqlite'), [
-        'database' => ':memory:',
-        'foreign_key_constraints' => true,
-    ])]);
-    DB::setDefaultConnection($connection);
-    Schema::clearResolvedInstance('db.schema');
+    $isolated = new IsolatedApplicationDatabase('application_upgrade_test', ':memory:');
 
     try {
         $paths = glob(database_path('migrations/*.php'));
@@ -71,13 +64,13 @@ test('upgrade preserves legacy OTP history and does not invent recipients after 
             ->and(OtpRequest::findOrFail($changedOtp)->superseded_by_id)->toBe($firstOtp)
             ->and(DB::table('otp_attempts')->find($attemptId)->matched_otp_request_id)->toBe($changedOtp)
             ->and(DB::table('otp_attempts')->find($attemptId)->authenticated_user_id)->toBe($first->id)
-            ->and($first->refresh()->applicant_id)->toBeNull()
-            ->and(DB::select('PRAGMA foreign_key_check'))->toBe([]);
+            ->and($first->refresh()->applicant_id)->toBeNull();
+        if ($isolated->driver === 'sqlite') {
+            expect(DB::select('PRAGMA foreign_key_check'))->toBe([]);
+        }
         expect(fn () => User::factory()->create(['status' => 'invalid']))->toThrow(QueryException::class);
         expect(fn () => $otpMigration->down())->toThrow(RuntimeException::class);
     } finally {
-        DB::setDefaultConnection($originalConnection);
-        Schema::clearResolvedInstance('db.schema');
-        DB::purge($connection);
+        $isolated->close();
     }
 });

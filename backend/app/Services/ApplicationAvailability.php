@@ -17,8 +17,10 @@ class ApplicationAvailability
             || blank($turnstile['action']) || ! filter_var(config('applications.admin_email'), FILTER_VALIDATE_EMAIL)
             || ! preg_match('/^\+?[1-9][0-9]{7,14}$/D', (string) config('applications.whatsapp'))
             || blank(config('app.key'))
+            || ! ApplicationTurnstile::credentialsAllowed()
             || (app()->environment('production') && (
                 in_array(config('mail.default'), ['log', 'array'], true)
+                || ! ApplicationTerms::FINALIZED
                 || config('applications.approved_terms_version') !== ApplicationTerms::VERSION
                 || ! filter_var(config('applications.platform_url'), FILTER_VALIDATE_URL)
                 || parse_url((string) config('applications.platform_url'), PHP_URL_SCHEME) !== 'https'

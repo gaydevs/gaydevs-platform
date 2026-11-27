@@ -7,6 +7,7 @@ return [
     'admin_email' => env('APPLICATION_ADMIN_EMAIL'),
     'whatsapp' => env('GDEV_SM_WHATSAPP'),
     'turnstile' => [
+        'test_mode' => env('APPLICATION_TURNSTILE_TEST_MODE', false),
         'sitekey' => env('APPLICATION_TURNSTILE_SITEKEY'),
         'secret' => env('APPLICATION_TURNSTILE_SECRET'),
         'hostname' => env('APPLICATION_TURNSTILE_HOSTNAME'),

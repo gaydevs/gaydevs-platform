@@ -18,17 +18,26 @@ test('profile validation rejects invalid schemes hosts credentials ports and pat
 
 test('DNS private or mixed addresses never reach transport', function (array $ips) {
     $probe = Mockery::mock(ApplicationProfileProbe::class);
-    $probe->shouldReceive('resolve')->once()->with('github.com')->andReturn($ips);
-    $probe->shouldNotReceive('head');
+    $probe->shouldReceive('resolve')->once()->with('api.github.com')->andReturn($ips);
+    $probe->shouldNotReceive('lookup');
     $verifier = new ApplicationProfileVerifier(app(ApplicationProfileUrl::class), $probe);
     expect($verifier->check('github', 'test-person'))->toBe('inconclusive');
 })->with([[['127.0.0.1']], [['169.254.169.254']], [['10.0.0.1']], [['8.8.8.8', '192.168.1.1']], [['::1']], [['::ffff:127.0.0.1']], [['100.64.0.1']]]);
 
-test('profile verifier pins vetted IP and treats unavailable or restricted response as inconclusive', function (int $status, string $expected) {
+test('profile verifier pins vetted IP and classifies only matching positive evidence or gone', function (int $status, ?string $login, string $expected) {
     $probe = Mockery::mock(ApplicationProfileProbe::class);
-    $probe->shouldReceive('resolve')->once()->with('github.com')->andReturn(['8.8.8.8']);
-    $probe->shouldReceive('head')->once()->with('https://github.com/test-person', 'github.com', '8.8.8.8', Mockery::on(fn ($ms) => $ms > 0 && $ms <= 3000))->andReturn($status);
+    $probe->shouldReceive('resolve')->once()->with('api.github.com')->andReturn(['8.8.8.8']);
+    $probe->shouldReceive('lookup')->once()->with('test-person', '8.8.8.8', Mockery::on(fn ($ms) => $ms > 0 && $ms <= 3000))->andReturn(['status' => $status, 'login' => $login]);
     $verifier = new ApplicationProfileVerifier(app(ApplicationProfileUrl::class), $probe);
     expect($verifier->check('github', 'test-person'))->toBe($expected)
         ->and($verifier->check('github', 'test-person'))->toBe($expected);
-})->with([[404, 'invalid'], [410, 'invalid'], [403, 'inconclusive'], [429, 'inconclusive'], [302, 'inconclusive'], [503, 'inconclusive'], [200, 'inconclusive']]);
+})->with([[404, null, 'inconclusive'], [410, null, 'invalid'], [403, null, 'inconclusive'], [429, null, 'inconclusive'], [302, null, 'inconclusive'], [503, null, 'inconclusive'], [200, null, 'inconclusive'], [200, 'TEST-PERSON', 'valid'], [200, 'other', 'inconclusive']]);
+
+test('providers without authorized lookup are never contacted automatically', function () {
+    $probe = Mockery::mock(ApplicationProfileProbe::class);
+    $probe->shouldNotReceive('resolve');
+    $probe->shouldNotReceive('lookup');
+    $verifier = new ApplicationProfileVerifier(app(ApplicationProfileUrl::class), $probe);
+    expect($verifier->check('linkedin', 'test-person'))->toBe('inconclusive')
+        ->and($verifier->check('instagram', 'test.person'))->toBe('inconclusive');
+});

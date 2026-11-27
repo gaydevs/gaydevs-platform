@@ -13,11 +13,16 @@ class ApplicationProfileVerifier
     {
         $url = $this->urls->normalize($network, $value);
 
-        return Cache::remember('application:profile:'.hash_hmac('sha256', $url, (string) config('app.key')), 300, function () use ($url, $network): string {
+        // No automated access to LinkedIn or Instagram without an authorized API
+        // or permission from the provider. Syntax is still validated above.
+        if ($network !== 'github') {
+            return 'inconclusive';
+        }
+
+        return Cache::remember('application:profile:v2:'.hash_hmac('sha256', $url, (string) config('app.key')), 300, function () use ($url): string {
             try {
                 $start = hrtime(true);
-                $host = parse_url($url, PHP_URL_HOST);
-                $ips = $this->probe->resolve($host);
+                $ips = $this->probe->resolve(ApplicationProfileProbe::HOST);
                 if ($ips === []) {
                     return 'inconclusive';
                 }
@@ -30,15 +35,19 @@ class ApplicationProfileVerifier
                 if ($remaining <= 0) {
                     return 'inconclusive';
                 }
-                $status = $this->probe->head($url, $host, $ips[0], $remaining);
-                if ($status === 410 || ($network === 'github' && $status === 404)) {
+                $handle = ltrim(parse_url($url, PHP_URL_PATH), '/');
+                $result = $this->probe->lookup($handle, $ips[0], $remaining);
+                if (($result['status'] ?? null) === 410) {
                     return 'invalid';
                 }
-                // A bare 200 or an ambiguous provider-specific 404 is not
-                // evidence of a particular profile's existence. Fail open only
-                // for the availability classification; the URL is still validated.
+                if (($result['status'] ?? null) === 200 && is_string($result['login'] ?? null)
+                    && strcasecmp($result['login'], $handle) === 0) {
+                    return 'valid';
+                }
+                // GitHub documents 404 for accounts hidden from the caller.
+                // A public lookup cannot prove that such a profile is absent.
             } catch (Throwable) {
-                // Never log URL or remote content.
+                // Never log the profile, handle or provider response.
             }
 
             return 'inconclusive';

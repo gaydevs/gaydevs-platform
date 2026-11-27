@@ -32,6 +32,9 @@ class VisitorIdentifier
         $visit = $this->visit($visitor, $now);
         $ipAddress = $this->ipAddress($request->ip(), $now);
         $privateApplication = $request->is('applications/*', 'admin/applications*');
+        $referer = $request->headers->get('referer');
+        $refererPath = is_string($referer) ? parse_url($referer, PHP_URL_PATH) : null;
+        $privateReferer = is_string($refererPath) && preg_match('#/(?:apply|admin/applications|onboarding)(?:/|$)#', $refererPath);
         $userAgent = $privateApplication ? null : ((string) $request->userAgent() ?: null);
         $ipGeolocationId = null;
 
@@ -58,7 +61,7 @@ class VisitorIdentifier
                 0,
                 (int) config('visitors.observation.language_max_characters'),
             ) ?: null,
-            'referer' => $privateApplication ? null : $request->headers->get('referer'),
+            'referer' => ($privateApplication || $privateReferer) ? null : $referer,
             'method' => $request->getMethod(),
             'path' => mb_substr(
                 $privateApplication ? 'applications' : $request->path(),

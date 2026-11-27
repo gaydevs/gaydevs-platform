@@ -6,10 +6,9 @@ use App\Enums\OtpRequestStatus;
 use App\Models\Applicant;
 use App\Models\OtpRequest;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Schema;
 use Symfony\Component\Process\Process;
+use Tests\Support\IsolatedApplicationDatabase;
 
 test('independent workers serialize start proof submission and approval for the same email', function () {
     if (! function_exists('proc_open')) {
@@ -20,27 +19,16 @@ test('independent workers serialize start proof submission and approval for the 
     mkdir($directory, 0700);
     $database = $directory.'/test.sqlite';
     touch($database);
-    $original = DB::getDefaultConnection();
-    $connection = 'application_concurrency';
-    config(["database.connections.{$connection}" => array_merge(config('database.connections.sqlite'), [
-        'database' => $database,
-        'foreign_key_constraints' => true,
-    ])]);
-    DB::setDefaultConnection($connection);
-    Schema::clearResolvedInstance('db.schema');
+    $isolated = new IsolatedApplicationDatabase('application_concurrency', $database);
 
     $environment = [
         'APP_ENV' => 'testing',
         'APP_KEY' => 'base64:'.base64_encode(random_bytes(32)),
-        'DB_CONNECTION' => 'sqlite',
-        'DB_DATABASE' => $database,
-        'DB_URL' => '',
         'DB_FOREIGN_KEYS' => 'true',
         'CACHE_STORE' => 'database',
-        'DB_CACHE_CONNECTION' => 'sqlite',
-        'DB_CACHE_LOCK_CONNECTION' => 'sqlite',
         'CACHE_PREFIX' => 'application-concurrency-test',
         'MAIL_MAILER' => 'array',
+        ...$isolated->workerEnvironment(),
     ];
 
     $runPair = function (string $operation, string $subject, string $actor = '') use ($directory, $environment): array {
@@ -120,9 +108,7 @@ test('independent workers serialize start proof submission and approval for the 
             ->and($applicant->refresh()->status)->toBe(ApplicantStatus::Approved)
             ->and($applicant->events()->where('event_type', 'approved')->count())->toBe(1);
     } finally {
-        DB::setDefaultConnection($original);
-        Schema::clearResolvedInstance('db.schema');
-        DB::purge($connection);
+        $isolated->close();
         File::deleteDirectory($directory);
     }
 });

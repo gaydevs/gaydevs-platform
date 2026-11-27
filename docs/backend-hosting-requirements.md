@@ -71,7 +71,8 @@ O host deve executar `php artisan schedule:run` a cada minuto. O Laravel usa
 
 - `visitors:anonymize-ips` diariamente às 03:00;
 - `geoip:update` diariamente às 04:00, quando habilitado;
-- `smtp:keepalive` diariamente às 00:00.
+- `smtp:keepalive` diariamente às 00:00;
+- `applications:notifications` a cada minuto, condicionado à ativação do cadastro.
 
 Na DreamHost, cadastre o cron via SSH (`crontab -e`); o formulário do painel não
 oferece a frequência de um minuto exigida pelo scheduler:
@@ -94,6 +95,10 @@ Cada instalação deve validar `php artisan schedule:list`, uma execução manua
 o canal diário `storage/logs/scheduler-*.log`. O host também deve impedir
 execuções simultâneas do cron quando oferecer esse controle; a aplicação usa
 `withoutOverlapping` como proteção adicional.
+
+## Candidaturas e onboarding
+
+Consulte [operação e gates de release](applications-operations.md). A feature vem desativada.
 
 ## E-mail
 

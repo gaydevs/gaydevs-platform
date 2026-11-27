@@ -10,10 +10,15 @@ use Illuminate\Contracts\Console\Kernel;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 $testDatabase = getenv('DB_DATABASE');
-if (getenv('APP_ENV') !== 'testing' || getenv('DB_CONNECTION') !== 'sqlite'
-    || ! is_string($testDatabase) || basename($testDatabase) !== 'test.sqlite'
-    || ! str_starts_with(basename(dirname($testDatabase)), 'gdev-applications-')) {
-    throw new RuntimeException('Worker requires a disposable SQLite test database.');
+$driver = getenv('DB_CONNECTION');
+$safeSqlite = $driver === 'sqlite' && is_string($testDatabase) && basename($testDatabase) === 'test.sqlite'
+    && str_starts_with(basename(dirname($testDatabase)), 'gdev-applications-');
+$safeMysql = $driver === 'mysql' && getenv('APPLICATION_MYSQL_CI') === '1'
+    && getenv('DB_HOST') === '127.0.0.1' && getenv('DB_PORT') === '3306'
+    && is_string($testDatabase) && preg_match('/^gdev_apps_test_[a-f0-9]{16}$/D', $testDatabase)
+    && ! getenv('DB_URL') && ! getenv('DB_SOCKET');
+if (getenv('APP_ENV') !== 'testing' || (! $safeSqlite && ! $safeMysql)) {
+    throw new RuntimeException('Worker requires a disposable test database.');
 }
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';

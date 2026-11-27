@@ -7,6 +7,9 @@ use Illuminate\Validation\ValidationException;
 
 class ApplicationTerms
 {
+    // Only a human-reviewed release may replace the draft and set this to true.
+    public const FINALIZED = false;
+
     public const VERSION = '2026-11-27-draft-1';
 
     public function texts(): array

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Data\IssuedOtp;
 use App\Enums\OtpPurpose;
-use App\Enums\OtpRequestStatus;
 use App\Exceptions\OtpGenerationFailedException;
 use App\Exceptions\UserNotActiveException;
 use App\Exceptions\UserNotFoundException;
@@ -13,7 +12,6 @@ use App\Models\OtpRequest;
 use App\Models\User;
 use App\Models\VisitorObservation;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class OtpIssuer
 {
@@ -39,18 +37,11 @@ class OtpIssuer
                 throw new OtpGenerationFailedException($lockedUser->id, $observation->id);
             }
 
-            $request = OtpRequest::query()->create([
+            $request = $this->otp->create([
                 'user_id' => $lockedUser->id,
                 'purpose' => OtpPurpose::Login,
                 'email' => Applicant::normalizeEmail($lockedUser->email),
-                'visitor_observation_id' => $observation->id,
-                'code_hash' => Hash::make($code),
-                'status' => OtpRequestStatus::Pending,
-                'failed_attempts' => 0,
-                'expires_at' => now()->addMinutes(
-                    (int) config('passwordless.otp.expires_in_minutes'),
-                ),
-            ]);
+            ], $observation, $code);
 
             $this->otp->supersede($subject, $request);
 

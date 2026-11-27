@@ -7,6 +7,7 @@ use App\Enums\OtpRequestStatus;
 use App\Models\OtpAttempt;
 use App\Models\OtpRequest;
 use App\Models\VisitorObservation;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
@@ -28,6 +29,30 @@ class OtpPrimitives
         throw new RuntimeException('OTP generation exhausted.');
     }
 
+    public function create(array $identity, VisitorObservation $observation, string $code): OtpRequest
+    {
+        return OtpRequest::query()->create([
+            ...$identity,
+            'visitor_observation_id' => $observation->id,
+            'code_hash' => Hash::make($code),
+            'status' => OtpRequestStatus::Pending,
+            'failed_attempts' => 0,
+            'expires_at' => now()->addMinutes((int) config('passwordless.otp.expires_in_minutes')),
+        ]);
+    }
+
+    public function expire(OtpRequest $otp): bool
+    {
+        if ($otp->status !== OtpRequestStatus::Expired && ! $otp->expires_at->isPast()) {
+            return false;
+        }
+        if ($otp->status !== OtpRequestStatus::Expired) {
+            $otp->update(['status' => OtpRequestStatus::Expired]);
+        }
+
+        return true;
+    }
+
     public function supersede(Builder $subject, OtpRequest $replacement): void
     {
         (clone $subject)->where('status', OtpRequestStatus::Pending)->whereKeyNot($replacement->id)->update([
@@ -38,9 +63,9 @@ class OtpPrimitives
         ]);
     }
 
-    public function accept(OtpRequest $otp): void
+    public function accept(OtpRequest $otp, ?CarbonInterface $at = null): void
     {
-        $otp->update(['status' => OtpRequestStatus::Used, 'accepted_at' => now()]);
+        $otp->update(['status' => OtpRequestStatus::Used, 'accepted_at' => $at ?? now()]);
     }
 
     public function fail(OtpRequest $otp, int $maximum): OtpAttemptResult

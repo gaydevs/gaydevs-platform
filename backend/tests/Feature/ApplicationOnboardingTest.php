@@ -3,6 +3,8 @@
 use App\Models\Applicant;
 use App\Models\User;
 use App\Models\UserPreference;
+use App\Models\VisitorObservation;
+use App\Services\ApplicationTerms;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -35,4 +37,30 @@ test('only admitted members receive onboarding and seen preference is persistent
     $this->postJson('/me/onboarding/seen')->assertNoContent();
     expect($first->fresh()->version)->toBe($first->version);
     $this->getJson('/auth/session')->assertOk()->assertJsonPath('user.onboarding_required', false)->assertJsonPath('user.onboarding_eligible', true);
+});
+
+test('production refuses activation while privacy terms are not finalized', function () {
+    config([
+        'applications.enabled' => true,
+        'applications.admin_email' => 'admin@example.test',
+        'applications.platform_url' => 'https://example.test/platform',
+        'applications.whatsapp' => '5511999999999',
+        'applications.approved_terms_version' => ApplicationTerms::VERSION,
+        'applications.turnstile' => ['sitekey' => 'public-test', 'secret' => 'private-test', 'hostname' => 'example.test', 'action' => 'application_otp'],
+        'mail.default' => 'smtp',
+    ]);
+    $original = app()->environment();
+    app()->instance('env', 'production');
+    try {
+        $this->getJson('/applications/config')->assertOk()->assertExactJson(['enabled' => false]);
+    } finally {
+        app()->instance('env', $original);
+    }
+});
+
+test('shared authentication observations redact private page referer', function () {
+    $this->actingAs(User::factory()->create())->withHeaders(['Referer' => 'http://127.0.0.1:5173/gaydevs/platform/admin/applications/private-id?email=private@example.test'])
+        ->getJson('/auth/session')->assertOk();
+    $observation = VisitorObservation::query()->latest('id')->firstOrFail();
+    expect($observation->referer)->toBeNull()->and($observation->path)->toBe('auth/session');
 });

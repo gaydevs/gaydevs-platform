@@ -47,7 +47,7 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 ### Infraestrutura e documentação (PLAN-20)
 
-- [ ] T028 — Documentar .env.example e requisitos de hospedagem: Turnstile, contato/aviso, TTLs, limites, scheduler/outbox, CSP, feature gate, migrations e recuperação; não editar .env real.
+- [x] T028 — Documentar .env.example e requisitos de hospedagem: Turnstile, contato/aviso, TTLs, limites, scheduler/outbox, CSP, feature gate, migrations e recuperação; não editar .env real.
 - [ ] T029 — Revisar escopo, segurança e privacidade: minimizar logs/avisos, avaliar política de retenção/direitos com responsável, revisar termos finais antes de ativar CTA; confirmar configuração necessária para release.
 
 ## Validação
@@ -88,6 +88,13 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 - T021–T027: CTA condicionado à disponibilidade pública do backend, rotas sob a base existente, wizard com progresso persistido, OTP/Turnstile, prefixos/colagem, sugestões locais por substring sem caixa/acentos, consentimentos independentes, submissão e retomada, área admin e onboarding. Reutilizados FieldControl, ActionLink, tokens/estilos e dados da landing. Onboarding registra visto ao exibir e permite revisita pelo menu, sem bloquear plataforma; membros legados não recebem a indicação. Preferências de onboarding e polls preservadas sob lock do usuário. APIs públicas de configuração não retornam contato/segredo/destinatário. Cadastro segue desativado por padrão.
 - Validação T021–T027: Node 24.22.0; npm ci --offline com lockfile existente; typecheck, lint, check:content e build passaram. Backend: 243 testes passaram, 2 ignorados, 1413 assertions, Pint aprovado em 6 arquivos. Frontend: 14 testes novos, todos aprovados. Primeira suíte completa: 142/143 passaram, timeout CTA. Segunda: 143/144 passaram, timeout em teste preexistente de navegação de polls; reexecução desse arquivo com --testTimeout=15000: 3/3 passaram. Wizard isolado após ajuste do timeout: 6/6 passaram. Todos os 144 testes passaram em pelo menos uma rodada, mas não numa única execução integral verde. T031 permanece parcial até obter uma suíte completa sem timeout. Nenhuma alteração de assertions para contornar falhas.
 - T032: QA visual em navegador mobile/desktop, Turnstile real com test keys, integração HTTPS e deploy ainda não realizados. MySQL, validação externa, aprovação dos textos de privacidade e Project permanecem pendentes.
+
+- T028: documentação em docs/applications-operations.md e referência nos requisitos de hospedagem; configuração, CSP, TTLs, quotas, migrations/recuperação, outbox e gates. .env real preservado.
+- T029/T015 (parciais): gate de produção bloqueia minuta de privacidade mesmo com versão configurada, modo dummy Turnstile restrito a local/testing, redaction de Referer de páginas privadas inclusive em auth compartilhado. GitHub REST confirma login público correspondente; 404 ambíguo não bloqueia. LinkedIn/Instagram sintaxe e revisão manual até consulta autorizada, decisão humana necessária sobre atendimento integral de REQ-005. Aprovação de textos e política de retenção/direitos continua pendente. Nenhum deploy.
+- T030 (parcial): backend completo no Survivor: 248 aprovados, 2 ignorados, 1430 assertions, PHP 8.4/SQLite. Primitivas OTP de criação/expiração compartilhadas. Upgrade e concorrência adaptados para o workflow MySQL já existente (GITHUB_ACTIONS/CI, localhost, banco testing), schemas aleatórios descartáveis; edição do workflow recusada pelo escopo do token e retirada antes do push; ainda não executados na nova versão. Docker sem permissão e PDO MySQL indisponível no Survivor. CI anterior (d37b8fd) verde, não representa este commit.
+- T031 (parcial): rodada com --maxWorkers=2 --testTimeout=15000 registrou 143/144; teste legado de sentinel disparava antes do observe. Ajuste apenas da sincronização do teste (sem mudar assertions/produto) passou isoladamente. Nova suíte completa iniciada; evidência integral deve ser verificada antes do merge.
+- T032 (parcial): matriz qa.md relaciona 14 REQs e 19 cenários; Chromium local instalado em diretório descartável, primeira inicialização falhou por Crashpad. QA com API simulada não substitui HTTPS/backend/Turnstile real. Manter pendências explícitas.
+- T033 (parcial): diff revisado, checklist e docs atualizados; publicar PR para develop com gates explícitos, sem aprovação/merge/release. Verificar Project após tentativa de sincronização.
 
 ## Limites
 

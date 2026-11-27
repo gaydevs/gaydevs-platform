@@ -29,7 +29,7 @@ beforeEach(function () {
     Mail::fake();
     $probe = Mockery::mock(ApplicationProfileProbe::class);
     $probe->shouldReceive('resolve')->andReturn(['8.8.8.8']);
-    $probe->shouldReceive('head')->andReturn(403);
+    $probe->shouldReceive('lookup')->andReturn(['status' => 403, 'login' => null]);
     app()->instance(ApplicationProfileProbe::class, $probe);
 });
 

@@ -83,11 +83,7 @@ class OtpVerifier
                 );
             }
 
-            if ($otpRequest->status === OtpRequestStatus::Expired || $otpRequest->expires_at->isPast()) {
-                if ($otpRequest->status !== OtpRequestStatus::Expired) {
-                    $otpRequest->update(['status' => OtpRequestStatus::Expired]);
-                }
-
+            if ($this->otp->expire($otpRequest)) {
                 return $this->record($otpRequest, $observation, OtpAttemptResult::Expired);
             }
 
@@ -108,10 +104,7 @@ class OtpVerifier
                     'authenticated_at' => $acceptedAt,
                     'last_seen_at' => $acceptedAt,
                 ]);
-                $otpRequest->update([
-                    'status' => OtpRequestStatus::Used,
-                    'accepted_at' => $acceptedAt,
-                ]);
+                $this->otp->accept($otpRequest, $acceptedAt);
 
                 return $this->record(
                     $otpRequest,
