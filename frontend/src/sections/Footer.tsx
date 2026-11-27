@@ -4,8 +4,10 @@ export function Footer({ content, developerLinks, privacyHref }: { content: { br
   return <footer id="contato" className="footer container">
     <div>
       <p className="footer-brand">{content.brand}</p>
-      <p>{content.location}</p>
-      <a href={privacyHref}>Privacidade</a>
+      <div className="footer-meta">
+        <p>{content.location}</p>
+        <a href={privacyHref}>privacidade</a>
+      </div>
     </div>
     <nav className="footer-links" aria-label="links dev">
       <p>github</p>

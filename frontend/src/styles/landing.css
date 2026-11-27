@@ -113,6 +113,7 @@
 .final-actions { display: flex; flex-direction: column; gap: 16px; max-width: 620px; margin-inline: auto; }
 .footer { display: flex; flex-direction: column; gap: 28px; padding-block: 32px 40px; border-top: 1px solid var(--border); font-size: .8125rem; }
 .footer-brand { color: var(--text); font-size: 1.25rem; font-weight: 600; margin-bottom: 8px; }
+.footer-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 14px; }
 .footer-links { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 14px; }
 .footer-links p { color: var(--text); font-size: .875rem; font-weight: 600; }
 .footer-links p::after { content: ':'; }
@@ -142,12 +143,12 @@
   .history-terminal .terminal-body { padding: 32px 48px 40px; }
   .git-command { font-size: 1rem; }
   .final-actions { flex-direction: row; justify-content: center; }
+}
+@media (min-width: 1024px) {
   .footer { flex-direction: row; justify-content: space-between; align-items: center; }
   .footer-links { justify-content: center; max-width: 360px; }
   .footer-links ul { justify-content: center; }
   .footer-author { text-align: right; }
-}
-@media (min-width: 1024px) {
   .hero { min-height: 680px; height: min(900px, 56.25vw); justify-content: center; }
   .hero-content { max-width: 1180px; padding-block: 64px; }
   .hero-art { position: absolute; inset: 0; margin: 0; width: 100%; max-width: none; }

@@ -22,6 +22,5 @@ export function PrivacyPage({home}: {home:string}) {
       <section id="convivencia"><h2>Regras de convivência</h2>{terms.consents.filter(c=>['sfw','nsfw'].includes(c.key)).map(c=><p key={c.key}>{c.text}</p>)}</section>
       <section><h2>Autorizações</h2>{terms.consents.filter(c=>['personal_data','external_profiles'].includes(c.key)).map(c=><p key={c.key}>{c.text}</p>)}</section>
     </>}
-    <a href="#contato" className="poll-inline-link">Falar com a administração</a>
   </article></section>
 }
