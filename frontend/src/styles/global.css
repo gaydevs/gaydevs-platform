@@ -352,7 +352,10 @@ section, article, div, li { min-width: 0; }
 .notes-editor:focus-within { border-color: var(--cyan); }
 .notes-editor-content { min-height: 320px; padding: clamp(16px, 3vw, 24px); outline: none; overflow-wrap: anywhere; color: var(--text); }
 .notes-editor-content p { margin: 0 0 .6em; }
-.notes-editor-content h1, .notes-editor-content h2, .notes-editor-content h3 { font-size: clamp(1.2rem, 3vw, 1.7rem); margin: .7em 0 .4em; }
+.notes-editor-content h1, .notes-editor-content h2, .notes-editor-content h3 { margin: .7em 0 .4em; max-width: none; letter-spacing: normal; }
+.notes-editor-content h1 { font-size: 1.7rem; }
+.notes-editor-content h2 { font-size: 1.4rem; }
+.notes-editor-content h3 { font-size: 1.15rem; }
 .notes-editor-content ul, .notes-editor-content ol { padding-left: 1.5rem; margin: .6em 0; }
 .notes-editor-content ul { list-style: disc; }
 .notes-editor-content ol { list-style: decimal; }

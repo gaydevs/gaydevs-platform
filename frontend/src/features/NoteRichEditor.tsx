@@ -35,7 +35,7 @@ export function NoteRichEditor({ content, onChange }: { content: string; onChang
   const active = useEditorState({
     editor,
     selector: ({ editor }) => editor ? {
-      bold: editor.isActive('bold'), italic: editor.isActive('italic'), heading: editor.isActive('heading', { level: 2 }),
+      bold: editor.isActive('bold'), italic: editor.isActive('italic'), heading1: editor.isActive('heading', { level: 1 }), heading2: editor.isActive('heading', { level: 2 }), heading3: editor.isActive('heading', { level: 3 }),
       bullet: editor.isActive('bulletList'), ordered: editor.isActive('orderedList'),
     } : null,
   })
@@ -45,7 +45,7 @@ export function NoteRichEditor({ content, onChange }: { content: string; onChang
       <div className="notes-bubble-menu" role="toolbar" aria-label="Formatação">
         <button type="button" aria-label="Negrito" aria-pressed={active?.bold} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></button>
         <button type="button" aria-label="Itálico" aria-pressed={active?.italic} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></button>
-        <button type="button" aria-label="Subtítulo" aria-pressed={active?.heading} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
+        {([1, 2, 3] as const).map(level => <button key={level} type="button" aria-label={`Título H${level}`} aria-pressed={active?.[`heading${level}`]} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleHeading({ level }).run()}>H{level}</button>)}
         <button type="button" aria-label="Lista" aria-pressed={active?.bullet} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleBulletList().run()}>• ≡</button>
         <button type="button" aria-label="Lista numerada" aria-pressed={active?.ordered} onMouseDown={e => e.preventDefault()} onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. ≡</button>
       </div>

@@ -19,4 +19,6 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 - [x] T011 Omitir textos vazios e estados de autosave fora do modal; ajustar alinhamento e esqueletos nas duas telas.
 - [x] T012 Cobrir os quatro ajustes com testes automatizados e verificar a geometria do card em navegador. 26 testes frontend relacionados passaram, incluindo os quatro refinamentos e logout. Fixture de layout isolada em Chromium: 320, 390, 768 e 1440 px; primeira linha alinhada ao centro do avatar (0 px de diferença). Revisão visual completa da aplicação ainda pendente.
 
+- [x] T013 Expor H1, H2 e H3 no menu flutuante e testar aplicação, alternância e serialização Markdown de cada nível.
+
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.
