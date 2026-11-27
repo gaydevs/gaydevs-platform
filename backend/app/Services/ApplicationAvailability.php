@@ -14,7 +14,7 @@ class ApplicationAvailability
         }
         $turnstile = config('applications.turnstile');
         if (blank($turnstile['sitekey']) || blank($turnstile['secret']) || blank($turnstile['hostname'])
-            || blank($turnstile['action']) || ! filter_var(config('mail.notification_email'), FILTER_VALIDATE_EMAIL)
+            || blank($turnstile['action']) || ! filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL)
             || ! preg_match('/^\+?[1-9][0-9]{7,14}$/D', (string) config('applications.support_whatsapp'))
             || blank(config('app.key'))
             || ! ApplicationTurnstile::credentialsAllowed()

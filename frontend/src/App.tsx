@@ -96,6 +96,7 @@ export default function App() {
       window.dispatchEvent(new PopStateEvent('popstate'))
     }
   }, [auth.user, isOnboarding, isPrivacy, route.base])
+  const applicationLink = applicationsEnabled ? {label: 'quero ser um gdev', href: route.path('apply')} : undefined
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
   const homePath = pollsPath.slice(0, -pollsMarker.length) || '/'
@@ -133,7 +134,7 @@ export default function App() {
       isAdmin ? <AdminApplications key={pathname} id={route.relative.split('/')[2]} user={auth.user} restoring={auth.restoring} base={route.path('admin/applications')} onNavigate={navigate} onLogin={login.open} /> :
       isOnboarding ? <OnboardingPage user={auth.user} restoring={auth.restoring} onLogin={login.open} onDone={async () => { await refreshAuth(); navigate(route.path('polls')) }} /> :
       pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
-      <Hero content={hero} mobile={images.heroMobile} desktop={images.heroDesktop} onBrandVisibilityChange={setBrandVisible} />
+      <Hero content={hero} mobile={images.heroMobile} desktop={images.heroDesktop} applicationLink={applicationLink} onBrandVisibilityChange={setBrandVisible} />
       <About content={about} />
       <Topics content={topics} />
       <Events content={sections.events} formats={events} photos={photos} guide={formatGuide} />
@@ -141,7 +142,7 @@ export default function App() {
       <Gallery content={sections.gallery} photos={photos} />
       <Community content={sections.community} spaces={community} />
       <Lore content={sections.lore} profiles={lore} mascot={images.cleito} mascotAlt={accessibility.cleito} />
-      <FinalCta content={finalCta} links={applicationsEnabled ? [{label: 'quero ser um gdev', href: route.path('apply')}, ...publicLinks] : publicLinks} />
+      <FinalCta content={finalCta} links={applicationLink ? [applicationLink, ...publicLinks] : publicLinks} />
       </>}
     </main>
     <Footer content={footer} developerLinks={developerLinks} privacyHref={route.path('privacy')} />

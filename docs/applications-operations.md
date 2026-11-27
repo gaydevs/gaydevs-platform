@@ -10,7 +10,7 @@ Somente no ambiente persistente do backend. Não incluir credenciais, telefone o
 | --- | --- |
 | APPLICATIONS_ENABLED | false até todos os gates |
 | APP_FRONTEND_URL | URL compartilhada da plataforma; HTTPS em produção, HTTP loopback somente local/testing, sem credenciais, query ou fragmento |
-| NOTIFICATION_EMAIL | caixa autorizada de avisos |
+| MAIL_FROM_ADDRESS | remetente SMTP e destinatário dos avisos de candidatura; confirmar que a caixa recebe mensagens |
 | APPLICATION_SUPPORT_WHATSAPP | número internacional sem espaços |
 | APPLICATION_TURNSTILE_TEST_MODE | true no .env.example; false em produção; somente local/testing |
 | APPLICATION_TURNSTILE_SITEKEY / SECRET | credenciais do widget; só sitekey pública |

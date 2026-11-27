@@ -92,6 +92,7 @@ test('requires each consent independently and submits from the saved ready step'
   vi.mocked(api.submitApplication).mockResolvedValue({...draft,status:'pending',current_step:'submitted',revision:6})
   page()
   await screen.findByRole('heading',{name:'nossos combinados'})
+  expect(screen.getByRole('link',{name:/sobre a comunidade/})).toHaveAttribute('href','/gaydevs/platform/#sobre')
   const checks=screen.getAllByRole('checkbox')
   expect(checks).toHaveLength(5)
   expect(screen.getByLabelText('Autorizo o tratamento dos meus dados pessoais e sensíveis.')).toBeChecked()

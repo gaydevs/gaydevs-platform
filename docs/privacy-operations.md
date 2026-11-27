@@ -13,11 +13,11 @@ O controlador é a pessoa física responsável pela administração. O gdev soli
 | E-mail, OTP, sessão e cookies necessários | Verificação e autenticação | Consentimento na candidatura; prevenção de fraude/segurança quando aplicável | Backend e provedor de e-mail |
 | Identificação, WhatsApp, links, origem, colaboração | Análise de candidatura e gestão de membros | Consentimento específico/informado | Administração autorizada |
 | Condição de participante e aceites (podem revelar orientação sexual) | Admissão, administração, evidência de aceite | Art. 11 I LGPD; outras hipóteses do art. 11 somente quando efetivamente aplicáveis | Administração autorizada |
-| Identificador de perfil público | Validação de links e análise | Autorização específica; consulta GitHub REST, LinkedIn/Instagram manual | Provedor de perfil, administração |
+| Identificador de perfil informado e dados disponibilizados pelo titular | Validação de links e análise | Autorização específica; consulta GitHub REST, LinkedIn/Instagram manual | Provedor de perfil, administração |
 | IP, visitor observations, logs técnicos, antispam | Segurança, prevenção de abuso, operação | Avaliar hipótese aplicável por categoria, minimização e retenção | Hospedagem, Turnstile, administração |
 | Eventos, decisões, observações e histórico | Curadoria, evidência de fraude/abuso e defesa de direitos | Finalidade e base legal documentadas individualmente; dados sensíveis exigem art. 11 | Administração autorizada |
 
-Não inferir orientação sexual de perfis nem coletar dados de terceiros. A autorização para dados não implementa scraping ou nova captura automatizada. Definir escopo e base legal antes de novas coletas; preferir estatísticas efetivamente anônimas. Não publicar candidaturas. Nenhum dado pessoal de candidatos deve constar em commits, issues, PRs ou logs de QA.
+Não inferir orientação sexual de perfis nem coletar dados de terceiros. A autorização abrange dados disponibilizados pelo titular, inclusive não públicos quando legitimamente acessíveis, sem contornar restrições de acesso, solicitar senhas ou coletar dados de terceiros. Não implementa scraping ou nova captura automatizada. Definir escopo e base legal antes de novas coletas; preferir estatísticas efetivamente anônimas. Não publicar candidaturas. Nenhum dado pessoal de candidatos deve constar em commits, issues, PRs ou logs de QA.
 
 ## Retenção
 

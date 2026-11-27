@@ -20,7 +20,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     config([
         'applications.enabled' => true,
-        'mail.notification_email' => 'admin@example.test',
+        'mail.from.address' => 'admin@example.test',
         'applications.support_whatsapp' => '5511999999999',
         'app.frontend_url' => 'https://example.test/platform',
         'applications.turnstile' => ['sitekey' => 'test', 'secret' => 'test', 'hostname' => 'localhost', 'action' => 'application_otp'],
@@ -187,7 +187,7 @@ test('draft without current privacy acceptance cannot write personal data', func
 });
 
 test('outbox builds development notification links from the shared frontend URL', function () {
-    config(['app.frontend_url' => 'http://localhost:5173/gaydevs/platform/', 'mail.notification_email' => 'notifications@example.test']);
+    config(['app.frontend_url' => 'http://localhost:5173/gaydevs/platform/', 'mail.from.address' => 'notifications@example.test']);
     $a = workflowPending();
     $worker = app(ApplicationNotifications::class);
     $worker->enqueue($a);

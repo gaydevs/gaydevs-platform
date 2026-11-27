@@ -13,7 +13,7 @@ test('public config is disabled by default and never exposes private configurati
     $this->getJson('/applications/config')->assertOk()->assertExactJson(['enabled' => false]);
     config([
         'applications.enabled' => true,
-        'mail.notification_email' => 'admin@example.test',
+        'mail.from.address' => 'admin@example.test',
         'app.frontend_url' => 'http://localhost:5173/gaydevs/platform',
         'applications.support_whatsapp' => '5511999999999',
         'applications.turnstile' => ['sitekey' => 'public-test', 'secret' => 'private-test', 'hostname' => 'localhost', 'action' => 'application_otp'],
@@ -43,7 +43,7 @@ test('only admitted members receive onboarding and seen preference is persistent
 test('production refuses activation while privacy terms are not finalized', function () {
     config([
         'applications.enabled' => true,
-        'mail.notification_email' => 'admin@example.test',
+        'mail.from.address' => 'admin@example.test',
         'app.frontend_url' => 'https://example.test/platform',
         'applications.support_whatsapp' => '5511999999999',
         'applications.turnstile' => ['sitekey' => 'public-test', 'secret' => 'private-test', 'hostname' => 'example.test', 'action' => 'application_otp'],

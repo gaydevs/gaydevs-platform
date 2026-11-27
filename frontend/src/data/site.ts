@@ -14,6 +14,7 @@ export const about: SectionCopy & { paragraphs: Paragraph[]; highlights: string[
   paragraphs: [
     [{ text: 'o principal objetivo do gaydevs é construir ' }, { text: 'networking de verdade', strong: true }, { text: ' entre gdevs: conhecer pessoas, criar confiança, trocar conhecimento e oportunidades e se ajudar profissionalmente.' }],
     [{ text: 'o gaydevs é um espaço ' }, { text: 'progressista, inclusivo e seguro, alinhado a valores de esquerda, diversidade e respeito', strong: true }, { text: '.' }],
+    [{ text: 'buscamos uma comunidade engajada e coesa, não necessariamente grande, sem exigir declaração de preferência partidária.' }],
     [{ text: 'começou com tecnologia, IA e ajuda entre devs — e foi virando também espaço de amizade, apoio, eventos e construção coletiva.' }],
   ],
   highlights: ['🤝 criar conexões de verdade', '🧠 trocar conhecimento', '🚀 compartilhar oportunidades', '💜 construir comunidade'],

@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import type { HeroContent, ImageAsset } from '../types/content'
+import type { HeroContent, ImageAsset, Link } from '../types/content'
 import { ActionLink } from '../components/ActionLink'
 import { useSectionBrandVisibility } from '../components/useSectionBrandVisibility'
 
@@ -7,10 +7,11 @@ interface HeroProps {
   content: HeroContent
   mobile: ImageAsset
   desktop: ImageAsset
+  applicationLink?: Link
   onBrandVisibilityChange?: (visible: boolean) => void
 }
 
-export function Hero({ content, mobile, desktop, onBrandVisibilityChange }: HeroProps) {
+export function Hero({ content, mobile, desktop, applicationLink, onBrandVisibilityChange }: HeroProps) {
   const srcSet = (image: ImageAsset) => image.sources.map((source) => `${source.src} ${source.width}w`).join(', ')
   const brandIconSrc = `${import.meta.env.BASE_URL}brand-icon-512.png`
   const brandIcon = useRef<HTMLImageElement>(null)
@@ -33,7 +34,7 @@ export function Hero({ content, mobile, desktop, onBrandVisibilityChange }: Hero
       <p className="hero-subtitle">{content.subtitle}</p>
       <p className="hero-description">{content.description}</p>
       <p className="hero-tagline">{content.tagline}</p>
-      <ActionLink link={content.cta} />
+      <div className="hero-actions">{applicationLink && <ActionLink link={applicationLink} />}<ActionLink link={content.cta} secondary={Boolean(applicationLink)} /></div>
     </div>
   </section>
 }

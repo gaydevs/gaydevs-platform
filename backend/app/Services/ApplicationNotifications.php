@@ -30,7 +30,7 @@ class ApplicationNotifications
         if (! config('applications.enabled')) {
             return 0;
         }
-        $recipient = config('mail.notification_email');
+        $recipient = config('mail.from.address');
         $base = rtrim((string) config('app.frontend_url'), '/');
         if (! filter_var($recipient, FILTER_VALIDATE_EMAIL)
             || ! ApplicationAvailability::validFrontendUrl($base)
