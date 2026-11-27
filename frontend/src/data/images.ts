@@ -30,14 +30,17 @@ import blackMirror480 from '../assets/community/black-mirror-2026-09-05-480w.web
 import blackMirror899 from '../assets/community/black-mirror-2026-09-05-899w.webp'
 import blackMirrorOriginal from '../assets/community/black-mirror-2026-09-05.jpg'
 import comitivaClaro480 from '../assets/community/comitiva-01-ai-tinkerers-claro-2026-10-21-480w.webp'
-import comitivaClaro640 from '../assets/community/comitiva-01-ai-tinkerers-claro-2026-10-21-640w.webp'
-import comitivaClaroOriginal from '../assets/community/comitiva-01-ai-tinkerers-claro-2026-10-21.jpg'
+import comitivaClaro900 from '../assets/community/comitiva-01-ai-tinkerers-claro-2026-10-21-900w.webp'
+import comitivaClaro1440 from '../assets/community/comitiva-01-ai-tinkerers-claro-2026-10-21-1440w.webp'
+import comitivaClaroOriginal from '../assets/community/comitiva-01-ai-tinkerers-claro-2026-10-21.webp'
 import comitivaOracle480 from '../assets/community/comitiva-02-ai-camp-oracle-2026-10-29-480w.webp'
-import comitivaOracle640 from '../assets/community/comitiva-02-ai-camp-oracle-2026-10-29-640w.webp'
-import comitivaOracleOriginal from '../assets/community/comitiva-02-ai-camp-oracle-2026-10-29.jpg'
+import comitivaOracle900 from '../assets/community/comitiva-02-ai-camp-oracle-2026-10-29-900w.webp'
+import comitivaOracle1440 from '../assets/community/comitiva-02-ai-camp-oracle-2026-10-29-1440w.webp'
+import comitivaOracleOriginal from '../assets/community/comitiva-02-ai-camp-oracle-2026-10-29.webp'
 import comitivaTractian480 from '../assets/community/comitiva-03-ai-tinkerers-tractian-2026-11-26-480w.webp'
-import comitivaTractian640 from '../assets/community/comitiva-03-ai-tinkerers-tractian-2026-11-26-640w.webp'
-import comitivaTractianOriginal from '../assets/community/comitiva-03-ai-tinkerers-tractian-2026-11-26.jpg'
+import comitivaTractian900 from '../assets/community/comitiva-03-ai-tinkerers-tractian-2026-11-26-900w.webp'
+import comitivaTractian1440 from '../assets/community/comitiva-03-ai-tinkerers-tractian-2026-11-26-1440w.webp'
+import comitivaTractianOriginal from '../assets/community/comitiva-03-ai-tinkerers-tractian-2026-11-26.webp'
 
 export const images = {
   heroMobile: { src: heroMobileOriginal, width: 941, height: 1672, sources: [{ src: heroMobile480, width: 480 }, { src: heroMobile768, width: 768 }, { src: heroMobile941, width: 941 }] },
@@ -49,7 +52,7 @@ export const images = {
   jogaydev: { src: jogaydevOriginal, width: 1442, height: 1220, sources: [{ src: jogaydev480, width: 480 }, { src: jogaydev960, width: 960 }, { src: jogaydev1440, width: 1440 }] },
   bento: { src: bentoOriginal, width: 899, height: 1600, sources: [{ src: bento480, width: 480 }, { src: bento899, width: 899 }] },
   blackMirror: { src: blackMirrorOriginal, width: 899, height: 1600, sources: [{ src: blackMirror480, width: 480 }, { src: blackMirror899, width: 899 }] },
-  comitivaClaro: { src: comitivaClaroOriginal, width: 640, height: 640, sources: [{ src: comitivaClaro480, width: 480 }, { src: comitivaClaro640, width: 640 }] },
-  comitivaOracle: { src: comitivaOracleOriginal, width: 640, height: 640, sources: [{ src: comitivaOracle480, width: 480 }, { src: comitivaOracle640, width: 640 }] },
-  comitivaTractian: { src: comitivaTractianOriginal, width: 640, height: 640, sources: [{ src: comitivaTractian480, width: 480 }, { src: comitivaTractian640, width: 640 }] }
+  comitivaClaro: { src: comitivaClaroOriginal, width: 1440, height: 1920, sources: [{ src: comitivaClaro480, width: 480 }, { src: comitivaClaro900, width: 900 }, { src: comitivaClaro1440, width: 1440 }] },
+  comitivaOracle: { src: comitivaOracleOriginal, width: 1440, height: 1440, sources: [{ src: comitivaOracle480, width: 480 }, { src: comitivaOracle900, width: 900 }, { src: comitivaOracle1440, width: 1440 }] },
+  comitivaTractian: { src: comitivaTractianOriginal, width: 1440, height: 1440, sources: [{ src: comitivaTractian480, width: 480 }, { src: comitivaTractian900, width: 900 }, { src: comitivaTractian1440, width: 1440 }] }
 } satisfies Record<string, ImageAsset>

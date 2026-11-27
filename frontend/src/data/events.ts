@@ -30,12 +30,12 @@ export const events: EventFormat[] = [
     ],
   },
   {
-    id: 'comitivas', title: '🚀 gdevs comitivas',
+    id: 'comitivas', title: '🚀 comitiva gaydevs',
     paragraphs: ['participação conjunta em eventos de tecnologia organizados por terceiros, para aprender, trocar experiências e fazer networking.'],
     items: [
-      { title: 'gdevs comitiva #1 — AI Tinkerers SP na Claro · 21/10' },
-      { title: 'gdevs comitiva #2 — AI Camp na Oracle · 29/10' },
-      { title: 'gdevs comitiva #3 — AI Tinkerers SP na Tractian · 26/11' },
+      { title: 'comitiva gaydevs #1 — AI Tinkerers SP na Claro · 21/10' },
+      { title: 'comitiva gaydevs #2 — AI Camp na Oracle · 29/10' },
+      { title: 'comitiva gaydevs #3 — AI Tinkerers SP na Tractian · 26/11' },
     ],
   },
   {

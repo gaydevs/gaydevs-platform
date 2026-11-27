@@ -20,8 +20,8 @@ export const timeline: TimelineItem[] = [
   { date: '2026-08-18', type: 'feat', title: 'nasce /talks', description: 'primeiro tema: internacionalização de carreira' },
   { date: '2026-08-20', type: 'play', title: 'jogaydev #5 — MECCHA CHAMELEON' },
   { date: '2026-09-05', type: 'role', title: 'rolê na Black Mirror Experience', description: 'tecnologia, arte e gdevs no mundo real' },
-  { date: '2026-09-25', type: 'launch', title: 'lançamento do site dos gaydevs', description: 'marcando 4 meses da comunidade' },
-  { date: '2026-10-21', type: 'comitiva', title: 'gdevs comitiva #1 — AI Tinkerers SP na Claro' },
-  { date: '2026-10-29', type: 'comitiva', title: 'gdevs comitiva #2 — AI Camp na Oracle' },
-  { date: '2026-11-26', type: 'comitiva', title: 'gdevs comitiva #3 — AI Tinkerers SP na Tractian' },
+  { date: '2026-09-25', type: 'launch', title: 'lançamento da plataforma gaydevs', description: 'marcando 4 meses da comunidade' },
+  { date: '2026-10-21', type: 'comitiva', title: 'comitiva gaydevs #1 — AI Tinkerers SP na Claro' },
+  { date: '2026-10-29', type: 'comitiva', title: 'comitiva gaydevs #2 — AI Camp na Oracle' },
+  { date: '2026-11-26', type: 'comitiva', title: 'comitiva gaydevs #3 — AI Tinkerers SP na Tractian' },
 ]

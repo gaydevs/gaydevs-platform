@@ -13,9 +13,9 @@ const assets = [
   ['jogaydev', 'community/jogaydev-2026-07-21.jpg', [480, 960, 1440]],
   ['bento', 'community/happy-hour-bento-2026-07-31.jpg', [480, 900]],
   ['blackMirror', 'community/black-mirror-2026-09-05.jpg', [480, 900]],
-  ['comitivaClaro', 'community/comitiva-01-ai-tinkerers-claro-2026-10-21.jpg', [480, 640]],
-  ['comitivaOracle', 'community/comitiva-02-ai-camp-oracle-2026-10-29.jpg', [480, 640]],
-  ['comitivaTractian', 'community/comitiva-03-ai-tinkerers-tractian-2026-11-26.jpg', [480, 640]],
+  ['comitivaClaro', 'community/comitiva-01-ai-tinkerers-claro-2026-10-21.webp', [480, 900, 1440]],
+  ['comitivaOracle', 'community/comitiva-02-ai-camp-oracle-2026-10-29.webp', [480, 900, 1440]],
+  ['comitivaTractian', 'community/comitiva-03-ai-tinkerers-tractian-2026-11-26.webp', [480, 900, 1440]],
 ]
 const assetRoot = new URL('../src/assets/', import.meta.url)
 const imports = []

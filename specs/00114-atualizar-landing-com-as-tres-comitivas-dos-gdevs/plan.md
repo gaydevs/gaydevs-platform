@@ -5,7 +5,7 @@ Fast-track risk: Low
 
 ## Abordagem
 
-Estender EventFormat e CommitType, atualizar events/timeline/photos e CSS de landing. Usar JPEGs já recuperados do Instagram e o gerador de imagens existente. Atualizar a auditoria editorial para validar as três comitivas e manter os demais invariantes.
+Estender EventFormat e CommitType, atualizar events/timeline/photos e CSS de landing. Usar WebPs completos recuperados da página pública incorporável do Instagram e o gerador de imagens existente. Atualizar a auditoria editorial para validar as três comitivas e manter os demais invariantes.
 
 ## Validação
 
