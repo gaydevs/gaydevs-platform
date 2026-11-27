@@ -55,6 +55,7 @@ export const events: EventFormat[] = [
     items: [
       { title: '/review-pr', description: 'IA aplicada a code review com agentes' },
       { title: 'Event Sourcing', description: 'aplicação do pattern em arquitetura de microsserviços' },
+      { title: 'Mutation Testing', description: 'testes de mutação para avaliar a qualidade das suítes de testes, inclusive os gerados por IA' },
     ],
   },
 ]

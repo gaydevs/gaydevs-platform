@@ -12,3 +12,7 @@ Validação: geração de imagens, check:content, lint, build e 130 testes em 20
 - [x] T003 Ajustar nomenclatura e substituir previews por imagens completas; validar novamente.
 
 Revisão de 27/11: imagens completas, auditoria de conteúdo, lint e build aprovados.
+
+- [x] T004 Adicionar Mutation Testing às propostas de summit e validar conteúdo.
+
+Mutation Testing: auditoria de conteúdo e build aprovados.

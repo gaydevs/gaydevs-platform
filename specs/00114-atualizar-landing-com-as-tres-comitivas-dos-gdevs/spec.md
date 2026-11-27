@@ -29,3 +29,5 @@ Fast-track aprovado por um gdev em 27/11/2026 (conversa de criação e início d
 - Usar “comitiva gaydevs” nas iniciativas, timeline e galeria.
 - Alterar o marco para “lançamento da plataforma gaydevs”.
 - Substituir os previews quadrados pelos arquivos completos publicados: 1440 × 1920 (Claro), 1440 × 1440 (Oracle e Tractian), sem recorte adicional.
+
+- Incluir Mutation Testing como terceira proposta do summit, sem confirmar apresentação (referência: https://www.thoughtworks.com/en-de/radar/techniques/summary/mutation-testing).

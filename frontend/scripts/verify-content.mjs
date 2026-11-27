@@ -38,6 +38,7 @@ try {
   assert.equal(lore.length, 2)
   assert.equal(photos.length, 9)
   assert.equal(events.length, 6)
+  assert.ok(events.find((format) => format.id === 'summit')?.items.some((item) => item.title === 'Mutation Testing'))
   const comitivas = events.find((format) => format.id === 'comitivas')
   assert.equal(comitivas?.title, '🚀 comitiva gaydevs')
   assert.equal(comitivas?.items.length, 3)
