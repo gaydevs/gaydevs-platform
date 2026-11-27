@@ -23,7 +23,7 @@ import { LoginDialog } from './features/auth/LoginDialog'
 import { PollAuditDialog, PollErrorDialog, PollsPage, PollsSectionBar } from './features/PollsPage'
 import type { Poll } from './features/pollsApi'
 import { NotesPage, NotesSectionBar } from './features/NotesPage'
-import type { LeaveGuard } from './features/useNoteAutosave'
+import { usePlatformHistory } from './navigation/usePlatformHistory'
 
 export default function App() {
   // Os hooks mantêm autenticação e URL fora da árvore visual da landing page.
@@ -38,60 +38,7 @@ export default function App() {
   const [pollError, setPollError] = useState<string | null>(null)
   const sectionLoginPrompt = useRef(false)
   const loginCompleted = useRef(false)
-  const [pathname, setPathname] = useState(() => typeof window === 'undefined' ? '/' : window.location.pathname)
-  const leaveGuard = useRef<LeaveGuard | null>(null)
-  const registerLeaveGuard = useCallback((guard: LeaveGuard) => {
-    leaveGuard.current = guard
-    return () => { if (leaveGuard.current === guard) leaveGuard.current = null }
-  }, [])
-  const locationRef = useRef<{ href: string; index: number } | null>(null)
-  const restoringHistory = useRef<{ index: number; resume: (() => void) | null } | null>(null)
-  const bypassHistory = useRef(false)
-  useEffect(() => {
-    const initialIndex = window.history.state?.gdevsIndex ?? 0
-    window.history.replaceState({ ...window.history.state, gdevsIndex: initialIndex }, '')
-    locationRef.current = { href: window.location.href, index: initialIndex }
-    const synchronizePathname = () => {
-      const previous = locationRef.current
-      const target = { href: window.location.href, index: window.history.state?.gdevsIndex }
-      const restoration = restoringHistory.current
-      if (restoration && target.index === restoration.index) {
-        restoringHistory.current = null
-        restoration.resume?.()
-        return
-      }
-      if (previous && !bypassHistory.current && leaveGuard.current) {
-        const delta = typeof target.index === 'number' ? target.index - previous.index : 0
-        const proceed = () => {
-          if (delta) {
-            const resume = () => { bypassHistory.current = true; window.history.go(delta) }
-            if (restoringHistory.current) restoringHistory.current.resume = resume
-            else resume()
-          } else {
-            window.history.pushState({ gdevsIndex: previous.index + 1 }, '', target.href)
-            locationRef.current = { href: target.href, index: previous.index + 1 }
-            setPathname(window.location.pathname)
-          }
-        }
-        if (leaveGuard.current(proceed)) {
-          if (delta) {
-            restoringHistory.current = { index: previous.index, resume: null }
-            window.history.go(-delta)
-          } else {
-            window.history.pushState({ gdevsIndex: previous.index }, '', previous.href)
-          }
-          return
-        }
-      }
-      bypassHistory.current = false
-      const index = typeof target.index === 'number' ? target.index : 0
-      if (typeof target.index !== 'number') window.history.replaceState({ ...window.history.state, gdevsIndex: index }, '')
-      locationRef.current = { href: target.href, index }
-      setPathname(window.location.pathname)
-    }
-    window.addEventListener('popstate', synchronizePathname)
-    return () => window.removeEventListener('popstate', synchronizePathname)
-  }, [])
+  const { pathname, navigate, registerLeaveGuard, leaveGuard } = usePlatformHistory()
   useEffect(() => {
     const previousScrollRestoration = window.history.scrollRestoration
     window.history.scrollRestoration = 'manual'
@@ -101,24 +48,6 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [pathname])
-  const navigate = useCallback((path: string) => {
-    const target = new URL(path, window.location.href)
-    const proceed = () => {
-      if (target.origin !== window.location.origin) {
-        window.location.assign(path)
-        return
-      }
-      if (target.href !== window.location.href) {
-        const index = (locationRef.current?.index ?? 0) + 1
-        window.history.pushState({ gdevsIndex: index }, '', target.href)
-        locationRef.current = { href: target.href, index }
-      }
-      setPathname(target.pathname)
-      window.scrollTo(0, 0)
-    }
-    if (target.href !== window.location.href && leaveGuard.current?.(proceed)) return
-    proceed()
-  }, [])
   const logoutWithFeedback = useCallback(async () => {
     setLogoutError(false)
     try {
@@ -135,7 +64,7 @@ export default function App() {
     } catch {
       // The account header reports the failure; do not leave an unhandled rejection.
     }
-  }, [logoutWithFeedback])
+  }, [leaveGuard, logoutWithFeedback])
   const pollsMarker = '/polls'
   const pollsIndex = pathname.indexOf(pollsMarker)
   const pollIdentifier = pollsIndex >= 0 ? pathname.slice(pollsIndex + pollsMarker.length).replace(/^\/+|\/+$/g, '') || null : null

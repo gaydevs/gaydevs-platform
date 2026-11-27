@@ -10,6 +10,7 @@ import { useAuth } from './features/auth/useAuth'
 import { useLoginHash, type LoginStep } from './features/auth/useLoginHash'
 import { getPoll, listPolls, type PollListResponse } from './features/pollsApi'
 import { getMemberNote, listNoteMembers, saveMemberNote, type MemberNote } from './features/notesApi'
+import { readHistory } from './navigation/history'
 
 vi.mock('./features/notesApi', () => ({ getMemberNote: vi.fn(), listNoteMembers: vi.fn(), saveMemberNote: vi.fn() }))
 vi.mock('./features/auth/useAuth', () => ({ useAuth: vi.fn() }))
@@ -283,6 +284,36 @@ describe('notes required login', () => {
     expect(listNoteMembers).not.toHaveBeenCalled()
     expect(getMemberNote).not.toHaveBeenCalled()
   }
+
+
+  it.each(['save', 'ignore', 'cancel'])('crosses the real login entry with pending changes and %s', async action => {
+    await setup(base, 'admin')
+    await userEvent.click(screen.getByRole('button', { name: 'concluir login' }))
+    let finish!: (value: MemberNote) => void
+    vi.mocked(saveMemberNote).mockImplementation(() => new Promise(resolve => { finish = resolve }))
+    await userEvent.click(await screen.findByRole('button', { name: /Ana/ }))
+    const editor = await screen.findByRole('textbox', { name: 'Anotações' }, { timeout: 5000 })
+    fireEvent.paste(editor, { clipboardData: { getData: () => ' novo' } })
+    const entry = readHistory()
+    act(() => window.history.go(-2))
+    const dialog = await screen.findByRole('dialog', { name: 'Salvando anotação' })
+    await waitFor(() => expect(readHistory().position?.key).toBe(entry.position?.key))
+    expect(window.location.pathname).toBe(base + '/ana')
+    expect(editor).toBeInTheDocument()
+    if (action === 'cancel') {
+      await userEvent.click(within(dialog).getByRole('button', { name: 'cancelar saída' }))
+      await act(async () => finish({ member, content: 'Texto privado novo' }))
+      expect(window.location.pathname).toBe(base + '/ana')
+      expect(editor).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    } else {
+      if (action === 'ignore') await userEvent.click(within(dialog).getByRole('button', { name: 'Ignorar' }))
+      await act(async () => finish({ member, content: 'Texto privado novo' }))
+      await waitFor(() => expect(window.location.pathname).toBe(base))
+      expect(await screen.findByRole('button', { name: /Ana/ })).toBeInTheDocument()
+      expect(readHistory().position?.index).toBe((entry.position?.index ?? 0) - 2)
+    }
+  }, 15000)
 
   it.each([base, base + '/ana'])('cancel redirects %s to platform home', async path => {
     await setup(path, 'admin')

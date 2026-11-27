@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { PLATFORM_HISTORY_CHANGE, pushHistory, replaceHistory } from '../../navigation/history'
 
 export type LoginStep = 'search' | 'otp'
 export const LOGIN_HASH = '#login'
@@ -23,25 +24,26 @@ export function useLoginHash() {
     const synchronize = () => setStep(loginStepFromHash(window.location.hash))
     window.addEventListener('hashchange', synchronize)
     window.addEventListener('popstate', synchronize)
-    return () => { window.removeEventListener('hashchange', synchronize); window.removeEventListener('popstate', synchronize) }
+    window.addEventListener(PLATFORM_HISTORY_CHANGE, synchronize)
+    return () => { window.removeEventListener('hashchange', synchronize); window.removeEventListener('popstate', synchronize); window.removeEventListener(PLATFORM_HISTORY_CHANGE, synchronize) }
   }, [])
   /** Abre o modal sem abandonar a página atual. */
   const open = useCallback(() => {
     if (loginStepFromHash(window.location.hash) !== null) return
     // Guardamos a página original para fechar sem perder a posição/âncora.
     returnUrl.current = `${window.location.pathname}${window.location.search}${window.location.hash}`
-    window.history.pushState(null, '', LOGIN_HASH)
+    pushHistory(LOGIN_HASH)
     setStep('search')
   }, [])
   /** Troca search/otp sem criar outra entrada no histórico. */
   const showStep = useCallback((nextStep: LoginStep) => {
     // replaceState troca a etapa sem criar uma entrada extra no histórico.
-    window.history.replaceState(null, '', nextStep === 'otp' ? LOGIN_OTP_HASH : LOGIN_HASH)
+    replaceHistory(nextStep === 'otp' ? LOGIN_OTP_HASH : LOGIN_HASH)
     setStep(nextStep)
   }, [])
   /** Fecha o modal e restaura a URL original da pessoa. */
   const close = useCallback(() => {
-    window.history.replaceState(null, '', returnUrl.current ?? `${window.location.pathname}${window.location.search}`)
+    replaceHistory(returnUrl.current ?? `${window.location.pathname}${window.location.search}`)
     returnUrl.current = null
     setStep(null)
   }, [])
