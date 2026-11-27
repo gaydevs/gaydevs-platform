@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Data\IssuedOtp;
+use App\Enums\OtpPurpose;
 use App\Enums\OtpRequestStatus;
 use App\Exceptions\OtpGenerationFailedException;
 use App\Exceptions\UserNotActiveException;
 use App\Exceptions\UserNotFoundException;
+use App\Models\Applicant;
 use App\Models\OtpRequest;
 use App\Models\User;
 use App\Models\VisitorObservation;
@@ -32,6 +34,8 @@ class OtpIssuer
 
             $request = OtpRequest::query()->create([
                 'user_id' => $lockedUser->id,
+                'purpose' => OtpPurpose::Login,
+                'email' => Applicant::normalizeEmail($lockedUser->email),
                 'visitor_observation_id' => $observation->id,
                 'code_hash' => Hash::make($code),
                 'status' => OtpRequestStatus::Pending,
@@ -43,6 +47,7 @@ class OtpIssuer
 
             OtpRequest::query()
                 ->where('user_id', $lockedUser->id)
+                ->where('purpose', OtpPurpose::Login)
                 ->where('status', OtpRequestStatus::Pending->value)
                 ->whereKeyNot($request->id)
                 ->update([
@@ -52,13 +57,13 @@ class OtpIssuer
                     'updated_at' => now(),
                 ]);
 
-            return new IssuedOtp($request, $code);
+            return new IssuedOtp($request, $code, $lockedUser->email);
         }, self::TRANSACTION_ATTEMPTS);
     }
 
     private function uniqueCode(User $user, VisitorObservation $observation): string
     {
-        $hashes = $user->otpRequests()->pluck('code_hash');
+        $hashes = $user->otpRequests()->where('purpose', OtpPurpose::Login)->pluck('code_hash');
         $digits = (int) config('passwordless.otp.digits');
         $maxGenerationAttempts = (int) config('passwordless.otp.max_generation_attempts');
         $largestCode = (10 ** $digits) - 1;

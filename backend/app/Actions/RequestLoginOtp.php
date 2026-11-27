@@ -93,7 +93,7 @@ class RequestLoginOtp
 
         $this->emails->reserve();
         $issued = $this->issuer->issue($user, $observation);
-        $this->emails->sendReserved($user->email, new LoginOtpMail($issued->code));
+        $this->emails->sendReserved($issued->recipient, new LoginOtpMail($issued->code));
 
         return $issued->request;
     }

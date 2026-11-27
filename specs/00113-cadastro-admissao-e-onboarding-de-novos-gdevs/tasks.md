@@ -11,9 +11,9 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 - [ ] T001 — Revalidar issue, dependências, branch e integração com develop; preparar ambiente local isolado, confirmar versões SQLite/MySQL e baseline de testes, sem dados reais.
 - [ ] T002 — Criar migration, enum, model e factory de applicants com UUID v7, campos do plano, revision, índices e coluna gerada active_email UNIQUE; testar histórico e unicidade concorrente.
 - [x] T003 — Criar models/migrations de applicant_consents e applicant_events com constraints, versionamento e idempotência; testar registro atômico de etapas e decisões.
-- [ ] T004 — Migrar otp_requests com email, purpose e applicant_id, user_id nullable, índices e constraints; preservar legado e testar backfill e integridade de otp_attempts.
-- [ ] T005 — Adicionar users.applicant_id nullable UNIQUE com FK; testar upgrade e proteção de downgrade quando houver dados novos.
-- [ ] T006 — Implementar transições de candidatura, normalização de email, locks por email e repositório/ações de domínio; testar corrida entre criação, retomada, submissão e aprovação.
+- [x] T004 — Migrar otp_requests com email, purpose e applicant_id, user_id nullable, índices e constraints; preservar legado e testar backfill e integridade de otp_attempts.
+- [x] T005 — Adicionar users.applicant_id nullable UNIQUE com FK; testar upgrade e proteção de downgrade quando houver dados novos.
+- [x] T006 — Implementar transições de candidatura, normalização de email, locks por email e repositório/ações de domínio; testar corrida entre criação, retomada, submissão e aprovação.
 
 ### OTP, sessões e segurança (PLAN-06 a PLAN-10)
 
@@ -63,6 +63,11 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 - T002 (parcial): migration applicants, enum, model e factory implementados. Coluna gerada active_email UNIQUE validada em SQLite, inclusive histórico e mudanças de status. Falta validar a corrida com conexões concorrentes em MySQL e compatibilidade com o host.
 - T003: migrations/models de applicant_consents e applicant_events, chaves únicas por versão e event_key, FK restrict e rollback conjunto de alteração + evento testados em SQLite. Versionamento de textos e chamadas transacionais de domínio continuam nas tarefas T006/T016/T017/T020.
 - Validação focada: ApplicantFoundationTest.php, 8 testes passaram (25 assertions); Pint passou nos 8 arquivos novos. Sem rotas públicas, alterações de autenticação ou deploy nesta etapa.
+
+- T004: schema OTP estendido com purpose, email e applicant_id; user_id nullable. Triggers de INSERT/UPDATE preservam finalidade, identidade e snapshot; login limitado a purpose login em emissão, supersessão e verificação. Backfill conservador por timestamps, mantendo NULL quando o histórico não permite inferência segura. Upgrade com OTPs/attempts legados e FK preservados testado em SQLite. Rollback protegido. Validar sintaxe, versão e privilégio TRIGGER no MySQL isolado antes do release (T001/T028/T030); DDL MySQL não é transacional.
+- T005: users.applicant_id nullable/UNIQUE/FK restrict, preservando restrições existentes em SQLite por ALTER TABLE ADD COLUMN nativo. Testados membro legado, vínculo único e proteção de downgrade.
+- T006: serviço ApplicantLifecycle com lock por email normalizado (HMAC), transações, estados, auditoria e idempotência; criação/retomada, nova candidatura após recusa mediante prova, aprovação/recusa e membro ativo atômico. Teste com dois processos independentes e cache database em SQLite confirmou ausência de duplicidade na criação, confirmação, submissão e aprovação. T008 ainda integra consumo do OTP e transição na mesma transação; T017/T018 fornecem validação integral e intenção durável real; T019/T020 conectam autorização e APIs. Nenhum endpoint novo exposto nesta etapa.
+- Regressão após T004–T006: PHP 8.4.27 + SQLite 3.46.1, 188 testes passaram, 2 ignorados, 1111 assertions; 12 testes novos em relação à etapa anterior. Pint --dirty --test passou em 16 arquivos. MySQL e PHP 8.3 permanecem pendentes (T001/T002/T030). Project apresentou Backlog em leitura apesar de tentativa anterior de atualização para In Progress; não considerar sincronizado.
 
 ## Limites
 

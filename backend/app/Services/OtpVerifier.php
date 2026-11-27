@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Data\OtpVerification;
 use App\Enums\OtpAttemptResult;
+use App\Enums\OtpPurpose;
 use App\Enums\OtpRequestStatus;
 use App\Models\AuthenticatedSession;
 use App\Models\OtpAttempt;
@@ -41,6 +42,7 @@ class OtpVerifier
         ): OtpVerification {
             $otpRequest = OtpRequest::query()
                 ->with('user')
+                ->where('purpose', OtpPurpose::Login)
                 ->lockForUpdate()
                 ->find($otpRequestId);
 
@@ -149,6 +151,7 @@ class OtpVerifier
     {
         return OtpRequest::query()
             ->where('user_id', $currentRequest->user_id)
+            ->where('purpose', OtpPurpose::Login)
             ->where('status', OtpRequestStatus::Superseded->value)
             ->latest('created_at')
             ->limit((int) config('passwordless.otp.superseded_code_lookup_limit'))

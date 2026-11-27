@@ -10,11 +10,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Applicant extends Model
 {
     /** @use HasFactory<ApplicantFactory> */
     use HasFactory, HasUuidV7;
+
+    protected $attributes = [
+        'status' => 'unverified',
+        'current_step' => 'email',
+        'revision' => 0,
+    ];
 
     protected $fillable = [
         'email',
@@ -66,6 +73,16 @@ class Applicant extends Model
     protected function email(): Attribute
     {
         return Attribute::make(set: fn (string $value): string => self::normalizeEmail($value));
+    }
+
+    public function member(): HasOne
+    {
+        return $this->hasOne(User::class);
+    }
+
+    public function otpRequests(): HasMany
+    {
+        return $this->hasMany(OtpRequest::class);
     }
 
     public function reviewer(): BelongsTo
