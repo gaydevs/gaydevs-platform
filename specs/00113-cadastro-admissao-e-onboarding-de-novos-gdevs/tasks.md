@@ -37,13 +37,13 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 ### Frontend, wizard e onboarding (PLAN-16 a PLAN-19)
 
-- [ ] T021 — Integrar CTA e rotas /apply, /admin/applications, /admin/applications/:id e /onboarding ao frontend; preservar base URL, deep links, navegação, proteção CSRF e componentes existentes.
-- [ ] T022 — Implementar wizard mobile-first com aviso de privacidade, apresentação/email, Turnstile, OTP, cooldown, recuperação de sessão e contato do scrum master somente após OTP.
-- [ ] T023 — Implementar identificação, perfis com prefixos fixos, colagem de URL, handle e confirmação GitHub ausente; mostrar erros e validações sem bloquear verificações inconclusivas.
-- [ ] T024 — Implementar origem com autocomplete local (qualquer palavra, sem caixa/acentos, seis sugestões aprovadas, texto livre obrigatório), interesse em colaboração e persistência das etapas.
-- [ ] T025 — Implementar redes da comunidade, aceites independentes e não pré-marcados, submissão e tela pending com WhatsApp; progresso 0/20/45/60/75/85/95/100 conforme persistência, retorno e retomada; acessibilidade e ausência de dados sensíveis em localStorage.
-- [ ] T026 — Implementar fila/detalhe administrativo com origem, dados, aceites, links de perfis/WhatsApp, notas, confirmação de aprovação/recusa e estados de erro/carregamento; menu condicionado ao papel.
-- [ ] T027 — Implementar onboarding de membro admitido no primeiro login e revisita pelo menu; registrar visto em preferência, não bloquear plataforma nem forçar membros legados; apresentar orientações e iniciativas atuais, sem automatizar ingresso externo.
+- [x] T021 — Integrar CTA e rotas /apply, /admin/applications, /admin/applications/:id e /onboarding ao frontend; preservar base URL, deep links, navegação, proteção CSRF e componentes existentes.
+- [x] T022 — Implementar wizard mobile-first com aviso de privacidade, apresentação/email, Turnstile, OTP, cooldown, recuperação de sessão e contato do scrum master somente após OTP.
+- [x] T023 — Implementar identificação, perfis com prefixos fixos, colagem de URL, handle e confirmação GitHub ausente; mostrar erros e validações sem bloquear verificações inconclusivas.
+- [x] T024 — Implementar origem com autocomplete local (qualquer palavra, sem caixa/acentos, seis sugestões aprovadas, texto livre obrigatório), interesse em colaboração e persistência das etapas.
+- [x] T025 — Implementar redes da comunidade, aceites independentes e não pré-marcados, submissão e tela pending com WhatsApp; progresso 0/20/45/60/75/85/95/100 conforme persistência, retorno e retomada; acessibilidade e ausência de dados sensíveis em localStorage.
+- [x] T026 — Implementar fila/detalhe administrativo com origem, dados, aceites, links de perfis/WhatsApp, notas, confirmação de aprovação/recusa e estados de erro/carregamento; menu condicionado ao papel.
+- [x] T027 — Implementar onboarding de membro admitido no primeiro login e revisita pelo menu; registrar visto em preferência, não bloquear plataforma nem forçar membros legados; apresentar orientações e iniciativas atuais, sem automatizar ingresso externo.
 
 ### Infraestrutura e documentação (PLAN-20)
 
@@ -84,6 +84,10 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 - T017/T018: submissão e intenção única de notificação em transação; outbox com pending/sending/sent/failed/unknown, claim condicional, scheduler existente, URL da plataforma configurável, cota compartilhada e retry somente antes de tentativa SMTP; resultado ambíguo não reenviado automaticamente. Testes de falha, reprocessamento e idempotência. Operação de resolução manual dos estados failed/unknown deverá ser documentada em T028; sem nova interface administrativa fora de escopo.
 - T019/T020: middleware admin geral reutilizado pelas enquetes, fila paginada por submitted_at/id, detalhe explícito, notas com revisão, aprovação/recusa transacionais, sem edição dos campos pessoais. Testados acesso indevido, conflitos e usuário único ativo.
 - Regressão T013–T020: PHP 8.4.27 + SQLite 3.46.1, 241 testes passaram, 2 ignorados, 1394 assertions; 35 novos testes em relação à etapa anterior. Pint --dirty --test aprovado em 24 arquivos PHP. Sem produção ou dados reais.
+
+- T021–T027: CTA condicionado à disponibilidade pública do backend, rotas sob a base existente, wizard com progresso persistido, OTP/Turnstile, prefixos/colagem, sugestões locais por substring sem caixa/acentos, consentimentos independentes, submissão e retomada, área admin e onboarding. Reutilizados FieldControl, ActionLink, tokens/estilos e dados da landing. Onboarding registra visto ao exibir e permite revisita pelo menu, sem bloquear plataforma; membros legados não recebem a indicação. Preferências de onboarding e polls preservadas sob lock do usuário. APIs públicas de configuração não retornam contato/segredo/destinatário. Cadastro segue desativado por padrão.
+- Validação T021–T027: Node 24.22.0; npm ci --offline com lockfile existente; typecheck, lint, check:content e build passaram. Backend: 243 testes passaram, 2 ignorados, 1413 assertions, Pint aprovado em 6 arquivos. Frontend: 14 testes novos, todos aprovados. Primeira suíte completa: 142/143 passaram, timeout CTA. Segunda: 143/144 passaram, timeout em teste preexistente de navegação de polls; reexecução desse arquivo com --testTimeout=15000: 3/3 passaram. Wizard isolado após ajuste do timeout: 6/6 passaram. Todos os 144 testes passaram em pelo menos uma rodada, mas não numa única execução integral verde. T031 permanece parcial até obter uma suíte completa sem timeout. Nenhuma alteração de assertions para contornar falhas.
+- T032: QA visual em navegador mobile/desktop, Turnstile real com test keys, integração HTTPS e deploy ainda não realizados. MySQL, validação externa, aprovação dos textos de privacidade e Project permanecem pendentes.
 
 ## Limites
 

@@ -38,6 +38,28 @@ class UserPreferenceService
         ];
     }
 
+    public function onboardingSeen(User $user): bool
+    {
+        return is_string(data_get($this->storedSettings($user), 'onboarding.seen_at'));
+    }
+
+    public function markOnboardingSeen(User $user): void
+    {
+        abort_unless($user->applicant_id !== null, 403);
+        $this->database->transaction(function () use ($user): void {
+            User::query()->lockForUpdate()->findOrFail($user->id);
+            $preference = UserPreference::query()->lockForUpdate()->firstOrNew(['user_id' => $user->id]);
+            $settings = $preference->settings ?? [];
+            if (is_string(data_get($settings, 'onboarding.seen_at'))) {
+                return;
+            }
+            data_set($settings, 'onboarding.seen_at', now()->utc()->toISOString());
+            $preference->settings = $settings;
+            $preference->version = $preference->exists ? $preference->version + 1 : 1;
+            $preference->save();
+        }, 3);
+    }
+
     public function pollSuggestionsAreSnoozed(User $user): bool
     {
         $snoozeUntil = data_get($this->storedSettings($user), self::POLL_SUGGESTIONS_SNOOZE_UNTIL);
@@ -56,6 +78,7 @@ class UserPreferenceService
         $snoozeUntil = now()->addHours($hours)->utc()->toISOString();
 
         $this->database->transaction(function () use ($user, $snoozeUntil): void {
+            User::query()->lockForUpdate()->findOrFail($user->id);
             $preference = UserPreference::query()->lockForUpdate()->firstOrNew(['user_id' => $user->id]);
             $settings = $preference->settings ?? [];
             data_set($settings, self::POLL_SUGGESTIONS_SNOOZE_UNTIL, $snoozeUntil);
@@ -77,6 +100,7 @@ class UserPreferenceService
     public function dismissPollSuggestion(User $user, string $pollId): array
     {
         $this->database->transaction(function () use ($user, $pollId): void {
+            User::query()->lockForUpdate()->findOrFail($user->id);
             $preference = UserPreference::query()->lockForUpdate()->firstOrNew(['user_id' => $user->id]);
             $settings = $preference->settings ?? [];
             $pollIds = $this->notInterestedPollIdsFrom($settings);

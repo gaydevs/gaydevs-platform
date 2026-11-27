@@ -1,5 +1,5 @@
 export interface MaskedUser { id: string; name: string; email: string }
-export interface AuthenticatedUser { id: string; name: string; member_type?: 'member' | 'admin' | string }
+export interface AuthenticatedUser { id: string; name: string; member_type?: 'member' | 'admin' | string; onboarding_eligible?: boolean; onboarding_required?: boolean }
 export interface OtpRequest { otp_request_id: string; expires_at: string }
 
 interface SessionResponse { user: AuthenticatedUser }

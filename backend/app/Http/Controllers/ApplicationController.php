@@ -17,12 +17,29 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ApplicationController extends Controller
 {
     public function __construct(private ApplicationData $data, private ApplicationTerms $terms,
         private ApplicantLifecycle $lifecycle, private ApplicantSessions $sessions,
         private ApplicationAvailability $availability) {}
+
+    public function config(): Response
+    {
+        try {
+            $this->availability->ensure();
+        } catch (HttpException) {
+            return response()->json(['enabled' => false]);
+        }
+
+        return response()->json([
+            'enabled' => true,
+            'sitekey' => config('applications.turnstile.sitekey'),
+            'action' => config('applications.turnstile.action'),
+            'cooldown' => (int) config('applications.limits.cooldown'),
+        ]);
+    }
 
     public function terms(): Response
     {

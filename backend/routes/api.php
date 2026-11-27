@@ -19,6 +19,7 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsPollAdmin;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/applications/config', [ApplicationController::class, 'config']);
 Route::get('/applications/terms', [ApplicationController::class, 'terms']);
 
 Route::prefix('applications')->middleware(EnsureApplicationFrontend::class)->group(function (): void {
@@ -46,6 +47,7 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
         Route::post('/{id}/reject', [AdminApplicationController::class, 'reject'])->whereUuid('id');
     });
     Route::get('/auth/session', CurrentSessionController::class);
+    Route::post('/me/onboarding/seen', [UserPreferenceController::class, 'markOnboardingSeen']);
     Route::get('/me/preferences', [UserPreferenceController::class, 'show']);
     Route::post('/me/preferences/poll-suggestions/snooze', [UserPreferenceController::class, 'snoozePollSuggestions']);
     Route::post('/me/preferences/poll-suggestions/dismiss', [UserPreferenceController::class, 'dismissPollSuggestion']);

@@ -22,6 +22,11 @@ import { AccountHeader } from './components/AccountHeader'
 import { LoginDialog } from './features/auth/LoginDialog'
 import { PollAuditDialog, PollErrorDialog, PollsPage, PollsSectionBar } from './features/PollsPage'
 import type { Poll } from './features/pollsApi'
+import { ApplicationPage } from './features/applications/ApplicationPage'
+import { AdminApplications } from './features/applications/AdminApplications'
+import { OnboardingPage } from './features/applications/OnboardingPage'
+import { getConfig } from './features/applications/api'
+import { platformRoute } from './features/applications/presentation'
 
 export default function App() {
   // Os hooks mantêm autenticação e URL fora da árvore visual da landing page.
@@ -66,7 +71,28 @@ export default function App() {
   const pollIdentifier = pollsIndex >= 0 ? pathname.slice(pollsIndex + pollsMarker.length).replace(/^\/+|\/+$/g, '') || null : null
   const createPoll = pollIdentifier === 'new'
   const isPollsSection = pollsIndex >= 0
-  const isLandingPage = !isPollsSection
+  const route = platformRoute(pathname)
+  const isApply = route.relative === 'apply'
+  const isAdmin = /^admin\/applications(?:\/[^/]+)?$/.test(route.relative)
+  const isOnboarding = route.relative === 'onboarding'
+  const isLandingPage = !isPollsSection && !isApply && !isAdmin && !isOnboarding
+  const [applicationsEnabled, setApplicationsEnabled] = useState(false)
+  useEffect(() => {
+    if (!isLandingPage) return
+    let active = true
+    getConfig().then(c => { if (active) setApplicationsEnabled(c.enabled) }).catch(() => { if (active) setApplicationsEnabled(false) })
+    return () => { active = false }
+  }, [isLandingPage])
+  const onboardingShown = useRef<string | null>(null)
+  useEffect(() => {
+    if (!auth.user) { onboardingShown.current = null; return }
+    if (!auth.user.onboarding_required || onboardingShown.current === auth.user.id) return
+    onboardingShown.current = auth.user.id
+    if (!isOnboarding) {
+      window.history.replaceState(null, '', route.base + '/onboarding')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    }
+  }, [auth.user, isOnboarding, route.base])
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
   const homePath = pollsPath.slice(0, -pollsMarker.length) || '/'
@@ -91,15 +117,19 @@ export default function App() {
   const handleLoginAuthenticated = useCallback(async () => {
     const sessionUser = await refreshAuth()
     loginCompleted.current = true
+    if (sessionUser && isApply) navigate(route.base || '/')
     return sessionUser
-  }, [refreshAuth])
+  }, [refreshAuth, isApply, navigate, route.base])
 
   return <>
     <a className="skip-link" href="#conteudo">{accessibility.skip}</a>
     <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={auth.logout} onNavigate={navigate} />
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
     <main id="conteudo">
-      {pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
+      {isApply ? <ApplicationPage home={route.base || '/'} onLogin={login.open} onMemberRefresh={refreshAuth} /> :
+      isAdmin ? <AdminApplications key={pathname} id={route.relative.split('/')[2]} user={auth.user} restoring={auth.restoring} base={route.path('admin/applications')} onNavigate={navigate} onLogin={login.open} /> :
+      isOnboarding ? <OnboardingPage user={auth.user} restoring={auth.restoring} onLogin={login.open} onDone={async () => { await refreshAuth(); navigate(route.path('polls')) }} /> :
+      pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
       <Hero content={hero} mobile={images.heroMobile} desktop={images.heroDesktop} onBrandVisibilityChange={setBrandVisible} />
       <About content={about} />
       <Topics content={topics} />
@@ -108,7 +138,7 @@ export default function App() {
       <Gallery content={sections.gallery} photos={photos} />
       <Community content={sections.community} spaces={community} />
       <Lore content={sections.lore} profiles={lore} mascot={images.cleito} mascotAlt={accessibility.cleito} />
-      <FinalCta content={finalCta} links={publicLinks} />
+      <FinalCta content={finalCta} links={applicationsEnabled ? [{label: 'quero ser um gdev', href: route.path('apply')}, ...publicLinks] : publicLinks} />
       </>}
     </main>
     <Footer content={footer} developerLinks={developerLinks} />
