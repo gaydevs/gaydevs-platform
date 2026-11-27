@@ -1,0 +1,35 @@
+name: SDD integrity audit
+on:
+  schedule:
+    - cron: '00 6 * * *' 
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  actions: read
+concurrency:
+  group: sdd-reconcile
+  cancel-in-progress: false
+jobs:
+  audit:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24.15.0'
+      - name: Audit (read-only until validation and authorized Project access)
+        env:
+          GH_TOKEN: ${{ secrets.SDD_PROJECT_TOKEN || github.token }}
+        run: |
+          # Do not publish private Project evidence in this public repository.
+          if node scripts/sdd/reconcile.mjs --dry-run > /dev/null 2>&1; then
+            echo 'SDD audit completed. Use authenticated CLI for evidence.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'SDD audit failed. Check authorized Project access.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
