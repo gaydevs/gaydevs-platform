@@ -38,6 +38,7 @@
 .event--jogaydev li:last-child { padding-bottom: 0; }
 .event--roles { padding-block: 32px; border-block: 1px solid var(--border); }
 .event--roles .event-items { gap: 24px; }
+.event--comitivas { border-left: 2px solid var(--green); padding-left: 22px; }
 .event--talks { border-left: 2px solid var(--cyan); padding-left: 22px; }
 .talk-flow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; font-family: var(--font-mono); color: var(--cyan); font-size: .75rem; }
 .event .event-label { margin-top: 28px; font-size: .75rem; font-family: var(--font-mono); color: var(--text-muted); }
@@ -50,7 +51,7 @@
 .format-guide { margin-top: 48px; }
 .format-guide h3 { font-family: var(--font-mono); font-size: .875rem; color: var(--text-muted); margin-bottom: 24px; letter-spacing: 0; }
 .format-guide dl { display: grid; gap: 14px; font-family: var(--font-mono); font-size: .8125rem; }
-.format-guide dl > div { display: grid; grid-template-columns: 8ch 1fr; gap: 12px; }
+.format-guide dl > div { display: grid; grid-template-columns: 9ch 1fr; gap: 12px; }
 .format-guide dt { color: var(--text); }
 .format-guide dd { color: var(--text-muted); }
 .format-guide dd span { color: var(--cyan); }
@@ -89,6 +90,7 @@
 .commit-play { --commit-color: #c8a5ff; }
 .commit-meet { --commit-color: var(--yellow); }
 .commit-role { --commit-color: #ff77d7; }
+.commit-comitiva { --commit-color: var(--green); }
 .commit-lore { --commit-color: var(--cyan); }
 .commit-refactor { --commit-color: #80b8ff; }
 .commit-build { --commit-color: #d79bff; }
@@ -127,7 +129,8 @@
   .hero-art { width: 768px; max-width: 100%; margin: -410px auto 0; }
   .hero-subtitle { max-width: 28ch; }
   .events-grid { grid-template-columns: .9fr 1.1fr; gap: 48px 32px; }
-  .event--roles { grid-column: 1 / -1; }
+  .event--roles, .event--comitivas { grid-column: 1 / -1; }
+  .event--comitivas .event-items { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .event--roles .event-items { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .event--meetups .event-items { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .community-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

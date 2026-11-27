@@ -8,4 +8,7 @@ export const photos: Photo[] = [
   { id: 'jogaydev', image: images.jogaydev, alt: 'Captura da partida de MECCHA CHAMELEON, com cenário de balões coloridos e interface do jogo.', caption: 'jogaydev — 21.07.2026' },
   { id: 'bento', image: images.bento, alt: 'Selfie do grupo no happy hour na Bento, com decoração colorida ao fundo.', caption: 'happy hour na Bento — 31.07.2026' },
   { id: 'black-mirror', image: images.blackMirror, alt: 'Selfie de três participantes em frente ao letreiro da Black Mirror Experience.', caption: 'Black Mirror Experience — 05.09.2026' },
+  { id: 'comitiva-claro', image: images.comitivaClaro, alt: 'Selfie de quatro participantes no AI Tinkerers SP, com o letreiro da Claro ao fundo.', caption: 'comitiva #1 — AI Tinkerers SP na Claro · 21.10.2026' },
+  { id: 'comitiva-oracle', image: images.comitivaOracle, alt: 'Selfie de três participantes em frente ao letreiro da Oracle.', caption: 'comitiva #2 — AI Camp na Oracle · 29.10.2026' },
+  { id: 'comitiva-tractian', image: images.comitivaTractian, alt: 'Selfie de três participantes com o letreiro da Tractian ao fundo.', caption: 'comitiva #3 — AI Tinkerers SP na Tractian · 26.11.2026' },
 ]
