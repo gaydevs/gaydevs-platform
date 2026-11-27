@@ -104,6 +104,8 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 - T029 (implementação validada localmente): escopo e decisões aprovados pelo gdev solicitante em 2026-11-27; política pública /privacy, link permanente no rodapé, cinco checks resumidos (sete chaves persistidas), consentimento antes de solicitar OTP e registro após prova de e-mail; bloqueio de gravação sem aceite vigente; procedimentos em docs/privacy-operations.md. Testes focados no Survivor: backend 31 pass / 232 assertions; frontend 11 pass / 2 arquivos; lint, typecheck, Pint dos arquivos alterados e build aprovados. Gate FINALIZED permanece false até revisão dos textos e validação operacional, sem ativar cadastro. T029 segue aberta para esses gates.
 
+- T032 (QA integrado executado): código e8dffcd com todos os checks executados verdes, incluindo SonarQube. Chromium/HTTPS local, Laravel real, SQLite descartável, Turnstile dummy oficial com Siteverify real, mail log: duas jornadas, uma aprovada e outra recusada; retomada, consentimentos, proteção de sessão, notificação idempotente e onboarding confirmados. Primeiro job atingiu timeout após decisões; segundo confirmou worker e onboarding. Evidências e limites em qa.md. Restam inspeção visual humana e validação do host de produção; T032 permanece aberta. CodeRabbit solicitado após publicação deste registro, sem merge ou deploy.
+
 ## Limites
 
 Sem dashboard, exclusão automática de candidaturas, edição cadastral administrativa ou automação de inclusão WhatsApp/gdevs-team. Aprovação de conteúdo final de privacidade, review e release continuam humanas. Não gerar issues automaticamente a partir destas tasks.
