@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Cookie as Cookies;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ApplicantSessions
 {
@@ -58,6 +59,19 @@ class ApplicantSessions
 
             return $applicant;
         }, 3);
+    }
+
+    // Recheck token inside the write transaction, not only in route middleware.
+    public function assertCurrent(Request $request, Applicant $applicant): void
+    {
+        $hash = $this->requestHash($request);
+        $session = $hash ? DB::table('applicant_sessions')->where('applicant_id', $applicant->id)
+            ->where('token_hash', $hash)->lockForUpdate()->first() : null;
+        if ($session === null || $session->expires_at <= now()->toDateTimeString()
+            || $session->verified_at <= now()->subDays($this->absoluteDays())->toDateTimeString()
+            || $session->last_seen_at <= now()->subDays($this->idleDays())->toDateTimeString()) {
+            throw new HttpException(401, 'Sessão de candidato necessária.');
+        }
     }
 
     public function revoke(Request $request): void

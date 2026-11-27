@@ -109,9 +109,12 @@ class ApplicantLifecycle
 
     // Submission validation and the durable notification intent are mandatory
     // callbacks, implemented by the submission action (T017/T018).
-    public function submit(Applicant $applicant, int $revision, Closure $validate, Closure $notificationIntent): Applicant
+    public function submit(Applicant $applicant, int $revision, Closure $validate, Closure $notificationIntent, ?Closure $guard = null): Applicant
     {
-        return $this->mutate($applicant, function (Applicant $current) use ($revision, $validate, $notificationIntent): Applicant {
+        return $this->mutate($applicant, function (Applicant $current) use ($revision, $validate, $notificationIntent, $guard): Applicant {
+            if ($guard !== null) {
+                $guard($current);
+            }
             if ($current->status === ApplicantStatus::Pending) {
                 return $current;
             }

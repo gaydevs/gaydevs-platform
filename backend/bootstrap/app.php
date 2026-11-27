@@ -4,6 +4,7 @@ use App\Exceptions\OperationalException;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\ExpireAuthenticatedSessions;
 use App\Http\Middleware\TrackVisitor;
+use App\Services\ApplicationNotifications;
 use App\Support\RequestCorrelation;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Console\Scheduling\Schedule;
@@ -96,6 +97,8 @@ return Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->withSchedule(function (Schedule $schedule): void {
+        $schedule->call(fn () => app(ApplicationNotifications::class)->process())
+            ->name('applications:notifications')->everyMinute()->withoutOverlapping();
         $schedule->command('visitors:anonymize-ips')
             ->name('visitors:anonymize-ips')
             ->dailyAt('03:00')

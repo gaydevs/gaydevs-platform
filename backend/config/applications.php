@@ -2,6 +2,8 @@
 
 return [
     'enabled' => env('APPLICATIONS_ENABLED', false),
+    'approved_terms_version' => env('APPLICATION_TERMS_APPROVED_VERSION'),
+    'platform_url' => env('APPLICATION_PLATFORM_URL'),
     'admin_email' => env('APPLICATION_ADMIN_EMAIL'),
     'whatsapp' => env('GDEV_SM_WHATSAPP'),
     'turnstile' => [

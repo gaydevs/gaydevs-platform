@@ -89,6 +89,10 @@ test('independent workers serialize start proof submission and approval for the 
             (require $path)->up();
         }
 
+        $reservations = $runPair('rate-limit', 'concurrent@example.test');
+        expect(collect($reservations)->where('reserved', true)->count())->toBe(1)
+            ->and(collect($reservations)->where('limited', true)->count())->toBe(1);
+
         $starts = $runPair('start', 'concurrent@example.com');
         expect($starts[0]['id'])->toBe($starts[1]['id'])
             ->and(Applicant::count())->toBe(1);

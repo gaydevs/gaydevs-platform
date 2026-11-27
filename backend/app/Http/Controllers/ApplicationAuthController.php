@@ -9,8 +9,10 @@ use App\Models\User;
 use App\Models\VisitorObservation;
 use App\Services\ApplicantSessions;
 use App\Services\ApplicationAvailability;
+use App\Services\ApplicationData;
 use App\Services\ApplicationOtp;
 use App\Services\ApplicationRateLimiter;
+use App\Services\ApplicationTerms;
 use App\Services\AuthenticatedSessionManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -75,7 +77,7 @@ class ApplicationAuthController extends Controller
         return $response;
     }
 
-    public function session(Request $request, ApplicationAvailability $availability): Response
+    public function session(Request $request, ApplicationAvailability $availability, ApplicationData $data, ApplicationTerms $terms): Response
     {
         $applicant = $request->attributes->get('applicant');
         if (in_array($applicant->status, [ApplicantStatus::Approved, ApplicantStatus::Rejected], true)) {
@@ -88,6 +90,10 @@ class ApplicationAuthController extends Controller
             'status' => $applicant->status->value,
             'current_step' => $applicant->current_step,
             'revision' => $applicant->revision,
+            'fields' => $data->fields($applicant),
+            'terms_version' => $terms::VERSION,
+            'consents' => $applicant->consents()->get(['consent_key', 'version', 'accepted_at']),
+
             'whatsapp_url' => $availability->whatsapp(),
         ]);
     }

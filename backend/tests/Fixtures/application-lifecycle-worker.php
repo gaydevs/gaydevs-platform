@@ -1,9 +1,11 @@
 <?php
 
+use App\Exceptions\RateLimitExceededException;
 use App\Models\Applicant;
 use App\Models\OtpRequest;
 use App\Models\User;
 use App\Services\ApplicantLifecycle;
+use App\Services\ApplicationRateLimiter;
 use Illuminate\Contracts\Console\Kernel;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
@@ -31,6 +33,12 @@ while (! is_file($go)) {
 $lifecycle = $app->make(ApplicantLifecycle::class);
 
 try {
+    if ($operation === 'rate-limit') {
+        $app->make(ApplicationRateLimiter::class)->sendOtp($subject);
+        echo json_encode(['reserved' => true], JSON_THROW_ON_ERROR);
+
+        return;
+    }
     $result = match ($operation) {
         'start' => $lifecycle->start($subject),
         'confirm' => $lifecycle->confirmEmail(OtpRequest::findOrFail($subject)),
@@ -48,6 +56,8 @@ try {
         default => throw new RuntimeException('Unsupported test operation.'),
     };
     echo json_encode(['id' => $result->id], JSON_THROW_ON_ERROR);
+} catch (RateLimitExceededException) {
+    echo json_encode(['limited' => true], JSON_THROW_ON_ERROR);
 } catch (ConflictHttpException) {
     echo json_encode(['conflict' => true], JSON_THROW_ON_ERROR);
 }
