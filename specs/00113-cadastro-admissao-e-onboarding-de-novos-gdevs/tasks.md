@@ -57,6 +57,10 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 - [ ] T032 — QA manual mobile/desktop isolado, deep links e smoke Turnstile com test keys/e-mail fake; verificar privacidade, sessão e regras de acesso; confrontar todos os 14 REQs e 19 cenários de aceite da spec.
 - [x] T033 — Revisão de diff, migrations, contratos, riscos e evidências; atualizar checklist e documentação; publicar branch e abrir PR para develop com Refs #113 e Spec: 00113. Sincronizar Project conforme workflow; solicitar revisão de outro gdev. Não aprovar/merge/release automaticamente.
 
+## Pré-release — tarefa manual do responsável
+
+- [ ] T034 — Criar conta/widget Cloudflare Turnstile para vettoretti.dev; atualizar o .env persistente de produção com APPLICATION_TURNSTILE_TEST_MODE=false, APPLICATION_TURNSTILE_SITEKEY, APPLICATION_TURNSTILE_SECRET e APPLICATION_TURNSTILE_HOSTNAME=vettoretti.dev; manter APPLICATION_TURNSTILE_ACTION=application_otp. Limpar/recriar cache de configuração conforme deploy e validar o widget/hostname/action com credenciais reais antes de ativar APPLICATIONS_ENABLED. Não registrar a secret no Git. Responsável: gdev solicitante.
+
 ## Evidências de execução — 2026-11-27
 
 - T001 (parcial): branch sincronizada com origin/develop (nenhum commit atrás); issue aberta e sem dependências bloqueantes. Ambiente isolado Survivor, PHP local 8.4.27, SQLite 3.46.1, dependências Composer do mesmo lockfile e .env.testing local com chave descartável. Baseline backend: 168 testes passaram, 2 ignorados, 1000 assertions. A primeira execução falhou por falta de APP_KEY, corrigida apenas no ambiente de testes. Docker sem permissão e driver PDO MySQL indisponível; confirmar MySQL e PHP 8.3 em ambiente isolado antes de concluir T001.
