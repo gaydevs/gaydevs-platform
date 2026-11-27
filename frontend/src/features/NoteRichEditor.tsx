@@ -21,8 +21,7 @@ export function NoteRichEditor({ content, onChange }: { content: string; onChang
       transformPastedHTML: () => '',
       handlePaste: (view, event) => {
         const text = event.clipboardData?.getData('text/plain')
-        if (!text) return true
-        view.dispatch(view.state.tr.insertText(text))
+        if (text) view.dispatch(view.state.tr.insertText(text))
         return true
       },
       handleDrop: (_view, event) => {

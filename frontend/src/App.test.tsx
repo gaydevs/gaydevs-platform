@@ -348,3 +348,45 @@ describe('notes required login', () => {
     expect(screen.queryByRole('dialog', { name: 'Área restrita' })).not.toBeInTheDocument()
   }, 15000)
 })
+
+describe('route identifier normalization', () => {
+  function setup(path: string) {
+    window.history.replaceState(null, '', '/gaydevs/platform' + path)
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    vi.mocked(useAuth).mockReturnValue({ user: { id: 'admin', name: 'Admin', member_type: 'admin' }, restoring: false, refresh: vi.fn(), logout: vi.fn() })
+    vi.mocked(useLoginHash).mockReturnValue({ step: null, open: vi.fn(), showStep: vi.fn(), close: vi.fn() })
+    vi.mocked(listNoteMembers).mockResolvedValue([])
+    vi.mocked(listPolls).mockResolvedValue({ polls: [], next_cursor: null, has_more: false, synced_at: '2026-11-27T12:00:00Z' })
+    vi.mocked(getMemberNote).mockResolvedValue({ member: { id: 'ana', name: 'Ana' }, content: 'Texto' })
+    vi.mocked(getPoll).mockResolvedValue({
+      id: 'poll-1', slug: 'qual-jogo', question: 'Qual jogo?', created_at: '2026-10-27T10:00:00.000Z',
+      creator: { id: 'creator', name: 'Criador' }, started_at: '2026-10-27T10:00:00.000Z', started_on: null,
+      allow_multiple: false, allow_new_options: false, closed: false, closed_at: null, has_votes: false,
+      total_votes: 0, message: null, selected_options: [], options: [],
+    })
+    render(<App />)
+  }
+
+  it('opens the notes list with redundant trailing slashes', async () => {
+    setup('/notes///')
+    await waitFor(() => expect(listNoteMembers).toHaveBeenCalledWith('admin', expect.any(AbortSignal)))
+    expect(getMemberNote).not.toHaveBeenCalled()
+  })
+
+  it('opens the correct note with redundant boundary slashes', async () => {
+    setup('/notes///ana///')
+    await waitFor(() => expect(getMemberNote).toHaveBeenCalledWith('admin', 'ana', expect.any(AbortSignal)))
+    expect(await screen.findByRole('textbox', { name: 'Anotações' })).toHaveTextContent('Texto')
+  })
+
+  it('opens the polls list with redundant trailing slashes', async () => {
+    setup('/polls///')
+    await waitFor(() => expect(listPolls).toHaveBeenCalled())
+    expect(getPoll).not.toHaveBeenCalled()
+  })
+
+  it('opens the correct poll with redundant boundary slashes', async () => {
+    setup('/polls///qual-jogo///')
+    await waitFor(() => expect(getPoll).toHaveBeenCalledWith('qual-jogo'))
+  })
+})

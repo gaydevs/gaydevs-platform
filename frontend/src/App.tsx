@@ -24,6 +24,7 @@ import { PollAuditDialog, PollErrorDialog, PollsPage, PollsSectionBar } from './
 import type { Poll } from './features/pollsApi'
 import { NotesPage, NotesSectionBar } from './features/NotesPage'
 import { usePlatformHistory } from './navigation/usePlatformHistory'
+import { trimRouteIdentifier } from './navigation/routeIdentifier'
 
 export default function App() {
   // Os hooks mantêm autenticação e URL fora da árvore visual da landing page.
@@ -67,13 +68,13 @@ export default function App() {
   }, [leaveGuard, logoutWithFeedback])
   const pollsMarker = '/polls'
   const pollsIndex = pathname.indexOf(pollsMarker)
-  const pollIdentifier = pollsIndex >= 0 ? pathname.slice(pollsIndex + pollsMarker.length).replace(/^\/+|\/+$/g, '') || null : null
+  const pollIdentifier = pollsIndex >= 0 ? trimRouteIdentifier(pathname.slice(pollsIndex + pollsMarker.length)) : null
   const createPoll = pollIdentifier === 'new'
   const isPollsSection = pollsIndex >= 0
   const notesIndex = pathname.search(/\/notes(?:\/|$)/)
   const isNotesSection = notesIndex >= 0
   const notesPath = isNotesSection ? pathname.slice(0, notesIndex) + '/notes' : '/notes'
-  const noteMemberId = isNotesSection ? pathname.slice(notesIndex + '/notes'.length).replace(/^\/+|\/+$/g, '') || null : null
+  const noteMemberId = isNotesSection ? trimRouteIdentifier(pathname.slice(notesIndex + '/notes'.length)) : null
   const isLandingPage = !isPollsSection && !isNotesSection
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
