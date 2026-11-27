@@ -80,7 +80,7 @@ test('from-issue: Issue title preserves dollar-sign replacement sequences litera
   assert.ok(spec.includes(title), 'Issue title was altered during template substitution');
 });
 test('from-issue: IDs above 99999 are not truncated', t => {
-  const s = sandbox(t); s.change(v => { v.issues[123456] = issue(123456); });
+  const s = sandbox(t); s.change(v => { v.issues[123456] = issue(123456); v.fields[123456] = v.fields[27]; });
   const work = JSON.parse(ok(start(s, 123456)));
   assert.equal(work.id, '123456');
   assert.equal(JSON.parse(ok(s.helper('common', []))).FEATURE_DIR, path.join(s.repo, work.directory));
@@ -307,9 +307,9 @@ test('Project status: all current statuses use exact field/item/option; repeated
     s.clearCalls(); ok(s.cli('status', [27, status, '--human-approved']));
     assert.equal(s.state().items.I_27.status, status);
     const calls = s.mutations();
-    assert.deepEqual(calls.map(c => [c.method, c.endpoint]), [['POST', 'graphql'], ['POST', 'graphql']]);
-    assert.deepEqual(calls[0].body.variables, { project: 'P_1', issue: 'I_27' });
-    assert.deepEqual(calls[1].body.variables, { project: 'P_1', item: 'ITEM_I_27', field: 'STATUS', option: `S_${i}` });
+    assert.equal(calls.length, i === 0 ? 2 : 1);
+    if (i === 0) assert.deepEqual(calls[0].body.variables, { project: 'P_1', issue: 'I_27' });
+    assert.deepEqual(calls.at(-1).body.variables, { project: 'P_1', item: 'ITEM_I_27', field: 'STATUS', option: 'S_' + i });
   }
   assert.equal(Object.keys(s.state().items).length, 1);
 });
@@ -333,10 +333,9 @@ test('Project status: valid Rejected and Canceled transitions close the Issue as
     assert.equal(s.state().issues[27].state, 'closed');
     assert.equal(s.state().issues[27].state_reason, 'not_planned');
     const calls = s.mutations();
-    assert.deepEqual(calls.map(c => [c.method, c.endpoint]), [['POST', 'graphql'], ['POST', 'graphql'], ['PATCH', endpoint(27)]]);
-    assert.deepEqual(calls[0].body.variables, { project: 'P_1', issue: 'I_27' });
-    assert.deepEqual(calls[1].body.variables, { project: 'P_1', item: 'ITEM_I_27', field: 'STATUS', option });
-    assert.deepEqual(calls[2].body, { state: 'closed', state_reason: 'not_planned' });
+    assert.deepEqual(calls.map(c => [c.method, c.endpoint]), [['POST', 'graphql'], ['PATCH', endpoint(27)]]);
+    assert.deepEqual(calls[0].body.variables, { project: 'P_1', item: 'ITEM_I_27', field: 'STATUS', option });
+    assert.deepEqual(calls[1].body, { state: 'closed', state_reason: 'not_planned' });
   }
 });
 
@@ -440,7 +439,7 @@ test('API errors: HTTP, malformed JSON and mutation failures propagate without f
   ]) {
     s.change(v => { v.failures = [failure]; });
     fail(s.cli(script, args), pattern);
-    assert.deepEqual(s.state().items, {}); assert.deepEqual(s.state().dependencies, {}); assert.deepEqual(s.state().fields, {});
+    assert.deepEqual(s.state().items, {}); assert.deepEqual(s.state().dependencies, {}); assert.equal(s.state().fields[27][0].single_select_option.name, "Medium");
     assert.equal(s.git('branch', '--show-current'), 'develop');
   }
 });
@@ -515,4 +514,28 @@ test('Integrated flow: Issue → blockers → start → spec → explicit fixtur
   assert.equal(s.state().items.I_27.status, 'In Progress');
   assert.ok(s.calls().every(c => !/pulls|releases/.test(c.endpoint)));
   s.noPointer();
+});
+
+test('status: no-op for existing identical status, and missing persistence fails', t => {
+  const s = sandbox(t);
+  s.change(v => { v.items.I_27 = { id: 'ITEM_I_27', status: 'Specifying' }; });
+  ok(s.cli('status', [27, 'Specifying']));
+  noWrites(s);
+  s.change(v => { v.dropStatusWrites = true; });
+  fail(s.cli('status', [27, 'Ready', '--human-approved']), /Status não persistido/);
+});
+test('from-issue refuses missing Priority before any mutation', t => {
+  const s = sandbox(t);
+  s.change(v => { v.fields[27] = []; });
+  fail(s.cli('from-issue', [27, '--start']), /Priority/);
+  noWrites(s);
+});
+
+test('status: transient read failures retry boundedly without any mutation',t=>{
+  const s=sandbox(t);
+  s.change(v=>{v.failures=[{endpoint:'graphql',kind:undefined,code:503}];});
+  fail(s.cli('status',[27,'Backlog']),/HTTP 503/);
+  const queries=s.calls().filter(c=>c.endpoint==='graphql');
+  assert.equal(queries.length,3);
+  noWrites(s);
 });

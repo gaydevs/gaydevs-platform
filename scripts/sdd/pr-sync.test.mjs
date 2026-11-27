@@ -17,7 +17,7 @@ test('pr-sync: open work PR moves In Progress to Review and rerun is no-op', t =
   setupWorkPr(s);
   ok(s.cli('pr-sync', [101]));
   assert.equal(s.state().items.I_27.status, 'Review');
-  assert.equal(s.mutations().length, 2);
+  assert.equal(s.mutations().length, 1);
   s.clearCalls();
   ok(s.cli('pr-sync', [101]));
   assert.equal(s.state().items.I_27.status, 'Review');

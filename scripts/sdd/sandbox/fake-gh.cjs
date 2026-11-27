@@ -34,14 +34,19 @@ function serve() {
     assert.equal(method, 'POST');
     const { query, variables: v } = body;
     if (query.includes('projectItems')) {
-      assert.deepEqual(v, { issue: v.issue });
+      assert.deepEqual(v, { issue: v.issue, cursor: v.cursor });
       const issue = Object.values(state.issues).find(i => i.node_id === v.issue);
       assert.ok(issue, 'unknown Issue node');
       const item = state.items[v.issue];
-      const nodes = item ? [{ id: item.id, project: { id: state.project.id }, fieldValues: { nodes: [
-        { name: item.status, field: { id: 'STATUS', name: 'Status' } },
-      ] } }] : [];
-      return output({ data: { node: { projectItems: { nodes } } } });
+      const nodes = item ? [{ id: item.id, isArchived: !!item.archived, project: { id: state.project.id }, fieldValueByName: item.status ? { name: item.status } : null }] : [];
+      return output({ data: { node: { projectItems: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } } });
+    }
+    if (query.includes('timelineItems')) {
+      return output({data:{node:{timelineItems:{nodes:state.statusHistory?.[v.issue] || [],pageInfo:{hasNextPage:false,endCursor:null}}}}});
+    }
+    if (query.includes('... on ProjectV2{items')) {
+      const nodes=Object.entries(state.items).map(([key,item])=>({id:item.id,isArchived:!!item.archived,content:{number:Object.values(state.issues).find(i=>i.node_id===key)?.number,repository:{nameWithOwner:'gaydevs/gaydevs-platform'}},fieldValueByName:item.status?{name:item.status}:null}));
+      return output({data:{node:{items:{nodes,pageInfo:{hasNextPage:false,endCursor:null}}}}});
     }
     if (query.startsWith('query(')) {
       assert.deepEqual(v, { org: 'gaydevs', number: 1 });
@@ -62,7 +67,7 @@ function serve() {
       assert.ok(option, 'unknown Status option');
       const item = Object.values(state.items).find(i => i.id === v.item);
       assert.ok(item, 'unknown Project item');
-      item.status = option.name;
+      if (!state.dropStatusWrites) item.status = option.name;
       save();
       return output({ data: { updateProjectV2ItemFieldValue: { projectV2Item: { id: item.id } } } });
     }
@@ -76,6 +81,8 @@ function serve() {
     assert.equal(method, 'GET');
     return output({ id: 456 });
   }
+  if (endpoint === 'repos/gaydevs/gaydevs-platform/issues?state=all&per_page=100') return output(pages(Object.values(state.issues)));
+  if (endpoint === 'repos/gaydevs/gaydevs-platform/branches?per_page=100') return output(pages(state.branches || []));
   const pullMatch = endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/pulls(?:\/(\d+))?(.*)$/);
   if (pullMatch) {
     const number = pullMatch[1] ? Number(pullMatch[1]) : null;
@@ -84,6 +91,7 @@ function serve() {
       const pull = state.pulls[number];
       assert.ok(pull, `Missing fixture PR ${number}`);
       if (method === 'GET' && !suffix) return output(version.endsWith('2022-11-28') ? (state.legacyPulls?.[number] || pull) : pull);
+      if (method === 'GET' && suffix === '/reviews?per_page=100') return output(pages(state.reviews?.[number] || []));
       if (method === 'GET' && suffix === '/files?per_page=100') return output(pages(state.pullFiles[number] || []));
     } else if (method === 'GET') {
       const params = new URLSearchParams(suffix.replace(/^\?/, ''));
@@ -117,6 +125,18 @@ function serve() {
     assert.equal(typeof body.head, 'string');
     assert.equal(typeof body.commit_message, 'string');
     return output({ sha: `sync-${body.head}` });
+  }
+  const commitMatch=endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/commits\/([^?]+)$/);
+  if(commitMatch) {
+    const commit=state.commits?.[commitMatch[1]];
+    assert.ok(commit,'Missing fixture commit');
+    return output(commit);
+  }
+  const deployMatch=endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/actions\/workflows\/([^/]+)\/runs\?(.*)$/);
+  if(deployMatch) {
+    const sha=new URLSearchParams(deployMatch[2]).get('head_sha');
+    const runs=state.deployRuns?.[deployMatch[1]]?.[sha] || [];
+    return output({total_count:runs.length,workflow_runs:runs});
   }
   const compareMatch = endpoint.match(/^repos\/gaydevs\/gaydevs-platform\/compare\/([^?]+)(?:\?(.*))?$/);
   if (compareMatch) {
@@ -157,6 +177,7 @@ function serve() {
     }
   }
   if (method === 'GET') {
+    if (suffix === '/timeline?per_page=100') return output(pages(state.timeline?.[number] || []));
     if (suffix === '/comments?per_page=100') return output(pages(state.comments[number] || []));
     if (suffix === '/issue-field-values?per_page=100') return output(pages(state.fields[number] || []));
     if (suffix === '/dependencies/blocked_by?per_page=100') return output(pages((state.dependencies[number] || []).map(n => state.issues[n])));

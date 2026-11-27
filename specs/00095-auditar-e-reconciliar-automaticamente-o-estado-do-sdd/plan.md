@@ -2,7 +2,7 @@
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/95 · Spec: [spec.md](spec.md)
 Aprovação da spec e risco High: gdev solicitante, 27/11/2026, resposta explícita "aprova" à spec publicada em fb7b8c2.
-Estado: plano pendente de aprovação humana.
+Estado: plano aprovado; implementação autorizada.
 
 ## Abordagem
 
@@ -67,4 +67,6 @@ High Risk aprovado; spec aprovada em fb7b8c2; plano exige aprovação separada. 
 
 ## Aprovação humana
 
-Pendente. Registrar aprovação explícita do plano por um gdev, data e referência antes de tasks/implementação.
+Plano aprovado explicitamente antes de tasks/implementação.
+
+Aprovação do plano: gdev solicitante, 27/11/2026, resposta explícita "aprovo" ao plano publicado em 124647d.

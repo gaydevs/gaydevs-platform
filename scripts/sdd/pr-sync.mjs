@@ -33,7 +33,7 @@ main(() => {
     else throw new Error(`Transição inválida para PR fechado sem merge: ${current} não pode virar In Progress.`);
   }
 
-  const result = target === current ? { changed: false, status: current } : setStatusIfNeeded(context.issue, target, board);
+  const result = target === current ? { changed: false, status: current } : setStatusIfNeeded(context.issue, target, board, { expected: current });
   const suffix = result.changed ? '' : ' (no-op)';
   console.log(`PR #${number}: Issue #${context.issue.number} ${current} -> ${target}${suffix}`);
 });

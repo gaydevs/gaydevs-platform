@@ -40,7 +40,7 @@ main(() => {
     assertUnblocked(context);
     const current = currentStatus(context.issue, board);
     if (!['Specifying', 'In Progress'].includes(current)) throw new Error(`Checkpoint Medium Risk exige Status Specifying ou In Progress para retomada; atual: ${current}.`);
-    if (current === 'Specifying') setStatus(context.issue, 'In Progress', board);
+    if (current === 'Specifying') setStatus(context.issue, 'In Progress', board, { expected: current });
 
     const approvedState = 'Estado: fast-track Medium Risk com checkpoint humano aprovado.';
     const spec = readFileSync(state.specPath, 'utf8');

@@ -8,7 +8,7 @@ export const config = JSON.parse(readFileSync(path.join(root, '.github/sdd.json'
 const windowsGh = 'C:/Program Files/GitHub CLI/gh.exe';
 export const ghBinary = process.env.GH_BIN || (process.platform === 'win32' && existsSync(windowsGh) ? windowsGh : 'gh');
 export function run(command, args, input) {
-  const result = spawnSync(command, args, { cwd: root, input, encoding: 'utf8', shell: false });
+  const result = spawnSync(command, args, { cwd: root, input, encoding: 'utf8', shell: false, timeout: 30000, maxBuffer: 16 * 1024 * 1024 });
   if (result.error || result.status !== 0) throw new Error(result.error?.message || result.stderr || `${command} failed (${result.status})`);
   return result.stdout.trim();
 }
@@ -17,7 +17,22 @@ export function api(endpoint, { method = 'GET', body, paginate = false, version 
   const args = ['api', endpoint, '-X', method, '-H', `X-GitHub-Api-Version: ${version}`];
   if (paginate) args.push('--paginate', '--slurp');
   if (body !== undefined) args.push('--input', '-');
-  const value = JSON.parse(run(ghBinary, args, body === undefined ? undefined : JSON.stringify(body)) || 'null');
+  // Retry reads only. Mutations may already have reached GitHub even if
+  // the response was lost, so a caller must re-read before trying again.
+  const readOnly = method === 'GET' || (endpoint === 'graphql' && /^query\b|^query\(/.test(body?.query || ''));
+  let value;
+  for (let attempt=1; ; attempt++) {
+    try {
+      value=JSON.parse(run(ghBinary,args,body===undefined?undefined:JSON.stringify(body)) || 'null');
+      break;
+    } catch (error) {
+      // A rate limit with no reliable Retry-After is reported instead of
+      // retrying blindly. Only explicit transient transport/5xx errors retry.
+      if (!readOnly || attempt>=3 || !/HTTP (502|503|504)\b|ETIMEDOUT|ECONNRESET/i.test(error.message)) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,250*attempt);
+    }
+  }
+  if (paginate && (!Array.isArray(value) || value.some(page => !Array.isArray(page)))) throw new Error('Resposta paginada incompleta ou inválida.');
   return paginate ? value.flat() : value;
 }
 export function graphql(query, variables = {}) {
@@ -155,40 +170,85 @@ export function project() {
   if (!value || value.title !== config.projectTitle) throw new Error('Project configurado não encontrado ou título divergente.');
   return value;
 }
-export function setStatus(issue, status, board = project()) {
+export function projectItem(issue, board = project()) {
+  const items = [];
+  let cursor = null;
+  do {
+    const data = graphql('query($issue:ID!,$cursor:String){node(id:$issue){... on Issue{projectItems(first:100,after:$cursor){pageInfo{hasNextPage endCursor} nodes{id isArchived project{id} fieldValueByName(name:"Status"){... on ProjectV2ItemFieldSingleSelectValue{name}}}}}}}', { issue: issue.node_id, cursor });
+    const page = data.node?.projectItems;
+    if (!page || !Array.isArray(page.nodes) || typeof page.pageInfo?.hasNextPage !== 'boolean') throw new Error('Project: leitura incompleta.');
+    items.push(...page.nodes.filter(item => item.project.id === board.id));
+    if (!page.pageInfo.hasNextPage) break;
+    const next = page.pageInfo.endCursor;
+    if (!next || next === cursor) throw new Error('Project: cursor inválido.');
+    cursor = next;
+  } while (true);
+  if (items.length > 1) throw new Error('Project: cards duplicados.');
+  return items.length ? { id: items[0].id, status: items[0].fieldValueByName?.name ?? null, archived: Boolean(items[0].isArchived) } : null;
+}
+export function setStatus(issue, status, board = project(), { expected } = {}) {
   if (!config.statuses.includes(status)) throw new Error('Status desconhecido.');
   const field = board.fields.nodes.find(field => field.name === 'Status');
   const option = field?.options.find(option => option.name === status);
-  if (!option) throw new Error(`Status ${status} não configurado no Project.`);
-  const added = graphql(`mutation($project:ID!,$issue:ID!){addProjectV2ItemById(input:{projectId:$project,contentId:$issue}){item{id}}}`, { project: board.id, issue: issue.node_id });
-  graphql(`mutation($project:ID!,$item:ID!,$field:ID!,$option:String!){updateProjectV2ItemFieldValue(input:{projectId:$project,itemId:$item,fieldId:$field,value:{singleSelectOptionId:$option}}){projectV2Item{id}}}`, { project: board.id, item: added.addProjectV2ItemById.item.id, field: field.id, option: option.id });
-}
-export function setStatusIfNeeded(issue, status, board = project()) {
-  const current = currentStatus(issue, board);
-  if (current === status) return { changed: false, status: current };
-  setStatus(issue, status, board);
+  if (!option) throw new Error('Status ' + status + ' não configurado no Project.');
+  let item = projectItem(issue, board);
+  if (item?.archived) throw new Error('Project: card arquivado; revisão humana necessária.');
+  if (expected !== undefined && (item?.status ?? null) !== expected) throw new Error('Conflito: Status mudou antes da alteração.');
+  if (item?.status === status) return { changed: false, status };
+  if (!item) {
+    const added = graphql('mutation($project:ID!,$issue:ID!){addProjectV2ItemById(input:{projectId:$project,contentId:$issue}){item{id}}}', { project: board.id, issue: issue.node_id });
+    item = projectItem(issue, board);
+    if (!item || item.id !== added.addProjectV2ItemById?.item?.id) throw new Error('Project: inclusão não confirmada.');
+    if (item.status === status) return { changed: true, status };
+    if (item.status && item.status !== 'Backlog') throw new Error('Conflito: card inicializado com Status diferente.');
+  }
+  const latest = projectItem(issue, board);
+  if (!latest || latest.archived || latest.id !== item.id || latest.status !== item.status) throw new Error('Conflito: card mudou antes da escrita.');
+  graphql('mutation($project:ID!,$item:ID!,$field:ID!,$option:String!){updateProjectV2ItemFieldValue(input:{projectId:$project,itemId:$item,fieldId:$field,value:{singleSelectOptionId:$option}}){projectV2Item{id}}}', { project: board.id, item: item.id, field: field.id, option: option.id });
+  const verified = projectItem(issue, board);
+  if (verified?.id !== item.id || verified.archived || verified.status !== status) throw new Error('Project: Status não persistido ou alteração concorrente.');
   return { changed: true, status };
 }
+export function setStatusIfNeeded(issue, status, board = project(), options = {}) {
+  const current = currentStatus(issue, board);
+  return setStatus(issue, status, board, { expected: options.expected ?? current });
+}
 export function currentStatus(issue, board = project()) {
-  const data = graphql(`query($issue:ID!){node(id:$issue){... on Issue{projectItems(first:100){nodes{id project{id} fieldValues(first:100){nodes{... on ProjectV2ItemFieldSingleSelectValue{name field{... on ProjectV2SingleSelectField{id name}}}}}}}}}}`, { issue: issue.node_id });
-  const item = data.node?.projectItems.nodes.find(item => item.project.id === board.id);
-  const value = item?.fieldValues.nodes.find(value => value.field?.name === 'Status');
-  if (!value?.name) throw new Error('Status atual não encontrado no Project.');
-  return value.name;
+  const value = projectItem(issue, board)?.status;
+  if (!value) throw new Error('Status atual não encontrado no Project.');
+  return value;
+}
+export function statusHistory(issue, board = project()) {
+  let cursor = null;
+  const seen = new Set();
+  const events = [];
+  do {
+    const data = graphql('query($issue:ID!,$cursor:String){node(id:$issue){... on Issue{timelineItems(first:100,after:$cursor,itemTypes:[PROJECT_V2_ITEM_STATUS_CHANGED_EVENT]){pageInfo{hasNextPage endCursor} nodes{... on ProjectV2ItemStatusChangedEvent{id createdAt previousStatus status actor{login} project{id}}}}}}}', {issue:issue.node_id,cursor});
+    const page = data.node?.timelineItems;
+    if (!page || !Array.isArray(page.nodes) || typeof page.pageInfo?.hasNextPage !== 'boolean') throw new Error('Histórico de Status incompleto.');
+    events.push(...page.nodes.filter(e=>e.project?.id===board.id));
+    if (!page.pageInfo.hasNextPage) break;
+    cursor=page.pageInfo.endCursor;
+    if (!cursor || seen.has(cursor)) throw new Error('Cursor de histórico inválido.');
+    seen.add(cursor);
+  } while (true);
+  return events;
+}
+export function assertPriority(context) {
+  const field = context.fields.find(f => f.issue_field_id === config.priorityFieldId || f.issue_field_name === 'Priority');
+  if (!['High', 'Medium', 'Low'].includes(field?.single_select_option?.name)) throw new Error('Defina Priority na Issue antes de iniciar.');
 }
 export const terminalStatuses = ['Rejected', 'Canceled', 'Done'];
-export function closeNotPlanned(issue) {
-  if (issue.state === 'closed' && issue.state_reason === 'not_planned') return issue;
-  return api(`repos/${config.repository}/issues/${issueNumber(issue.number)}`, {
-    method: 'PATCH',
-    body: { state: 'closed', state_reason: 'not_planned' },
-  });
+function closeIssue(issue, reason) {
+  const endpoint = 'repos/' + config.repository + '/issues/' + issueNumber(issue.number);
+  const current = api(endpoint);
+  if (current.state === 'closed' && current.state_reason === reason) return current;
+  if (current.state !== 'open' || (issue.updated_at && current.updated_at !== issue.updated_at)) throw new Error('Conflito: Issue mudou antes do fechamento.');
+  api(endpoint, { method: 'PATCH', body: { state: 'closed', state_reason: reason } });
+  const verified = api(endpoint);
+  if (verified.state !== 'closed' || verified.state_reason !== reason) throw new Error('Fechamento da Issue não confirmado.');
+  return verified;
 }
-export function closeCompleted(issue) {
-  if (issue.state === 'closed' && issue.state_reason === 'completed') return issue;
-  return api(`repos/${config.repository}/issues/${issueNumber(issue.number)}`, {
-    method: 'PATCH',
-    body: { state: 'closed', state_reason: 'completed' },
-  });
-}
+export function closeNotPlanned(issue) { return closeIssue(issue, 'not_planned'); }
+export function closeCompleted(issue) { return closeIssue(issue, 'completed'); }
 export function main(fn) { try { fn(); } catch (error) { console.error(error.message); process.exitCode = 1; } }
