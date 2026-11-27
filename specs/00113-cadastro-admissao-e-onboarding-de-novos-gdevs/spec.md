@@ -17,7 +17,7 @@ Oferecer uma porta de entrada pública para a comunidade GayDevs, com candidatur
 3. Após OTP válido, o candidato pode acessar somente a própria candidatura. O contato do scrum master fica disponível em todas as etapas seguintes, inclusive tela final. O número é configurável no ambiente e não integra conteúdo público do frontend.
 4. O wizard é mobile-first, com progresso não linear (avanço inicial mais rápido), navegação por etapas e salvamento persistente. Retomar por novo OTP restaura a etapa e os dados já registrados.
 5. Dados obrigatórios: nome, sobrenome, WhatsApp e LinkedIn, além do e-mail validado. GitHub e Instagram são opcionais. Se GitHub estiver vazio ao avançar, explicar sua importância e pedir confirmação para continuar sem ele. Registrar interesse em colaborar com a plataforma, sem acionar nenhuma automação de colaboração. Perguntar obrigatoriamente como conheceu o GayDevs, em campo de texto livre com autocomplete: App de relacionamento (Tinder, Scruff, Grindr etc.), Rede social (Instagram, Facebook, TikTok etc.), Amigos, Trabalho, Evento de tecnologia e Pesquisa na internet. A busca deve corresponder a qualquer parte das sugestões, inclusive palavras nos exemplos, ignorando caixa e acentos. Permitir resposta personalizada sem exigir seleção; não incluir opções “Outro gdev” ou “Outro”.
-6. Validar formato, domínio e disponibilidade dos perfis LinkedIn, GitHub e Instagram. Bloquear links inválidos ou comprovadamente inexistentes; não bloquear verificações inconclusivas (ex.: autenticação, limitação ou indisponibilidade do terceiro).
+6. Validar formato e domínio dos perfis LinkedIn, GitHub e Instagram. Consultar disponibilidade automaticamente apenas no GitHub via API oficial. LinkedIn e Instagram têm disponibilidade inconclusiva por padrão, com conferência manual pelo administrador; não realizar consultas automatizadas nessas redes. Bloquear links sintaticamente inválidos ou comprovadamente inexistentes pelo verificador automático; não bloquear resultados inconclusivos. Ajuste aprovado pelo gdev solicitante em 2026-11-27 (conversa ChatGPT).
 7. Incentivar seguir Instagram e GitHub do GayDevs e do luvittor, sem verificação automática de seguidores.
 8. Exibir termos e confirmações diretas. Registrar individualmente as versões e timestamps dos aceites exigidos:
    - Ser gay e dev; conhecer a proposta de uma comunidade engajada e coesa, não necessariamente grande.
@@ -70,7 +70,7 @@ Dashboard/indicadores de funil; exclusão automática de candidaturas; edição 
 - REQ-002: OTP inicial, controles antispam e candidatura persistida antes da confirmação; nenhum acesso privilegiado antes da validação.
 - REQ-003: Wizard responsivo, progresso não linear, persistência de etapas e retomada autenticada.
 - REQ-004: Campos obrigatórios/opcionais, confirmação explícita da ausência de GitHub, interesse de colaboração registrado e origem obrigatória em texto livre com autocomplete.
-- REQ-005: Validação segura de perfis com distinção entre inexistência e resultado inconclusivo.
+- REQ-005: Validação segura de formato/domínio nas três redes, disponibilidade automática no GitHub com distinção entre inexistência e resultado inconclusivo, e conferência manual de existência no LinkedIn e Instagram.
 - REQ-006: Contato do scrum master fornecido exclusivamente após verificação e links de redes sociais.
 - REQ-007: Termos e autorizações individuais, aviso de privacidade, versões e datas persistidas.
 - REQ-008: Submissão idempotente, estado pending, notificação administrativa e tela final com WhatsApp.
@@ -90,7 +90,7 @@ Dashboard/indicadores de funil; exclusão automática de candidaturas; edição 
 - Dado candidato draft, quando salva etapas e retorna mediante novo OTP, então dados, etapa e progresso são recuperados.
 - Dado candidato sem GitHub, quando tenta avançar, então confirma explicitamente a ausência antes de prosseguir.
 - Dado candidato preenchendo a origem, quando digita qualquer palavra das sugestões (ex.: Grindr ou instagram), então vê correspondências sem distinção de caixa ou acentos; pode selecionar uma sugestão ou salvar texto próprio, que fica disponível ao admin. Campo vazio impede submissão.
-- Dado perfil inválido ou inexistente, quando informa o link, então recebe orientação para corrigir; resultado inconclusivo não bloqueia a etapa.
+- Dado link sintaticamente inválido ou perfil GitHub comprovadamente inexistente, quando informa o link, então recebe orientação para corrigir; resultado inconclusivo não bloqueia a etapa. A existência dos perfis LinkedIn e Instagram é conferida pelo administrador.
 - Dado dado obrigatório ou aceite ausente, quando tenta submeter, então permanece draft e nenhuma notificação é disparada.
 - Dada candidatura completa, quando submete, então fica pending, registra aceites/submissão e notifica admin; a tela final orienta contato via WhatsApp. Submissões duplicadas não criam outra candidatura nem outra notificação.
 - Dada candidatura pending, quando retorna por OTP, então vê a mesma tela final; não altera dados submetidos.

@@ -8,7 +8,7 @@ Revisão de implementação, não aprovação humana. Evidência automatizada em
 | 002 | ApplicationAuth: OTP, antispam, quotas e unverified |
 | 003 | ApplicationPage, ApplicationWorkflow: progresso, etapas, revisão e retomada; smoke Chromium responsivo com API simulada; QA integrado pendente |
 | 004 | ApplicationProfile, ApplicationWorkflow, ApplicationPage: handles, origem livre e ausência GitHub |
-| 005 | ApplicationProfile: allowlist, SSRF, API GitHub; LinkedIn/Instagram inconclusivos sem acesso autorizado; T015 parcial |
+| 005 | ApplicationProfile: allowlist, SSRF, API GitHub; LinkedIn/Instagram inconclusivos e conferência manual conforme ajuste aprovado; T015 concluída |
 | 006 | ApplicationAuth, ApplicationPage: contato após OTP e redes |
 | 007 | ApplicationWorkflow, ApplicationPage, ApplicationOnboarding: aceites versionados, aviso, bloqueio da minuta; conteúdo final pendente |
 | 008 | ApplicationWorkflow: intenção única e falhas SMTP simuladas; ApplicationPage: pending |
@@ -30,7 +30,7 @@ Revisão de implementação, não aprovação humana. Evidência automatizada em
 | 5 | Sessão, persistência e retomada (ApplicationAuth/Workflow/Page) | Testado por componentes |
 | 6 | Confirmação GitHub ausente (ApplicationWorkflow/Page) | Testado |
 | 7 | Origem livre, busca sem acento e obrigatoriedade (ApplicationWorkflow/Page) | Testado |
-| 8 | Formato, SSRF, classificação (ApplicationProfile) | Parcial: disponibilidade dos provedores |
+| 8 | Formato, SSRF, classificação (ApplicationProfile) | Testado conforme escopo ajustado: GitHub automático, LinkedIn/Instagram manual |
 | 9 | Submissão incompleta/aceites (ApplicationWorkflow/Page) | Testado |
 | 10 | Submissão, intenção única, WhatsApp (ApplicationWorkflow/Page) | SMTP simulado |
 | 11 | Pending somente leitura e retomada (ApplicationAuth/Workflow/Page) | Testado |
