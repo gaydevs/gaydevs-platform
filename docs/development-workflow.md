@@ -239,7 +239,7 @@ Status identifica regressões assíncronas e distingue mudanças posteriores.
   de Issues já em Done com entrega comprovada, sem alterar cards.
 
 O workflow SDD integrity audit é separado dos required checks e executa em
-dry-run (06:17 UTC, 03:17 em São Paulo). Acesso a Project da organização exige
+dry-run (05:24 UTC, 02:24 em São Paulo). Acesso a Project da organização exige
 credencial autorizada; se GITHUB_TOKEN não tiver acesso, fornecer
 SDD_PROJECT_TOKEN por configuração administrativa segura. O relatório detalhado permanece no CLI autenticado; não é publicado nos logs ou artefatos do repositório público. Nenhuma credencial é criada pelo script. Escrita periódica não está habilitada.
 

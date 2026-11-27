@@ -347,13 +347,11 @@ test('Project status: invalid Rejected and Canceled transitions fail before muta
     ['Review', 'Rejected'],
     ['Ready for Release', 'Rejected'],
     ['Done', 'Rejected'],
-    ['Rejected', 'Rejected'],
     ['Canceled', 'Rejected'],
     ['Backlog', 'Canceled'],
     ['Specifying', 'Canceled'],
     ['Done', 'Canceled'],
     ['Rejected', 'Canceled'],
-    ['Canceled', 'Canceled'],
   ]) {
     s.change(v => {
       v.issues[27] = issue(27, 'Feature');
@@ -366,6 +364,29 @@ test('Project status: invalid Rejected and Canceled transitions fail before muta
     v.items = { I_27: { id: 'ITEM_I_27', status: 'Backlog' } };
   });
   s.clearCalls(); fail(s.cli('status', [27, 'Rejected']), /motivo diferente/); noWrites(s);
+});
+
+test('Project status: retry after partial terminal transition closes only once', t => {
+  const s = sandbox(t);
+  for (const [current, terminal] of [['Backlog', 'Rejected'], ['In Progress', 'Canceled']]) {
+    s.change(v => {
+      v.issues[27] = issue(27, 'Feature');
+      v.items = { I_27: { id: 'ITEM_I_27', status: current } };
+      v.failures = [{ endpoint: '/issues/27', method: 'PATCH', code: 503 }];
+    });
+    s.clearCalls();
+    fail(s.cli('status', [27, terminal]), /HTTP 503/);
+    assert.equal(s.state().items.I_27.status, terminal);
+    assert.equal(s.state().issues[27].state, 'open');
+    s.change(v => { v.failures = []; });
+    s.clearCalls();
+    ok(s.cli('status', [27, terminal]));
+    assert.deepEqual(s.mutations().map(c => [c.method, c.endpoint]), [['PATCH', endpoint(27)]]);
+    assert.equal(s.state().issues[27].state_reason, 'not_planned');
+    s.clearCalls();
+    ok(s.cli('status', [27, terminal]));
+    noWrites(s);
+  }
 });
 
 test('Human gates: Ready/In Progress need explicit declaration and reject open blockers even with it', t => {
