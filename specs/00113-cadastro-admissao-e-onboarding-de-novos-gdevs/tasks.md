@@ -59,7 +59,7 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 ## Pré-release — tarefa manual do responsável
 
-- [ ] T034 — Criar conta/widget Cloudflare Turnstile para vettoretti.dev; atualizar o .env persistente de produção com APPLICATION_TURNSTILE_TEST_MODE=false, APPLICATION_TURNSTILE_SITEKEY, APPLICATION_TURNSTILE_SECRET e APPLICATION_TURNSTILE_HOSTNAME=vettoretti.dev; manter APPLICATION_TURNSTILE_ACTION=application_otp. Limpar/recriar cache de configuração conforme deploy e validar o widget/hostname/action com credenciais reais antes de ativar APPLICATIONS_ENABLED. Não registrar a secret no Git. Responsável: gdev solicitante.
+- [ ] T034 — Criar conta/widget Cloudflare Turnstile para vettoretti.dev; atualizar o .env persistente de produção com TURNSTILE_TEST_MODE=false, TURNSTILE_SITEKEY, TURNSTILE_SECRET e TURNSTILE_HOSTNAME=vettoretti.dev; manter TURNSTILE_ACTION=application_otp. Limpar/recriar cache de configuração conforme deploy e validar o widget/hostname/action com credenciais reais antes de ativar APPLICATIONS_ENABLED. Não registrar a secret no Git. Responsável: gdev solicitante.
 
 - [ ] T035 — Antes do release, revisar e aprovar os textos finais de privacidade e aceites, retirar o sufixo draft de ApplicationTerms::VERSION (usar data/versão definitiva distinta), atualizar testes/documentação e definir FINALIZED=true somente após aprovação humana e demais gates. Aceites de minutas não valem como aceites da versão definitiva.
 

@@ -4,11 +4,11 @@ return [
     'enabled' => env('APPLICATIONS_ENABLED', false),
     'support_whatsapp' => env('APPLICATION_SUPPORT_WHATSAPP'),
     'turnstile' => [
-        'test_mode' => env('APPLICATION_TURNSTILE_TEST_MODE', false),
-        'sitekey' => env('APPLICATION_TURNSTILE_SITEKEY'),
-        'secret' => env('APPLICATION_TURNSTILE_SECRET'),
-        'hostname' => env('APPLICATION_TURNSTILE_HOSTNAME'),
-        'action' => env('APPLICATION_TURNSTILE_ACTION', 'application_otp'),
+        'test_mode' => env('TURNSTILE_TEST_MODE', false),
+        'sitekey' => env('TURNSTILE_SITEKEY'),
+        'secret' => env('TURNSTILE_SECRET'),
+        'hostname' => env('TURNSTILE_HOSTNAME'),
+        'action' => env('TURNSTILE_ACTION', 'application_otp'),
     ],
     'limits' => [
         'cooldown' => (int) env('APPLICATION_OTP_COOLDOWN', 60),

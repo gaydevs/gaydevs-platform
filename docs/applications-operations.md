@@ -12,9 +12,9 @@ Somente no ambiente persistente do backend. Não incluir credenciais, telefone o
 | APP_FRONTEND_URL | URL compartilhada da plataforma; HTTPS em produção, HTTP loopback somente local/testing, sem credenciais, query ou fragmento |
 | MAIL_FROM_ADDRESS | remetente SMTP e destinatário dos avisos de candidatura; confirmar que a caixa recebe mensagens |
 | APPLICATION_SUPPORT_WHATSAPP | número internacional sem espaços |
-| APPLICATION_TURNSTILE_TEST_MODE | true no .env.example; false em produção; somente local/testing |
-| APPLICATION_TURNSTILE_SITEKEY / SECRET | credenciais do widget; só sitekey pública |
-| APPLICATION_TURNSTILE_HOSTNAME / ACTION | hostname permitido / application_otp |
+| TURNSTILE_TEST_MODE | true no .env.example; false em produção; somente local/testing |
+| TURNSTILE_SITEKEY / SECRET | credenciais do widget; só sitekey pública |
+| TURNSTILE_HOSTNAME / ACTION | hostname permitido / application_otp |
 | APPLICATION_OTP_COOLDOWN | 60 segundos |
 | APPLICATION_OTP_EMAIL_HOUR / IP_HOUR / DAY | 5 / 10 / 50 |
 | APPLICATION_VERIFY_IP_HOUR / APPLICATION_OTP_ATTEMPTS | 20 / 5 |
