@@ -3,7 +3,7 @@
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Spec: [spec.md](spec.md)
 Fast-track risk: High
 **Branch:** feat/00115-adicionar-area-de-anotacoes-sobre-gdevs
-**Estado:** plano revisado aprovado (High Risk).
+**Estado:** refinamento de navegação aprovado na spec; plano do refinamento aguardando aprovação (High Risk).
 **Spec aprovada:** 27/11/2026, conversa após commit 4577cea.
 
 ## Resumo e contexto técnico
@@ -18,7 +18,7 @@ Isolar notas por autor autenticado, preservando a interface existente e a restri
 - Expor rotas próprias de listagem mínima (ID, nome e prévia textual curta da anotação, limitada a 160 caracteres), consulta e atualização da ficha. A prévia é calculada no backend apenas para o endpoint admin; não retornar anotações completas na listagem. Usar auth:sanctum, EnsureUserIsActive e a verificação de MemberType::ADMIN já usada nas Enquetes; reutilizar/generalizar a checagem apenas se necessário, sem alterar a política existente.
 - Frontend React: reutilizar padrões de PollsBrand, PollsPage/PollCard, PollDetail, SectionSubmenuBar e o observador de visibilidade do ícone das Enquetes. Criar ícone SVG de ficha/anotação com gradiente ciano–violeta–magenta e wordmark /gdevs/notes; manter o prefixo de rota real existente da plataforma. A marca principal vira submenu fixo quando sai de vista e permanece no submenu da ficha. Exibir iniciais e prévia limitada nos cards apenas quando houver texto. Centralizar a primeira linha do nome no avatar usando line-height e padding calculado; reutilizar poll-loading__shine nos esqueletos da lista, detalhe e editor lazy.
 - Editor WYSIWYG Tiptap (React, StarterKit, BubbleMenu e Markdown), com extensões limitadas aos formatos previstos e três botões H1/H2/H3 no BubbleMenu, com hierarquia tipográfica distinta; manter Markdown textual na API/banco, sem modo de código ou preview separado. Não renderizar HTML arbitrário, imagens remotas ou links ativos; verificar XSS, colagem e round-trip dos formatos. Validar tamanho e tipo no servidor; suportar limpar a ficha. Tiptap 3.35.0 com dependências fixadas no lockfile e carregamento sob demanda apenas na ficha; não introduzir serviço externo. Colagem é tratada como texto para evitar HTML arbitrário.
-- Autosave com debounce de aproximadamente 700 ms, apenas uma gravação em voo por ficha e fila da versão mais recente; não substituir edição local com resposta antiga. Manter estados internos; exibir salvamento e falha apenas no modal de saída. Sem armazenamento persistente de rascunho no navegador. Guardar navegação interna, histórico e logout enquanto houver alterações pendentes: abrir modal seguindo ModalHeader, login-overlay e padrão de confirmação das Enquetes, disparar/aguardar gravação e só então navegar; Cancelar mantém a edição; Tentar de novo em falha. Para fechar/recarregar a aba, usar aviso nativo beforeunload, pois o navegador não permite modal personalizado nessa situação.
+- Autosave com debounce de aproximadamente 700 ms, apenas uma gravação em voo por ficha e fila da versão mais recente; não substituir edição local com resposta antiga. Manter estados internos; exibir salvamento e falha apenas no modal de saída. Sem armazenamento persistente de rascunho no navegador. Guardar navegação interna, histórico e logout enquanto houver alterações pendentes: abrir modal seguindo ModalHeader, login-overlay e padrão de confirmação das Enquetes, disparar/aguardar gravação e navegar após confirmação, ou prosseguir sem confirmação ao selecionar Ignorar; X/Escape mantém a edição; Tentar de novo em falha. Para fechar/recarregar a aba, usar aviso nativo beforeunload, pois o navegador não permite modal personalizado nessa situação.
 - Não incluir conteúdo em respostas públicas, busca pública, logs/auditoria com payload, previews sociais ou cache compartilhado. Não usar dados pessoais reais nos testes. Não alterar autenticação nem introduzir novas permissões.
 
 ## Validação e risco
@@ -43,3 +43,29 @@ Isolar notas por autor autenticado, preservando a interface existente e a restri
 Fast-track aprovado por um gdev antes da implementação (2026-11-27). Checkpoint Medium Risk original aprovado; implementação inicial publicada. Revisão de escopo com novo checkpoint Medium Risk aprovado em 27/11/2026, incluindo Tiptap. A prévia permanece exclusivamente admin e o autosave mantém o mesmo mecanismo de autorização.
 
 Aprovação da revisão de privacidade: spec aprovada explicitamente em 27/11/2026 (commit 4577cea). Plano revisado aprovado explicitamente em 27/11/2026 (commit 38af8fc); implementação autorizada.
+
+## Plano do refinamento de navegação e refresh (27/11/2026)
+
+Spec aprovada explicitamente após commit 15eb617. Mantido o fluxo SDD High Risk da issue. Plano a aprovar antes de implementar.
+
+### Login obrigatório
+- Reutilizar SectionAuthGate (mode required) em NotesPage, com skeleton apropriado à rota de listagem/detalhe durante restauração e enquanto visitante; nenhuma chamada notes antes de sessão admin.
+- Generalizar no App.tsx o callback de login obrigatório atualmente usado por Enquetes, preservando o fluxo de #login/#login/otp e a rota de origem. Calcular homePath a partir do prefixo da seção ativa (notes ou polls), de modo que cancelar o login retorne à home da plataforma, não à raiz do domínio.
+- Autenticado não admin continua recebendo Área restrita sem requisições privadas. Admin usa o fluxo existente com actorId. Não modificar gates/middleware ou contratos do backend.
+
+### Ignorar salvamento
+- Em useNoteAutosave, adicionar ação explícita ignoreLeave separada de cancelLeave (X/Escape). Capturar e limpar o callback de saída antes de executá-lo uma única vez. Invalidar a fila/timer e a continuação do autosave da ficha abandonada; abortar o fetch local em voo quando possível. Uma requisição já aceita pelo servidor ainda pode concluir, sem garantia. Não tentar rollback de escrita nem reenviar após saída ou mudança de sessão.
+- Remover aviso beforeunload da ficha explicitamente abandonada para não bloquear a navegação autorizada. Preservar o aviso nativo para fechamento/reload não autorizado pelo modal.
+- SaveDialog: Ignorar como ação secundária durante salvamento, erro e sessão divergente; Tentar de novo em falhas transitórias; Recarregar na divergência. Mensagem de possível perda de edição; X/Escape fecha modal sem sair. Nenhuma mudança no comportamento silencioso normal.
+- Preservar o callback original de destino, incluindo popstate e logout, sem disparar uma segunda proteção ou sair duas vezes se a resposta chegar tarde. Testar saída que não desmonta imediatamente, como logout assíncrono.
+
+### Refresh da listagem
+- Extrair hook useNoteList ou manter lógica isolada equivalente. Usar intervalo de 15.000 ms, alinhado ao POLL_REFRESH_INTERVAL_MS existente. GET completo de /notes com X-Notes-Actor, cache no-store e ordenação atual, sem alterações na API. Substituir snapshot, incluindo remoções de membros e prévias que ficaram vazias.
+- Consulta inicial ao montar, inclusive retorno da ficha; refresh a cada 15s somente com documento visível, e imediatamente em visibilitychange para visible. Evitar requisições concorrentes; descartar respostas de geração/autor anterior, cancelar requisições e timers/listeners no unmount.
+- Esqueleto só até primeira carga. Falha transitória de refresh mantém cards e tenta no próximo ciclo. 401/403/409 limpa snapshot, impede novos refreshes com sessão inválida e exibe orientação correspondente; nunca mostrar conteúdo antigo de outra sessão.
+
+### Validação
+- Testes com timers falsos e respostas controladas: periodicidade, visibilidade, sobreposição, snapshot atualizado (inclusive remoções), falhas transitórias e autorização, desmontagem e troca de autor.
+- Testes de integração App/NotesPage: login direto nas duas rotas, skeleton/modal, cancelamento para home correta, autenticação admin e não admin, ausência de consultas privadas sem admin; regressão Enquetes.
+- Testes hook/modal/App: Ignorar em espera/erro/409, saída única com fila descartada e resposta tardia, logout/histórico, X/Escape mantém ficha, retry e salvamento normal permanecem.
+- Executar suíte frontend, typecheck, lint e build; suíte backend de regressão para confirmar que autorização e isolamento continuam intactos. Sem nova dependência, migration ou endpoint.

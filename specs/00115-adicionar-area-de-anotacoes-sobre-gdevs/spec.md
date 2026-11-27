@@ -1,7 +1,7 @@
 # 00115 — Adicionar área de anotações sobre gdevs
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/115
-Estado: High Risk; refinamento de comportamento aguardando aprovação da spec.
+Estado: High Risk; spec do refinamento aprovada; plano do refinamento pendente.
 Fast-track risk: High
 ## Objetivo
 Registrar informações livres sobre cada gdev, permitindo que padrões emerjam do uso sem antecipar campos estruturados.
@@ -60,7 +60,7 @@ High Risk por alteração de autorização em nível de registro e confidenciali
 
 ## Refinamento de navegação e atualização da listagem (27/11/2026)
 
-Proposta aguardando aprovação explícita, em especial quanto à saída sem confirmação de salvamento. As aprovações anteriores permanecem válidas para o isolamento por autor.
+Refinamento aprovado explicitamente pelo gdev em 27/11/2026, na conversa após commit 15eb617, incluindo a possibilidade de perda de alterações ao escolher Ignorar. As aprovações anteriores permanecem válidas para o isolamento por autor.
 
 - Reutilizar a experiência de autenticação obrigatória das Enquetes: durante restauração da sessão e login exibir exclusivamente esqueleto, sem buscar dados privados. Manter a rota original após autenticação; cancelar o login retorna à home da plataforma. Somente após autenticar um não admin exibir Área restrita.
 - Substituir o botão Cancelar no modal de saída por Ignorar. Ignorar prossegue imediatamente ao destino original, inclusive histórico/logout, sem confirmação de persistência. Informar possibilidade de perda de alterações pendentes. Uma requisição já recebida pelo servidor pode concluir depois da saída; não iniciar novos envios ou retries da ficha abandonada. X/Escape continuam mantendo a ficha aberta. Sessão divergente não pode salvar em outra conta.
