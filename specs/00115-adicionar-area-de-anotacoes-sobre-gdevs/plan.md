@@ -84,7 +84,7 @@ Refinamento interno autorizado pelo gdev: RestrictedAccessDialog, PendingSaveDia
 
 ## Plano — integridade concorrente (High Risk, 27/11/2026)
 
-Spec aprovada explicitamente pelo gdev após commit 66c652c. Plano aguardando aprovação humana separada; não iniciar tasks/código antes desse gate. Preservar a mesma branch e PR #120. Nenhuma dependência adicional, polling, histórico de revisões ou refatoração global.
+Spec aprovada explicitamente pelo gdev após commit 66c652c. Plano aprovado explicitamente pelo gdev em 27/11/2026 na conversa após commit eb6da36; implementação autorizada. Preservar a mesma branch e PR #120. Nenhuma dependência adicional, polling, histórico de revisões ou refatoração global.
 
 ### Banco e atomicidade
 - Adicionar `version` inteiro positivo, default 1, na migration inicial de user_notes (a feature ainda não foi publicada). Ausência de ficha corresponde a version 0, conteúdo vazio. Limpar a ficha mantém o registro e incrementa a versão, sem reiniciar a sequência. Cast inteiro no model; validar inteiros não negativos dentro da faixa segura de JSON/JavaScript, impedir overflow. Manter UUIDv7, FKs, unique(author_id,user_id), índice e timestamps.

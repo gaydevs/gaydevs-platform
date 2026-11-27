@@ -53,4 +53,12 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 - [x] T035 Confirmar CI completa no commit de código f462113: backend SQLite/MySQL, lint/auditoria, frontend testes/lint/auditoria/build, contrato SDD e SonarCloud aprovados. CodeRabbit SKIPPED nessa execução.
 - [ ] T036 Nova revisão CodeRabbit do diff atualizado, tratar achados relevantes e obter aprovação humana antes do merge em develop.
 
+## Integridade concorrente (High Risk)
+- [x] T037 Registrar aprovação de spec (66c652c) e plano (eb6da36).
+- [ ] T038 Implementar migration, CAS atômico e contrato de conflito privado.
+- [ ] T039 Testar concorrência real, ordem invertida, autorização e contrato em SQLite/MySQL.
+- [ ] T040 Implementar revisão e reconciliação no autosave e cliente HTTP.
+- [ ] T041 Implementar modal bloqueante, resolução e proteção de rascunho/navegação.
+- [ ] T042 Cobrir todos os cenários da spec, executar regressões e publicar evidências.
+
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.
