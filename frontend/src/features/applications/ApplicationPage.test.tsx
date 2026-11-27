@@ -58,7 +58,7 @@ test('restores profiles and stores pasted handle with independent authorization 
   await ui.paste('https://www.linkedin.com/in/example/')
   expect(linkedin).toHaveValue('example')
   await ui.click(screen.getByLabelText(/Confirmo que quero continuar sem ele/))
-  await ui.click(screen.getByLabelText('Autorizo a consulta e coleta de dados públicos dos perfis informados.'))
+  await ui.click(screen.getByLabelText('Autorizo a consulta e coleta de dados dos perfis informados.'))
   await ui.click(screen.getByRole('button',{name:'continuar'}))
   await waitFor(()=>expect(api.saveStep).toHaveBeenCalledWith('profiles',expect.objectContaining({linkedin:'example',github_skip_confirmed:true,consents:{personal_data:'v1',external_profiles:'v1'}})))
   expect(await screen.findByText('75%')).toBeVisible()

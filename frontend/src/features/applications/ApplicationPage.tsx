@@ -76,9 +76,10 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
   })
   const accepted = (key:string) => accepts[key]===terms?.version
   const privacy = home.replace(/\/$/, '') + '/privacy'
+  const homeHref = home.endsWith('/') ? home : `${home}/`
   const consent = (keys:string[], text:string, href?:string, linkText='ler detalhes') => <div key={keys.join(',')}><label className="application-check"><input type="checkbox" checked={keys.every(accepted)} required onChange={e=>setAccepts(a=>({...a,...Object.fromEntries(keys.map(key=>[key,e.target.checked ? terms!.version : '']))}))}/><span>{text}</span></label>{href && <a className="poll-inline-link" href={href} target="_blank" rel="noopener noreferrer">{linkText} ↗</a>}</div>
   const privacyConsent = () => consent(['personal_data'],'Autorizo o tratamento dos meus dados pessoais e sensíveis.',privacy,'política de privacidade')
-  const profileConsent = () => consent(['external_profiles'],'Autorizo a consulta e coleta de dados públicos dos perfis informados.',privacy+'#perfis','consulta de perfis')
+  const profileConsent = () => consent(['external_profiles'],'Autorizo a consulta e coleta de dados dos perfis informados.',privacy+'#perfis','consulta de perfis')
   const save = () => run(async () => {
     if(!session || !terms)return
     const revision=session.revision!
@@ -100,7 +101,7 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
   const headingText = member || session?.status==='approved' ? 'já é gdev?' : session?.status==='rejected' ? 'candidatura encerrada' : session?.status==='pending' ? 'candidatura enviada!' : session?.status==='draft' ? titles[step] : challenge ? 'confirme seu e-mail' : 'quero ser um gdev'
   const form = (e: FormEvent) => {e.preventDefault();void (session?.status==='draft'? save():challenge?verify():requestCode())}
   return <section className="container application-page"><div className="application-panel">
-    <a className="poll-inline-link" href={home}>← voltar ao gaydevs</a>
+    <a className="poll-inline-link" href={homeHref}>← voltar ao gaydevs</a>
     <p className="polls-eyebrow">/gdevs/apply</p><h1 ref={heading} tabIndex={-1}>{headingText}</h1>
     <div className="application-progress"><progress aria-label="progresso da candidatura" max={100} value={percent}/><span>{percent}%</span></div>
     {loading ? <p role="status">carregando…</p> : <>
@@ -114,7 +115,7 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
     <form className="application-form" onSubmit={form}>
       <fieldset disabled={busy} className="application-fieldset">
       {!session ? <>
-        {!challenge ? <><p>Uma comunidade para gays e devs: tecnologia, carreira, amizade e eventos no WhatsApp, na plataforma e no Instagram. <a href={home}>Conheça nossa proposta.</a></p>
+        {!challenge ? <><p>Uma comunidade para gays e devs: tecnologia, carreira, amizade e eventos no WhatsApp, na plataforma e no Instagram. <a href={homeHref}>Conheça nossa proposta.</a></p>
         <p>{terms.privacy_notice}</p>{privacyConsent()}
         <label className="application-field">E-mail<FieldControl type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label></> :
         <><p>Enviamos um código para seu e-mail. Ele expira em 10 minutos.</p><label className="application-field">Código de confirmação<FieldControl required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))}/></label></>}

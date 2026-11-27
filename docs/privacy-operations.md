@@ -17,7 +17,7 @@ O controlador é a pessoa física responsável pela administração. O gdev soli
 | IP, visitor observations, logs técnicos, antispam | Segurança, prevenção de abuso, operação | Avaliar hipótese aplicável por categoria, minimização e retenção | Hospedagem, Turnstile, administração |
 | Eventos, decisões, observações e histórico | Curadoria, evidência de fraude/abuso e defesa de direitos | Finalidade e base legal documentadas individualmente; dados sensíveis exigem art. 11 | Administração autorizada |
 
-Não inferir orientação sexual de perfis nem coletar dados de terceiros. A autorização para dados públicos não implementa scraping ou nova captura automatizada. Definir escopo e base legal antes de novas coletas; preferir estatísticas efetivamente anônimas. Não publicar candidaturas. Nenhum dado pessoal de candidatos deve constar em commits, issues, PRs ou logs de QA.
+Não inferir orientação sexual de perfis nem coletar dados de terceiros. A autorização para dados não implementa scraping ou nova captura automatizada. Definir escopo e base legal antes de novas coletas; preferir estatísticas efetivamente anônimas. Não publicar candidaturas. Nenhum dado pessoal de candidatos deve constar em commits, issues, PRs ou logs de QA.
 
 ## Retenção
 

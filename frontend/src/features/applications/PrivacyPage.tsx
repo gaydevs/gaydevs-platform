@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { getTerms, type Terms } from './api'
 
 export function PrivacyPage({home}: {home:string}) {
@@ -13,12 +14,10 @@ export function PrivacyPage({home}: {home:string}) {
     if(terms && window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
   },[terms])
   return <section className="container application-page"><article className="application-panel application-panel--wide">
-    <a className="poll-inline-link" href={home}>← voltar ao gaydevs</a>
     <h1>Privacidade</h1>
-    {failed ? <p role="alert">Não foi possível carregar a política. Recarregue a página ou entre em contato com a administração pelo rodapé.</p> : !terms ? <p role="status">carregando…</p> : <>
-      <p>Versão: {terms.version}</p>
+    {failed ? <p role="alert">Não foi possível carregar a política. Recarregue a página ou entre em contato com a administração pelo rodapé.</p> : !terms ? <div className="application-loading" role="status"><LoadingSpinner /><span>carregando…</span></div> : <>
+      <p className="application-version"><strong>Versão:</strong> {terms.version}</p>
       {terms.privacy_sections?.map(s=><section key={s.id} id={s.id}><h2>{s.title}</h2><p>{s.text}</p></section>)}
-      <section id="comunidade"><h2>Sobre a comunidade</h2>{terms.consents.filter(c=>['gay_dev','community','values'].includes(c.key)).map(c=><p key={c.key}>{c.text}</p>)}<a href={home.replace(/\/$/,'')+'/#sobre'}>Conheça a proposta do GayDevs</a></section>
       <section id="convivencia"><h2>Regras de convivência</h2>{terms.consents.filter(c=>['sfw','nsfw'].includes(c.key)).map(c=><p key={c.key}>{c.text}</p>)}</section>
       <section><h2>Autorizações</h2>{terms.consents.filter(c=>['personal_data','external_profiles'].includes(c.key)).map(c=><p key={c.key}>{c.text}</p>)}</section>
     </>}
