@@ -1,7 +1,7 @@
 # 00115 — Adicionar área de anotações sobre gdevs
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/115
-Estado: fast-track Medium Risk aguardando checkpoint humano.
+Estado: fast-track Medium Risk com checkpoint humano aprovado.
 Fast-track risk: Medium
 
 ## Objetivo

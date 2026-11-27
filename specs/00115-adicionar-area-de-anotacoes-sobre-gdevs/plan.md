@@ -17,4 +17,4 @@ Fast-track risk: Medium
 - Medium se a proteção existente puder ser reutilizada sem mudança sensível; escalar para High antes de código se surgir exposição, mudança de autorização sensível ou necessidade adicional de proteção de dados.
 
 ## Aprovação
-Fast-track aprovado por um gdev antes da implementação (2026-11-27). Implementação pendente do checkpoint Medium Risk.
+Fast-track aprovado por um gdev antes da implementação (2026-11-27). Checkpoint Medium Risk aprovado; implementação autorizada.

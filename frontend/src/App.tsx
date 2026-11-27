@@ -22,6 +22,7 @@ import { AccountHeader } from './components/AccountHeader'
 import { LoginDialog } from './features/auth/LoginDialog'
 import { PollAuditDialog, PollErrorDialog, PollsPage, PollsSectionBar } from './features/PollsPage'
 import type { Poll } from './features/pollsApi'
+import { NotesPage, NotesSectionBar } from './features/NotesPage'
 
 export default function App() {
   // Os hooks mantêm autenticação e URL fora da árvore visual da landing page.
@@ -66,7 +67,11 @@ export default function App() {
   const pollIdentifier = pollsIndex >= 0 ? pathname.slice(pollsIndex + pollsMarker.length).replace(/^\/+|\/+$/g, '') || null : null
   const createPoll = pollIdentifier === 'new'
   const isPollsSection = pollsIndex >= 0
-  const isLandingPage = !isPollsSection
+  const notesIndex = pathname.search(/\/notes(?:\/|$)/)
+  const isNotesSection = notesIndex >= 0
+  const notesPath = isNotesSection ? pathname.slice(0, notesIndex) + '/notes' : '/notes'
+  const noteMemberId = isNotesSection ? pathname.slice(notesIndex + '/notes'.length).replace(/^\/+|\/+$/g, '') || null : null
+  const isLandingPage = !isPollsSection && !isNotesSection
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
   const homePath = pollsPath.slice(0, -pollsMarker.length) || '/'
@@ -98,8 +103,9 @@ export default function App() {
     <a className="skip-link" href="#conteudo">{accessibility.skip}</a>
     <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={auth.logout} onNavigate={navigate} />
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
+    {isNotesSection && auth.user?.member_type === 'admin' && <NotesSectionBar path={notesPath} onNavigate={navigate} />}
     <main id="conteudo">
-      {pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
+      {isNotesSection ? <NotesPage memberId={noteMemberId} base={notesPath} user={auth.user} restoring={auth.restoring} onNavigate={navigate} /> : pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
       <Hero content={hero} mobile={images.heroMobile} desktop={images.heroDesktop} onBrandVisibilityChange={setBrandVisible} />
       <About content={about} />
       <Topics content={topics} />
