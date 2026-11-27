@@ -100,3 +100,16 @@ describe('AccountHeader', () => {
     window.history.pushState(null, '', '/')
   })
 })
+
+it('shows the notes submenu only to admins and preserves the platform base', async () => {
+  window.history.pushState(null, '', '/gaydevs/platform/polls')
+  const onNavigate = vi.fn()
+  const props = { restoring: false, brandVisible: false, onLogin: vi.fn(), onLogout: vi.fn().mockResolvedValue(undefined), onNavigate }
+  const { rerender } = render(<AccountHeader {...props} user={{ id: 'user', name: 'Gdev', member_type: 'member' }} />)
+  await userEvent.click(screen.getByRole('button', { name: 'abrir menu' }))
+  expect(screen.queryByRole('button', { name: 'anotações' })).not.toBeInTheDocument()
+  rerender(<AccountHeader {...props} user={{ id: 'user', name: 'Gdev', member_type: 'admin' }} />)
+  await userEvent.click(screen.getByRole('button', { name: 'anotações' }))
+  expect(onNavigate).toHaveBeenCalledWith('/gaydevs/platform/notes')
+  window.history.pushState(null, '', '/')
+})

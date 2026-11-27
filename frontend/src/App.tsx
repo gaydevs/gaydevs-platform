@@ -22,6 +22,9 @@ import { AccountHeader } from './components/AccountHeader'
 import { LoginDialog } from './features/auth/LoginDialog'
 import { PollAuditDialog, PollErrorDialog, PollsPage, PollsSectionBar } from './features/PollsPage'
 import type { Poll } from './features/pollsApi'
+import { NotesPage, NotesSectionBar } from './features/NotesPage'
+import { usePlatformHistory } from './navigation/usePlatformHistory'
+import { trimRouteIdentifier } from './navigation/routeIdentifier'
 
 export default function App() {
   // Os hooks mantêm autenticação e URL fora da árvore visual da landing page.
@@ -29,18 +32,14 @@ export default function App() {
   const login = useLoginHash()
   const { open: openLogin, close: closeLoginHash, showStep: showLoginStep, step: loginStep } = login
   const refreshAuth = auth.refresh
+  const logout = auth.logout
+  const [logoutError, setLogoutError] = useState(false)
   const [brandVisible, setBrandVisible] = useState(true)
   const [auditPoll, setAuditPoll] = useState<Poll | null>(null)
   const [pollError, setPollError] = useState<string | null>(null)
-  const pollsLoginPrompt = useRef(false)
+  const sectionLoginPrompt = useRef(false)
   const loginCompleted = useRef(false)
-  const [pathname, setPathname] = useState(() => typeof window === 'undefined' ? '/' : window.location.pathname)
-  useEffect(() => {
-    const synchronizePathname = () => setPathname(window.location.pathname)
-    window.addEventListener('popstate', synchronizePathname)
-
-    return () => window.removeEventListener('popstate', synchronizePathname)
-  }, [])
+  const { pathname, navigate, registerLeaveGuard, leaveGuard } = usePlatformHistory()
   useEffect(() => {
     const previousScrollRestoration = window.history.scrollRestoration
     window.history.scrollRestoration = 'manual'
@@ -50,40 +49,51 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [pathname])
-  const navigate = useCallback((path: string) => {
-    const target = new URL(path, window.location.href)
-    if (target.origin !== window.location.origin) {
-      window.location.assign(path)
-      return
+  const logoutWithFeedback = useCallback(async () => {
+    setLogoutError(false)
+    try {
+      await logout()
+    } catch (error) {
+      setLogoutError(true)
+      throw error
     }
-    const next = `${target.pathname}${target.search}${target.hash}`
-    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.pushState(null, '', next)
-    setPathname(target.pathname)
-    window.scrollTo(0, 0)
-  }, [])
+  }, [logout])
+  const guardedLogout = useCallback(async () => {
+    if (leaveGuard.current?.(logoutWithFeedback)) return
+    try {
+      await logoutWithFeedback()
+    } catch {
+      // The account header reports the failure; do not leave an unhandled rejection.
+    }
+  }, [leaveGuard, logoutWithFeedback])
   const pollsMarker = '/polls'
   const pollsIndex = pathname.indexOf(pollsMarker)
-  const pollIdentifier = pollsIndex >= 0 ? pathname.slice(pollsIndex + pollsMarker.length).replace(/^\/+|\/+$/g, '') || null : null
+  const pollIdentifier = pollsIndex >= 0 ? trimRouteIdentifier(pathname.slice(pollsIndex + pollsMarker.length)) : null
   const createPoll = pollIdentifier === 'new'
   const isPollsSection = pollsIndex >= 0
-  const isLandingPage = !isPollsSection
+  const notesIndex = pathname.search(/\/notes(?:\/|$)/)
+  const isNotesSection = notesIndex >= 0
+  const notesPath = isNotesSection ? pathname.slice(0, notesIndex) + '/notes' : '/notes'
+  const noteMemberId = isNotesSection ? trimRouteIdentifier(pathname.slice(notesIndex + '/notes'.length)) : null
+  const isLandingPage = !isPollsSection && !isNotesSection
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
-  const homePath = pollsPath.slice(0, -pollsMarker.length) || '/'
+  const homePath = (isNotesSection ? notesPath.slice(0, -'/notes'.length) : pollsPath.slice(0, -pollsMarker.length)) || '/'
+  const showNotesSectionBar = isNotesSection && (noteMemberId !== null || !brandVisible)
   const showPollsSectionBar = isPollsSection && (!isPollsLanding || !brandVisible)
   const openAudit = useCallback((poll: Poll) => {
     if (auth.user) setAuditPoll(poll)
     else openLogin()
   }, [auth.user, openLogin])
   const showPollError = useCallback((message: string) => setPollError(message), [])
-  const openPollsLogin = useCallback(() => {
-    pollsLoginPrompt.current = true
+  const openSectionLogin = useCallback(() => {
+    sectionLoginPrompt.current = true
     loginCompleted.current = false
     openLogin()
   }, [openLogin])
   const closeLogin = useCallback(() => {
-    const redirectToHome = pollsLoginPrompt.current && !loginCompleted.current
-    pollsLoginPrompt.current = false
+    const redirectToHome = sectionLoginPrompt.current && !loginCompleted.current
+    sectionLoginPrompt.current = false
     loginCompleted.current = false
     closeLoginHash()
     if (redirectToHome) navigate(homePath)
@@ -96,10 +106,11 @@ export default function App() {
 
   return <>
     <a className="skip-link" href="#conteudo">{accessibility.skip}</a>
-    <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={auth.logout} onNavigate={navigate} />
+    <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={guardedLogout} logoutError={Boolean(auth.user) && logoutError} onNavigate={navigate} />
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
+    {isNotesSection && auth.user?.member_type === 'admin' && <NotesSectionBar visible={showNotesSectionBar} path={notesPath} onNavigate={navigate} />}
     <main id="conteudo">
-      {pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
+      {isNotesSection ? <NotesPage memberId={noteMemberId} base={notesPath} user={auth.user} restoring={auth.restoring} onLogin={openSectionLogin} loginOpen={Boolean(loginStep)} onNavigate={navigate} onBrandVisibilityChange={setBrandVisible} registerGuard={registerLeaveGuard} /> : pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openSectionLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
       <Hero content={hero} mobile={images.heroMobile} desktop={images.heroDesktop} onBrandVisibilityChange={setBrandVisible} />
       <About content={about} />
       <Topics content={topics} />

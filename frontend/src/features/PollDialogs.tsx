@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { ModalHeader } from '../components/ModalHeader'
+import { useModalLifecycle } from '../components/useModalLifecycle'
 import { PollsBrand } from '../components/PollsBrand'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { closePoll, getPollAudit, hidePollOption, pollErrorMessage, type Poll, type PollAudit, type PollOption } from './pollsApi'
@@ -24,30 +25,22 @@ function useDialogClose(onClose: () => void, busy = false) {
     closeTimer.current = window.setTimeout(onClose, 220)
   }, [busy, closing, onClose])
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') closeDialog() }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [closeDialog])
+  const dialogRef = useRef<HTMLElement>(null)
+  useModalLifecycle(() => closeDialog(), dialogRef, '.modal-header__close')
 
   useEffect(() => () => {
     if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
   }, [])
 
-  return { closing, closeDialog }
+  return { closing, closeDialog, dialogRef }
 }
 
 export function PollErrorDialog({ message, onClose }: { message: string; onClose: () => void }) {
-  const { closing, closeDialog } = useDialogClose(onClose)
+  const { closing, closeDialog, dialogRef } = useDialogClose(onClose)
   const closeFromBackdrop = (event: MouseEvent<HTMLDivElement>) => { if (event.target === event.currentTarget) closeDialog() }
 
   return <div className={`login-overlay${closing ? ' login-overlay--closing' : ''}`} role="presentation" onMouseDown={closeFromBackdrop}>
-    <section className={`login-dialog poll-error-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-error-title">
+    <section ref={dialogRef} tabIndex={-1} className={`login-dialog poll-error-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-error-title">
       <ModalHeader closeLabel="fechar erro" onClose={closeDialog}><PollsBrand wordmark="/gdevs/polls/error" linked={false} /></ModalHeader>
       <div className="poll-error-dialog__body">
         <p className="login-dialog__eyebrow">ERRO NA ENQUETE</p>
@@ -62,7 +55,7 @@ export function PollErrorDialog({ message, onClose }: { message: string; onClose
 export function PollCloseDialog({ poll, onClose, onClosed }: { poll: Poll; onClose: () => void; onClosed: (poll: Poll) => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const { closing, closeDialog } = useDialogClose(onClose, busy)
+  const { closing, closeDialog, dialogRef } = useDialogClose(onClose, busy)
   const closeFromBackdrop = (event: MouseEvent<HTMLDivElement>) => { if (event.target === event.currentTarget) closeDialog() }
 
   const confirmClose = async () => {
@@ -80,7 +73,7 @@ export function PollCloseDialog({ poll, onClose, onClosed }: { poll: Poll; onClo
   }
 
   return <div className={`login-overlay${closing ? ' login-overlay--closing' : ''}`} role="presentation" onMouseDown={closeFromBackdrop}>
-    <section className={`login-dialog poll-close-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-close-title">
+    <section ref={dialogRef} tabIndex={-1} className={`login-dialog poll-close-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-close-title">
       <ModalHeader closeLabel="fechar confirmação" onClose={() => closeDialog()}><PollsBrand wordmark="/gdevs/polls/close" linked={false} /></ModalHeader>
       <div className="poll-close-dialog__body">
         <p className="login-dialog__eyebrow">ENCERRAR</p>
@@ -100,7 +93,7 @@ export function PollCloseDialog({ poll, onClose, onClosed }: { poll: Poll; onClo
 export function PollHideOptionDialog({ poll, option, onClose, onHidden }: { poll: Poll; option: PollOption; onClose: () => void; onHidden: (poll: Poll) => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const { closing, closeDialog } = useDialogClose(onClose, busy)
+  const { closing, closeDialog, dialogRef } = useDialogClose(onClose, busy)
   const closeFromBackdrop = (event: MouseEvent<HTMLDivElement>) => { if (event.target === event.currentTarget) closeDialog() }
 
   const confirmHide = async () => {
@@ -118,7 +111,7 @@ export function PollHideOptionDialog({ poll, option, onClose, onHidden }: { poll
   }
 
   return <div className={`login-overlay${closing ? ' login-overlay--closing' : ''}`} role="presentation" onMouseDown={closeFromBackdrop}>
-    <section className={`login-dialog poll-close-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-hide-option-title">
+    <section ref={dialogRef} tabIndex={-1} className={`login-dialog poll-close-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-hide-option-title">
       <ModalHeader closeLabel="fechar confirmação" onClose={() => closeDialog()}><PollsBrand wordmark="/gdevs/polls/hide-option" linked={false} /></ModalHeader>
       <div className="poll-close-dialog__body">
         <p className="login-dialog__eyebrow">OCULTAR</p>
@@ -140,7 +133,7 @@ export function PollAuditDialog({ poll, onClose }: { poll: Poll; onClose: () => 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [auditFilter, setAuditFilter] = useState('all')
-  const { closing, closeDialog } = useDialogClose(onClose)
+  const { closing, closeDialog, dialogRef } = useDialogClose(onClose)
   const closeFromBackdrop = (event: MouseEvent<HTMLDivElement>) => { if (event.target === event.currentTarget) closeDialog() }
 
   useEffect(() => {
@@ -172,7 +165,7 @@ export function PollAuditDialog({ poll, onClose }: { poll: Poll; onClose: () => 
   }, [audit, auditFilter])
 
   return <div className={`login-overlay${closing ? ' login-overlay--closing' : ''}`} role="presentation" onMouseDown={closeFromBackdrop}>
-    <section className={`login-dialog login-dialog--scrollable poll-audit-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-audit-title">
+    <section ref={dialogRef} tabIndex={-1} className={`login-dialog login-dialog--scrollable poll-audit-dialog${closing ? ' login-dialog--closing' : ''}`} role="dialog" aria-modal="true" aria-labelledby="poll-audit-title">
       <ModalHeader closeLabel="fechar auditoria" onClose={closeDialog}><PollsBrand wordmark="/gdevs/polls/audit" linked={false} /></ModalHeader>
       <div className="poll-audit-dialog__body">
         <p className="login-dialog__eyebrow">AUDITORIA DA ENQUETE</p>

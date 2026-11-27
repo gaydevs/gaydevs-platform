@@ -45,8 +45,10 @@ async function csrf(): Promise<void> {
 }
 
 /** Centraliza headers, cookies, CSRF e conversão de respostas de erro. */
-export async function request<T>(path: string, init: RequestInit = {}, stateChanging = false): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}, stateChanging = false, decodeError?: (status: number, body: unknown) => Error | undefined): Promise<T> {
+  init.signal?.throwIfAborted()
   if (stateChanging) await csrf()
+  init.signal?.throwIfAborted()
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
   if (init.body !== undefined) headers.set('Content-Type', 'application/json')
@@ -55,7 +57,10 @@ export async function request<T>(path: string, init: RequestInit = {}, stateChan
   const response = await fetch(new URL(path, apiBase), { ...init, credentials: 'include', headers })
   if (!response.ok) {
     // A API já filtra a mensagem pública; a referência permite correlacionar o log.
-    const error = await response.json().catch((): ErrorResponse => ({})) as ErrorResponse
+    const body: unknown = await response.json().catch(() => ({}))
+    const decoded = decodeError?.(response.status, body)
+    if (decoded) throw decoded
+    const error = (body && typeof body === 'object' ? body : {}) as ErrorResponse
     throw new ApiError(error.message ?? 'Não foi possível concluir a solicitação.', response.status, error.reason, error.reference, error.errors)
   }
   if (response.status === 204) return undefined as T

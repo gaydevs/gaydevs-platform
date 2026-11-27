@@ -23,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
-        $middleware->trimStrings(['label', 'options.*']);
+        $middleware->trimStrings(['label', 'options.*', 'content']);
         $middleware->prependToGroup('api', AssignRequestId::class);
         $middleware->appendToGroup('api', ExpireAuthenticatedSessions::class);
         $middleware->appendToGroup('api', TrackVisitor::class);

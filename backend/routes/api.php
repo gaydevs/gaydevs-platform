@@ -6,6 +6,7 @@ use App\Http\Controllers\LogoutController;
 use App\Http\Controllers\PollController;
 use App\Http\Controllers\RequestOtpController;
 use App\Http\Controllers\SocialPreviewController;
+use App\Http\Controllers\UserNoteController;
 use App\Http\Controllers\UserPreferenceController;
 use App\Http\Controllers\UserSearchController;
 use App\Http\Controllers\VerifyOtpController;
@@ -33,6 +34,9 @@ Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function (
     Route::post('/polls/{identifier}/options', [PollController::class, 'addOption']);
     Route::delete('/polls/{identifier}/options/{option}', [PollController::class, 'removeOption']);
     Route::middleware(EnsureUserIsPollAdmin::class)->group(function (): void {
+        Route::get('/notes', [UserNoteController::class, 'index']);
+        Route::get('/notes/{member}', [UserNoteController::class, 'show'])->whereUuid('member');
+        Route::put('/notes/{member}', [UserNoteController::class, 'update'])->whereUuid('member');
         Route::post('/polls', [PollController::class, 'store']);
         Route::post('/polls/{identifier}/close', [PollController::class, 'close']);
         Route::post('/polls/{identifier}/options/{option}/hide', [PollController::class, 'hideOption']);

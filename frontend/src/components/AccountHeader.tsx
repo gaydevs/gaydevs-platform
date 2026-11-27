@@ -8,19 +8,21 @@ interface AccountHeaderProps {
   brandVisible: boolean
   onLogin: () => void
   onLogout: () => Promise<void>
+  logoutError?: boolean
   onNavigate: (path: string) => void
 }
 
-export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout, onNavigate }: AccountHeaderProps) {
+export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout, logoutError = false, onNavigate }: AccountHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const pollsMarker = '/polls'
   const currentPathname = typeof window === 'undefined' ? '/' : window.location.pathname
-  const pollsIndex = currentPathname.indexOf(pollsMarker)
-  const pollsPath = pollsIndex >= 0 ? currentPathname.slice(0, pollsIndex) + pollsMarker : `${currentPathname.replace(/\/$/, '')}/polls`
-  const homePath = pollsIndex >= 0 ? `${currentPathname.slice(0, pollsIndex) || '/'}/`.replace(/\/{2,}/g, '/') : '#inicio'
+  const sectionIndex = currentPathname.search(/\/(polls|notes)(?:\/|$)/)
+  const base = (sectionIndex >= 0 ? currentPathname.slice(0, sectionIndex) : currentPathname).replace(/\/$/, '')
+  const pollsPath = base + '/polls'
+  const notesPath = base + '/notes'
+  const homePath = sectionIndex >= 0 ? (base || '') + '/' : '#inicio'
   const goHome = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (pollsIndex < 0 || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if (sectionIndex < 0 || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
     onNavigate(homePath)
   }
@@ -35,6 +37,7 @@ export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout
   }, [menuOpen])
 
   return <header className={`account-header${brandVisible ? '' : ' account-header--scrolled'}`} aria-label="acesso do gdev">
+    {logoutError && user && <span className="account-header__logout-error" role="alert">Não foi possível sair. Tente novamente.</span>}
     <BrandLogo className="account-header__brand" href={homePath} onClick={goHome} />
     {restoring
       ? <span className="account-header__status">identificando gdev…</span>
@@ -46,6 +49,7 @@ export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout
               {menuOpen && <nav className="account-header__menu-popover" aria-label="menu do gdev">
                 <button type="button" onClick={() => { setMenuOpen(false); onNavigate(homePath) }}>home</button>
                 <button type="button" onClick={() => { setMenuOpen(false); onNavigate(pollsPath) }}>enquetes</button>
+                {user.member_type === 'admin' && <button type="button" onClick={() => { setMenuOpen(false); onNavigate(notesPath) }}>anotações</button>}
                 <button type="button" onClick={() => { setMenuOpen(false); void onLogout() }}>sair</button>
               </nav>}
             </div>
