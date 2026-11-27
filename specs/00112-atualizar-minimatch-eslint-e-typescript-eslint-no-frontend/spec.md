@@ -1,7 +1,7 @@
 # 00112 — Atualizar minimatch, eslint e typescript-eslint no frontend
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/112
-Estado: fast-track Medium Risk aguardando checkpoint humano.
+Estado: fast-track Medium Risk com checkpoint humano aprovado.
 Fast-track risk: Medium
 
 ## Objetivo e escopo
@@ -19,3 +19,5 @@ Eliminar a versão vulnerável de minimatch no frontend, atualizando coordenadam
 ## Aprovação
 
 Fast-track Medium Risk aprovado explicitamente pelo gdev solicitante em 2026-11-27, nesta conversa: "Aprovo o Fast Track medium risk para a Issue #112. Prossiga." A aprovação inicial não cobre o checkpoint adicional. Se houver necessidade de mudanças de maior impacto ou escopo incerto, pausar e reavaliar o risco.
+
+Checkpoint humano aprovado em 2026-11-27 nesta conversa, incluindo spec, plan e tasks; registro remoto pelo script oficial SDD.

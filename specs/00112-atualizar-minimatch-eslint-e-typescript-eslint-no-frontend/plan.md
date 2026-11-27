@@ -18,4 +18,12 @@ Fast-track risk: Medium
 
 ## Aprovação
 
-Classificação Medium Risk aprovada pelo gdev solicitante em 2026-11-27 nesta conversa. Implementação pendente do checkpoint Medium Risk.
+Classificação Medium Risk aprovada pelo gdev solicitante em 2026-11-27 nesta conversa. Checkpoint Medium Risk aprovado; implementação autorizada.
+
+## Evidências de execução — 2026-11-27
+
+- Node 24.22.0 / npm 11.19.1. Resolução via npm: eslint 10.15.0, typescript-eslint 8.73.0 e minimatch 11.0.9 (única versão na árvore, dev-only). Alterações transitivas restritas às dependências relacionadas; sem overrides.
+- Advisories: CVE-2026-118764 (corrigido em 11.0.1) e GHSA-cf2h-pxjq-68xw (corrigido em 11.0.7); 11.0.9 inclui ambos.
+- npm ci, npm ls minimatch --all, npm audit (0 vulnerabilidades), lint e typecheck passaram.
+- Suíte inicial: 129/130 passaram; um teste de autocomplete do LoginDialog excedeu 5000 ms. Reexecução isolada do mesmo teste passou (4217 ms), sem alteração de código ou timeout. CI deverá confirmar a suíte completa.
+- Build Vite e verificação de dist/.htaccess passaram; git diff --check passou. Nenhuma mudança na aplicação/backend. A validação final da suíte paralela fica a cargo do CI do PR.
