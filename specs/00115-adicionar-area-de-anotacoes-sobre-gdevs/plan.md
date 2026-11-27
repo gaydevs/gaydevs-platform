@@ -69,3 +69,6 @@ Spec aprovada explicitamente após commit 15eb617. Mantido o fluxo SDD High Risk
 - Testes de integração App/NotesPage: login direto nas duas rotas, skeleton/modal, cancelamento para home correta, autenticação admin e não admin, ausência de consultas privadas sem admin; regressão Enquetes.
 - Testes hook/modal/App: Ignorar em espera/erro/409, saída única com fila descartada e resposta tardia, logout/histórico, X/Escape mantém ficha, retry e salvamento normal permanecem.
 - Executar suíte frontend, typecheck, lint e build; suíte backend de regressão para confirmar que autorização e isolamento continuam intactos. Sem nova dependência, migration ou endpoint.
+
+### Extração dos modais (27/11/2026)
+Refinamento interno autorizado pelo gdev: RestrictedAccessDialog, PendingSaveDialog e useModalLifecycle em components, sem dependência de Anotações, mantendo textos, CSS, ações e políticas de fechamento. O gate global, proteção de navegação, autosave genérico e migração dos modais das Enquetes ficam na issue #122 (Refactor, bloqueada por #115); não alterar autorização ou persistência nesta extração.

@@ -40,4 +40,6 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 
 - [x] T026 Revisar cobertura de comportamento após validação manual do gdev: 27 novos testes frontend (62 + 32 aprovados, 94 no total nesta revisão), demora e erros simulados, retry repetido, Ignorar, formatação, autorização, restauração e refresh; integração com cliente HTTP real e rede simulada. Sem alterar o código de produção. Validação manual de todos os casos informada pelo gdev; automação em navegador real ainda não executada.
 
+- [x] T027 Extrair RestrictedAccessDialog e PendingSaveDialog com ciclo de vida compartilhado, sem alterar comportamento; 53 testes aprovados (5 novos), TypeScript e ESLint aprovados. Refatoração global registrada na issue #122, dependente de #115.
+
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.

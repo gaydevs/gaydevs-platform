@@ -2,14 +2,14 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { SectionAuthGate } from '../components/SectionAuthGate'
 import { SectionSubmenuBar } from '../components/SectionSubmenuBar'
 import { NotesBrand } from '../components/NotesBrand'
-import { ModalHeader } from '../components/ModalHeader'
-import { LoadingSpinner } from '../components/LoadingSpinner'
+import { RestrictedAccessDialog } from '../components/RestrictedAccessDialog'
+import { PendingSaveDialog } from '../components/PendingSaveDialog'
 import { useSectionBrandVisibility } from '../components/useSectionBrandVisibility'
 import { ApiError, type AuthenticatedUser } from './auth/api'
 import { getMemberNote, type MemberNote } from './notesApi'
 import { NoteListLoading, NoteDetailLoading, NoteEditorLoading } from './NotesLoadingStates'
 import { useNoteList } from './useNoteList'
-import { useNoteAutosave, type RegisterLeaveGuard, type SaveStatus } from './useNoteAutosave'
+import { useNoteAutosave, type RegisterLeaveGuard } from './useNoteAutosave'
 
 const NoteRichEditor = lazy(() => import('./NoteRichEditor').then(module => ({ default: module.NoteRichEditor })))
 
@@ -41,36 +41,6 @@ function NoteList({ actorId, base, onNavigate, onBrandVisibilityChange, onHome }
   </section>
 }
 
-function SaveDialog({ status, cancel, ignore, retry }: { status: SaveStatus; cancel: () => void; ignore: () => void; retry: () => void }) {
-  const dialogRef = useRef<HTMLElement>(null)
-  const cancelRef = useRef(cancel)
-  useEffect(() => { cancelRef.current = cancel }, [cancel])
-  useEffect(() => {
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    dialogRef.current?.querySelector<HTMLButtonElement>('.modal-header__close')?.focus()
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') cancelRef.current() }
-    window.addEventListener('keydown', escape)
-    return () => { document.body.style.overflow = previous; window.removeEventListener('keydown', escape) }
-  }, [])
-  const changed = status === 'session-changed'
-  const failed = status === 'error'
-  return <div className="login-overlay" role="presentation">
-    <section ref={dialogRef} className="login-dialog poll-close-dialog" role="dialog" aria-modal="true" aria-labelledby="notes-save-title">
-      <ModalHeader closeLabel="cancelar saída" onClose={cancel}><NotesBrand wordmark="/gdevs/notes" linked={false} /></ModalHeader>
-      <div className="poll-close-dialog__body">
-        <p className="login-dialog__eyebrow">ANOTAÇÕES</p>
-        <h2 id="notes-save-title">{changed ? 'Sessão alterada' : failed ? 'Não foi possível salvar' : 'Salvando anotação'}</h2>
-        <p className="poll-close-dialog__description">{changed ? 'A anotação não foi enviada para outra conta. Recarregue a página e autentique-se novamente.' : failed ? 'Seu texto continua na ficha. Tente novamente antes de sair.' : 'Aguarde o salvamento para continuar.'} Alterações pendentes podem não ser salvas se você ignorar.</p>
-        <div className="poll-close-dialog__actions">
-          <button className="action-link action-link--secondary" type="button" onClick={ignore}>Ignorar</button>
-          {changed ? <button className="action-link" type="button" onClick={() => window.location.reload()}>Recarregar</button> : failed ? <button className="action-link" type="button" onClick={retry}>Tentar de novo</button> : <span role="status" className="notes-saving-spinner"><LoadingSpinner /></span>}
-        </div>
-      </div>
-    </section>
-  </div>
-}
-
 function LoadedNote({ actorId, note, registerGuard }: { actorId: string; note: MemberNote; registerGuard?: RegisterLeaveGuard }) {
   const autosave = useNoteAutosave(actorId, note.member.id, note.content, registerGuard)
   return <>
@@ -78,7 +48,17 @@ function LoadedNote({ actorId, note, registerGuard }: { actorId: string; note: M
       <div className="notes-heading"><Avatar name={note.member.name} /><h1 id="note-title">{note.member.name}</h1></div>
     </div>
     {autosave.status === 'session-changed' ? <p className="poll-error" role="alert">Sessão alterada. Recarregue a página e autentique-se novamente.</p> : <div className="poll-form notes-form"><Suspense fallback={<NoteEditorLoading />}><NoteRichEditor content={note.content} onChange={autosave.change} /></Suspense></div>}
-    {autosave.leaveOpen && <SaveDialog status={autosave.status} cancel={autosave.cancelLeave} ignore={autosave.ignoreLeave} retry={autosave.retry} />}
+    {autosave.leaveOpen && <PendingSaveDialog
+      brand={<NotesBrand wordmark="/gdevs/notes" linked={false} />}
+      eyebrow="ANOTAÇÕES"
+      status={autosave.status}
+      savingTitle="Salvando anotação"
+      sessionDescription="A anotação não foi enviada para outra conta. Recarregue a página e autentique-se novamente."
+      onCancel={autosave.cancelLeave}
+      onIgnore={autosave.ignoreLeave}
+      onRetry={autosave.retry}
+      onReload={() => window.location.reload()}
+    />}
   </>
 }
 
@@ -103,34 +83,6 @@ function NoteEditor({ actorId, memberId, registerGuard, onHome }: { actorId: str
   </section>
 }
 
-function RestrictedDialog({ onHome }: { onHome: () => void }) {
-  const homeButton = useRef<HTMLButtonElement>(null)
-  const homeRef = useRef(onHome)
-  useEffect(() => { homeRef.current = onHome }, [onHome])
-  useEffect(() => {
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    homeButton.current?.focus()
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') homeRef.current() }
-    window.addEventListener('keydown', escape)
-    return () => {
-      document.body.style.overflow = previous
-      window.removeEventListener('keydown', escape)
-    }
-  }, [])
-  return <div className="login-overlay" role="presentation">
-    <section className="login-dialog poll-error-dialog" role="dialog" aria-modal="true" aria-labelledby="notes-restricted-title">
-      <ModalHeader closeLabel="voltar à home" onClose={onHome}><NotesBrand linked={false} /></ModalHeader>
-      <div className="poll-error-dialog__body">
-        <p className="login-dialog__eyebrow">ANOTAÇÕES</p>
-        <h2 id="notes-restricted-title">Área restrita</h2>
-        <p className="poll-close-dialog__description">Esta área é exclusiva para administradores.</p>
-        <button ref={homeButton} className="action-link poll-error-dialog__action" type="button" onClick={onHome}>Home</button>
-      </div>
-    </section>
-  </div>
-}
-
 function NotesSkeleton({ memberId }: { memberId: string | null }) {
   return memberId
     ? <section className="polls-page container"><NoteDetailLoading /></section>
@@ -138,7 +90,7 @@ function NotesSkeleton({ memberId }: { memberId: string | null }) {
 }
 
 function RestrictedView({ memberId, onHome, loginOpen = false }: { memberId: string | null; onHome: () => void; loginOpen?: boolean }) {
-  return <><NotesSkeleton memberId={memberId} />{!loginOpen && <RestrictedDialog onHome={onHome} />}</>
+  return <><NotesSkeleton memberId={memberId} />{!loginOpen && <RestrictedAccessDialog brand={<NotesBrand linked={false} />} eyebrow="ANOTAÇÕES" description="Esta área é exclusiva para administradores." onHome={onHome} />}</>
 }
 
 export function NotesPage({ memberId, base, user, restoring, onLogin, loginOpen = false, onNavigate, onBrandVisibilityChange, registerGuard }: { memberId: string | null; base: string; user: AuthenticatedUser | null; restoring: boolean; onLogin?: () => void; loginOpen?: boolean; onNavigate: (path: string) => void; onBrandVisibilityChange?: (visible: boolean) => void; registerGuard?: RegisterLeaveGuard }) {

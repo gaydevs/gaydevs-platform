@@ -362,7 +362,7 @@ section, article, div, li { min-width: 0; }
 .notes-bubble-menu { display: flex; flex-wrap: wrap; gap: 3px; max-width: calc(100vw - 24px); padding: 5px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #14182b; box-shadow: 0 8px 24px #0008; }
 .notes-bubble-menu button { min-width: 44px; min-height: 44px; border: 0; border-radius: var(--radius-sm); color: var(--text); background: transparent; font: inherit; cursor: pointer; }
 .notes-bubble-menu button[aria-pressed="true"], .notes-bubble-menu button:hover { color: var(--cyan); background: #ffffff12; }
-.notes-saving-spinner { display: grid; place-items: center; min-width: 44px; }
+.pending-save-dialog__spinner { display: grid; place-items: center; min-width: 44px; }
 
 /* Skeletons use the same shimmer as polls and retain the geometry of notes. */
 .notes-loading-avatar { border: 0; }
