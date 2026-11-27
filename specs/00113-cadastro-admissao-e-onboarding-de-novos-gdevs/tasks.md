@@ -8,8 +8,8 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 ### Fundação e dados (PLAN-01 a PLAN-05)
 
-- [ ] T001 — Revalidar issue, dependências, branch e integração com develop; preparar ambiente local isolado, confirmar versões SQLite/MySQL e baseline de testes, sem dados reais.
-- [ ] T002 — Criar migration, enum, model e factory de applicants com UUID v7, campos do plano, revision, índices e coluna gerada active_email UNIQUE; testar histórico e unicidade concorrente.
+- [x] T001 — Revalidar issue, dependências, branch e integração com develop; preparar ambiente local isolado, confirmar versões SQLite/MySQL e baseline de testes, sem dados reais.
+- [x] T002 — Criar migration, enum, model e factory de applicants com UUID v7, campos do plano, revision, índices e coluna gerada active_email UNIQUE; testar histórico e unicidade concorrente.
 - [x] T003 — Criar models/migrations de applicant_consents e applicant_events com constraints, versionamento e idempotência; testar registro atômico de etapas e decisões.
 - [x] T004 — Migrar otp_requests com email, purpose e applicant_id, user_id nullable, índices e constraints; preservar legado e testar backfill e integridade de otp_attempts.
 - [x] T005 — Adicionar users.applicant_id nullable UNIQUE com FK; testar upgrade e proteção de downgrade quando houver dados novos.
@@ -52,10 +52,10 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 ## Validação
 
-- [ ] T030 — Executar testes backend Pest e lint/Pint, incluindo regressão de autenticação/polls, concorrência em MySQL isolado e upgrade de schema em MySQL e SQLite. Registrar comandos e evidências; não alegar execução de ambiente indisponível.
-- [ ] T031 — Executar testes frontend Vitest/Testing Library, lint, typecheck, build e check:content; cobrir fluxos principais, regressões e casos de erro.
+- [x] T030 — Executar testes backend Pest e lint/Pint, incluindo regressão de autenticação/polls, concorrência em MySQL isolado e upgrade de schema em MySQL e SQLite. Registrar comandos e evidências; não alegar execução de ambiente indisponível.
+- [x] T031 — Executar testes frontend Vitest/Testing Library, lint, typecheck, build e check:content; cobrir fluxos principais, regressões e casos de erro.
 - [ ] T032 — QA manual mobile/desktop isolado, deep links e smoke Turnstile com test keys/e-mail fake; verificar privacidade, sessão e regras de acesso; confrontar todos os 14 REQs e 19 cenários de aceite da spec.
-- [ ] T033 — Revisão de diff, migrations, contratos, riscos e evidências; atualizar checklist e documentação; publicar branch e abrir PR para develop com Refs #113 e Spec: 00113. Sincronizar Project conforme workflow; solicitar revisão de outro gdev. Não aprovar/merge/release automaticamente.
+- [x] T033 — Revisão de diff, migrations, contratos, riscos e evidências; atualizar checklist e documentação; publicar branch e abrir PR para develop com Refs #113 e Spec: 00113. Sincronizar Project conforme workflow; solicitar revisão de outro gdev. Não aprovar/merge/release automaticamente.
 
 ## Evidências de execução — 2026-11-27
 
@@ -95,6 +95,10 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 - T031 (parcial): rodada com --maxWorkers=2 --testTimeout=15000 registrou 143/144; teste legado de sentinel disparava antes do observe. Ajuste apenas da sincronização do teste (sem mudar assertions/produto) passou isoladamente. Nova suíte completa iniciada; evidência integral deve ser verificada antes do merge.
 - T032 (parcial): matriz qa.md relaciona 14 REQs e 19 cenários; Chromium local instalado em diretório descartável, primeira inicialização falhou por Crashpad. QA com API simulada não substitui HTTPS/backend/Turnstile real. Manter pendências explícitas.
 - T033 (parcial): diff revisado, checklist e docs atualizados; publicar PR para develop com gates explícitos, sem aprovação/merge/release. Verificar Project após tentativa de sincronização.
+
+- Validação final do código 42fb0a8: [CI #46012469208](https://github.com/gaydevs/gaydevs-platform/actions/runs/46012469208) concluída com sucesso em todos os jobs. PHP 8.3/MySQL 8.4: 249 aprovados, 1 ignorado, 1432 assertions; SQLite: 248 aprovados, 2 ignorados, 1430 assertions (incluindo execução paralela aleatória). Logs de ambos confirmam aprovação dos testes específicos de upgrade legado e concorrência com processos independentes. T001/T002/T030 concluídas em ambiente de testes; compatibilidade do host de produção permanece gate operacional. Frontend CI: 24 arquivos aprovados, build, lint, audits e CI Required verdes. No Survivor, lint/typecheck/check:content/build aprovados e Pint completo 208 arquivos; T031 concluída pelo CI.
+- T032: smoke Chromium 159 no Survivor, seis telas (pública, perfis, pending, fila, detalhe, onboarding) em 390x844 e 1366x900 com APIs/Turnstile simulados; 12 verificações sem overflow horizontal ou erros JS, screenshots sintéticos no diretório temporário de QA. Não equivale a inspeção visual humana ou integração HTTPS/Turnstile real/mail fake ponta a ponta. Matriz QA revisada; T032 segue parcial.
+- T033: [PR #121](https://github.com/gaydevs/gaydevs-platform/pull/121) aberto para develop; [contrato SDD aprovado](https://github.com/gaydevs/gaydevs-platform/actions/runs/46012508435), Project Review confirmado via gh, revisão solicitada a gdevs-admins conforme REST. Solicitação adicional ao gdevs-team não confirmada por restrição de acesso do token; não houve autoaprovação, merge ou deploy. Branch publicada e sincronizada. Pendências para avaliação humana: T015, T029, T032. Feature desativada, inclusive bloqueio de minuta.
 
 ## Limites
 
