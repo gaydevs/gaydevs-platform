@@ -129,7 +129,7 @@ export default function App() {
     <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={auth.logout} onNavigate={navigate} />
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
     <main id="conteudo">
-      {isPrivacy ? <PrivacyPage home={route.base || '/'} /> : isApply ? <ApplicationPage home={route.base || '/'} onLogin={login.open} onMemberRefresh={refreshAuth} /> :
+      {isPrivacy ? <PrivacyPage /> : isApply ? <ApplicationPage home={route.base || '/'} onLogin={login.open} onMemberRefresh={refreshAuth} /> :
       isAdmin ? <AdminApplications key={pathname} id={route.relative.split('/')[2]} user={auth.user} restoring={auth.restoring} base={route.path('admin/applications')} onNavigate={navigate} onLogin={login.open} /> :
       isOnboarding ? <OnboardingPage user={auth.user} restoring={auth.restoring} onLogin={login.open} onDone={async () => { await refreshAuth(); navigate(route.path('polls')) }} /> :
       pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>

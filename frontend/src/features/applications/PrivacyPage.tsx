@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { LoadingSpinner } from '../../components/LoadingSpinner'
 import { getTerms, type Terms } from './api'
 
-export function PrivacyPage({home}: {home:string}) {
+export function PrivacyPage() {
   const [terms,setTerms] = useState<Terms | null>(null)
   const [failed,setFailed] = useState(false)
   useEffect(()=>{
