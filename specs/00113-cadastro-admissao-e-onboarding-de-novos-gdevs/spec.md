@@ -16,7 +16,7 @@ Oferecer uma porta de entrada pública para a comunidade GayDevs, com candidatur
 2. O visitante informa o e-mail. Após validação antispam, é criada ou recuperada a candidatura apropriada e enviado OTP. Antes de confirmar o e-mail não é permitido preencher outros dados, consultar candidatura existente ou obter o telefone do scrum master.
 3. Após OTP válido, o candidato pode acessar somente a própria candidatura. O contato do scrum master fica disponível em todas as etapas seguintes, inclusive tela final. O número é configurável no ambiente e não integra conteúdo público do frontend.
 4. O wizard é mobile-first, com progresso não linear (avanço inicial mais rápido), navegação por etapas e salvamento persistente. Retomar por novo OTP restaura a etapa e os dados já registrados.
-5. Dados obrigatórios: nome, sobrenome, WhatsApp e LinkedIn, além do e-mail validado. GitHub e Instagram são opcionais. Se GitHub estiver vazio ao avançar, explicar sua importância e pedir confirmação para continuar sem ele. Registrar interesse em colaborar com a plataforma, sem acionar nenhuma automação de colaboração.
+5. Dados obrigatórios: nome, sobrenome, WhatsApp e LinkedIn, além do e-mail validado. GitHub e Instagram são opcionais. Se GitHub estiver vazio ao avançar, explicar sua importância e pedir confirmação para continuar sem ele. Registrar interesse em colaborar com a plataforma, sem acionar nenhuma automação de colaboração. Perguntar obrigatoriamente como conheceu o GayDevs, em campo de texto livre com autocomplete: App de relacionamento (Tinder, Scruff, Grindr etc.), Rede social (Instagram, Facebook, TikTok etc.), Amigos, Trabalho, Evento de tecnologia e Pesquisa na internet. A busca deve corresponder a qualquer parte das sugestões, inclusive palavras nos exemplos, ignorando caixa e acentos. Permitir resposta personalizada sem exigir seleção; não incluir opções “Outro gdev” ou “Outro”.
 6. Validar formato, domínio e disponibilidade dos perfis LinkedIn, GitHub e Instagram. Bloquear links inválidos ou comprovadamente inexistentes; não bloquear verificações inconclusivas (ex.: autenticação, limitação ou indisponibilidade do terceiro).
 7. Incentivar seguir Instagram e GitHub do GayDevs e do luvittor, sem verificação automática de seguidores.
 8. Exibir termos e confirmações diretas. Registrar individualmente as versões e timestamps dos aceites exigidos:
@@ -32,7 +32,7 @@ Oferecer uma porta de entrada pública para a comunidade GayDevs, com candidatur
 ### Jornada 2 — admissão (administrador)
 
 - Área administrativa exclusiva para admins ativos, com fila de candidaturas pendentes por data de submissão ascendente (não data de início).
-- Consultar dados e aceites, abrir perfis externos e WhatsApp, registrar observações internas, aprovar ou recusar. Não há edição administrativa dos dados cadastrais.
+- Consultar dados (incluindo como conheceu o GayDevs) e aceites, abrir perfis externos e WhatsApp, registrar observações internas, aprovar ou recusar. Não há edição administrativa dos dados cadastrais.
 - Registrar responsável e data da decisão. Aprovar cria usuário ativo vinculado à candidatura em operação atômica; recusar mantém histórico sem criar usuário. A decisão só é aplicável a candidatura pendente.
 - Inclusão nos grupos WhatsApp continua manual. A liberação da plataforma ocorre na aprovação, sem depender de confirmação de inclusão no WhatsApp.
 
@@ -46,6 +46,7 @@ Oferecer uma porta de entrada pública para a comunidade GayDevs, com candidatur
 
 - `applicants`: unverified (e-mail submetido), draft (e-mail confirmado), pending (submetido), approved ou rejected (decisão).
 - Uma candidatura em andamento por e-mail normalizado; múltiplos registros históricos são permitidos após recusa. Nova candidatura tem identidade própria, sem sobrescrever dados ou decisões anteriores.
+- Registrar a resposta livre de origem da candidatura em `applicants.referral_source`, sem enum, para consulta administrativa e análise futura.
 - Cada OTP de candidatura é associado ao applicant desde a solicitação; distinguir finalidade login/candidatura e registrar destinatário. A relação com user é opcional para OTP de candidatura.
 - Usuário criado no novo fluxo referencia o applicant aprovado de forma única; membros existentes permanecem compatíveis sem vínculo. Não criar referências circulares.
 - Registrar estado, etapas concluídas, timestamps de transições, submissão, aceites e análise, suficientes para futura avaliação de funil. Não implementar métricas ou dashboard.
@@ -68,12 +69,12 @@ Dashboard/indicadores de funil; exclusão automática de candidaturas; edição 
 - REQ-001: CTA público e apresentação breve com link para a landing page.
 - REQ-002: OTP inicial, controles antispam e candidatura persistida antes da confirmação; nenhum acesso privilegiado antes da validação.
 - REQ-003: Wizard responsivo, progresso não linear, persistência de etapas e retomada autenticada.
-- REQ-004: Campos obrigatórios/opcionais, confirmação explícita da ausência de GitHub e interesse de colaboração registrado.
+- REQ-004: Campos obrigatórios/opcionais, confirmação explícita da ausência de GitHub, interesse de colaboração registrado e origem obrigatória em texto livre com autocomplete.
 - REQ-005: Validação segura de perfis com distinção entre inexistência e resultado inconclusivo.
 - REQ-006: Contato do scrum master fornecido exclusivamente após verificação e links de redes sociais.
 - REQ-007: Termos e autorizações individuais, aviso de privacidade, versões e datas persistidas.
 - REQ-008: Submissão idempotente, estado pending, notificação administrativa e tela final com WhatsApp.
-- REQ-009: Fila administrativa por submissão, consulta, observações e decisões exclusivas de admin.
+- REQ-009: Fila administrativa por submissão, consulta (incluindo origem da candidatura), observações e decisões exclusivas de admin.
 - REQ-010: Aprovação atômica com vínculo único applicant/user, recusa sem usuário e histórico preservado.
 - REQ-011: Retomada conforme estado, nova candidatura após recusa e impedimento de candidatura de membros existentes.
 - REQ-012: Onboarding pós-aprovação e operações externas manuais.
@@ -88,6 +89,7 @@ Dashboard/indicadores de funil; exclusão automática de candidaturas; edição 
 - Dado OTP inválido, expirado, reutilizado ou de outra finalidade, quando tenta acessar a candidatura ou área de membro, então não obtém autorização.
 - Dado candidato draft, quando salva etapas e retorna mediante novo OTP, então dados, etapa e progresso são recuperados.
 - Dado candidato sem GitHub, quando tenta avançar, então confirma explicitamente a ausência antes de prosseguir.
+- Dado candidato preenchendo a origem, quando digita qualquer palavra das sugestões (ex.: Grindr ou instagram), então vê correspondências sem distinção de caixa ou acentos; pode selecionar uma sugestão ou salvar texto próprio, que fica disponível ao admin. Campo vazio impede submissão.
 - Dado perfil inválido ou inexistente, quando informa o link, então recebe orientação para corrigir; resultado inconclusivo não bloqueia a etapa.
 - Dado dado obrigatório ou aceite ausente, quando tenta submeter, então permanece draft e nenhuma notificação é disparada.
 - Dada candidatura completa, quando submete, então fica pending, registra aceites/submissão e notifica admin; a tela final orienta contato via WhatsApp. Submissões duplicadas não criam outra candidatura nem outra notificação.
@@ -111,4 +113,4 @@ Dashboard/indicadores de funil; exclusão automática de candidaturas; edição 
 
 ## Aprovação humana
 
-Pendente. Registrar gdev, data e referência da aprovação antes do plan.
+Revisão parcial (gdev solicitante, 2026-11-27, conversa da issue #113): REQ-001 a REQ-010 aprovados; complemento de REQ-004 (origem em texto livre com autocomplete) aprovado. REQ-011 a REQ-014 e aprovação integral pendentes. Registrar gdev, data e referência da aprovação integral antes do plan.
