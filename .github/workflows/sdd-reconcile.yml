@@ -1,7 +1,7 @@
 name: SDD integrity audit
 on:
   schedule:
-    - cron: '00 6 * * *' 
+    - cron: '24 3 * * *' 
   workflow_dispatch:
 permissions:
   contents: read

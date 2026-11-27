@@ -4,7 +4,7 @@ on:
   workflow_call:
   schedule:
     # Every Monday at midnight (UTC)
-    - cron: '0 0 * * 1'
+    - cron: '24 0 * * 1'
   workflow_dispatch:
 
 permissions:
