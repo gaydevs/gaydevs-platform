@@ -6,8 +6,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { NotesPage } from './NotesPage'
 import { NoteRichEditor } from './NoteRichEditor'
 import { NoteEditorLoading } from './NotesLoadingStates'
+// @ts-expect-error Node.js filesystem access is only used by this Vitest test.
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { getMemberNote, listNoteMembers, saveMemberNote } from './notesApi'
 import type { LeaveGuard } from './useNoteAutosave'
 
@@ -109,7 +109,7 @@ test('card name aligns its first line with the avatar, independent of wrapping a
   expect(avatar?.parentElement).toBe(card)
   expect(title.parentElement?.className).toBe('notes-card__body')
   // CSS contract: same avatar dimension and first-line height, not centered on the whole wrapped block.
-  const styles = readFileSync(resolve(process.cwd(), 'src/styles/global.css'), 'utf8')
+  const styles = readFileSync('src/styles/global.css', 'utf8')
   expect(styles).toMatch(/\.notes-card\s*\{[^}]*--notes-avatar-size:\s*48px;[^}]*align-items:\s*flex-start/)
   expect(styles).toMatch(/\.notes-avatar\s*\{[^}]*height:\s*var\(--notes-avatar-size, 48px\)/)
   expect(styles).toMatch(/\.notes-card__name\s*\{[^}]*line-height:\s*1\.25;[^}]*padding-top:\s*max\(0px, calc\(\(var\(--notes-avatar-size\) - 1\.25em\) \/ 2\)\)/)
