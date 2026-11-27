@@ -34,6 +34,6 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 - [x] T021 Reutilizar login obrigatório e skeleton das seções.
 - [x] T022 Implementar Ignorar e invalidar gravações da ficha abandonada.
 - [x] T023 Atualizar listagem a cada 15s e ao retornar à aba.
-- [ ] T024 Testes de integração e regressão, build, publicar revisão. Código publicado em 5e1e8f7; 59 testes diretamente relacionados aprovados, inclusive login, Ignorar, refresh e proteção de sessão; backend 177 passaram, 2 ignorados. Suite completa frontend e build em validação.
+- [ ] T024 Testes de integração e regressão, build, publicar revisão. Código publicado em 5e1e8f7; 59 testes diretamente relacionados aprovados, inclusive login, Ignorar, refresh e proteção de sessão; backend 177 passaram, 2 ignorados. Suite completa frontend interrompida por timeout do Gateway sob carga; build final não executado nessa tentativa. TypeScript e ESLint aprovados. Project voltou a Backlog e pr-sync recusou a transição.
 
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.
