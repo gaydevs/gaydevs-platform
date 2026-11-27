@@ -1,8 +1,7 @@
 # Plano técnico
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Spec: [spec.md](spec.md)
-Fast-track risk: Medium
-
+Fast-track risk: High
 ## Abordagem
 - Backend Laravel: tabela separada de anotações com chave estrangeira compatível com UUID de users, unicidade por membro, conteúdo textual e timestamps. Migração aditiva; leitura de ficha inexistente como vazia e gravação por upsert.
 - Expor rotas próprias de listagem mínima (ID, nome e prévia textual curta da anotação, limitada a 160 caracteres), consulta e atualização da ficha. A prévia é calculada no backend apenas para o endpoint admin; não retornar anotações completas na listagem. Usar auth:sanctum, EnsureUserIsActive e a verificação de MemberType::ADMIN já usada nas Enquetes; reutilizar/generalizar a checagem apenas se necessário, sem alterar a política existente.
