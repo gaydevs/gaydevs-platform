@@ -1,7 +1,7 @@
 # 00113 — 🌈 Cadastro, admissão e onboarding de novos gdevs
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/113
-Estado: rascunho — aprovação humana pendente.
+Estado: aprovada — 2026-11-27 (gdev solicitante).
 Fluxo: SDD normal (High Risk por autenticação, autorização, segurança e dados sensíveis).
 
 ## Problema e objetivo
@@ -113,4 +113,4 @@ Dashboard/indicadores de funil; exclusão automática de candidaturas; edição 
 
 ## Aprovação humana
 
-Revisão parcial (gdev solicitante, 2026-11-27, conversa da issue #113): REQ-001 a REQ-010 aprovados; complemento de REQ-004 (origem em texto livre com autocomplete) aprovado. REQ-011 a REQ-014 e aprovação integral pendentes. Registrar gdev, data e referência da aprovação integral antes do plan.
+Aprovada integralmente pelo gdev solicitante (2026-11-27, conversa ChatGPT da issue #113, revisão em três blocos): REQ-001 a REQ-014 aprovados, incluindo complemento de REQ-004 (origem em texto livre com autocomplete). A aprovação autoriza elaborar o plan, não implementar. Textos finais de privacidade e forma de apresentação do onboarding continuam sujeitos à revisão do plan.
