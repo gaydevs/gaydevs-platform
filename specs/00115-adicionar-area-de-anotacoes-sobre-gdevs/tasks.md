@@ -21,4 +21,12 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 
 - [x] T013 Expor H1, H2 e H3 no menu flutuante e testar aplicação, alternância e serialização Markdown de cada nível.
 
+## Isolamento por autor (High Risk)
+- [x] T014 Registrar aprovações da spec (4577cea) e plano (38af8fc).
+- [ ] T015 Corrigir migration inicial, UUIDv7, unicidade e modelo.
+- [ ] T016 Restringir todos os endpoints ao autor autenticado; validar identidade esperada e campos de propriedade.
+- [ ] T017 Vincular requisições e autosave ao autor esperado; limpar estado na troca de sessão.
+- [ ] T018 Testar isolamento, autorização, integridade, troca de sessão e regressões.
+- [ ] T019 Executar verificações e publicar revisão no PR #120.
+
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.

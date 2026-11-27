@@ -1,7 +1,7 @@
 # 00115 — Adicionar área de anotações sobre gdevs
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/115
-Estado: High Risk; spec revisada aprovada; plano pendente de aprovação.
+Estado: High Risk; spec e plano revisados aprovados.
 Fast-track risk: High
 ## Objetivo
 Registrar informações livres sobre cada gdev, permitindo que padrões emerjam do uso sem antecipar campos estruturados.
@@ -55,4 +55,4 @@ Refinamentos de interface solicitados diretamente em 27/11/2026, sem alteração
 - O esquema inicial já nasce com isolamento obrigatório por autor.
 
 ### Risco
-High Risk por alteração de autorização em nível de registro e confidencialidade, conforme constitution. A feature ainda não consta em develop; PR #120 permanece aberto. A implementação desta revisão está pausada até aprovação do plano, conforme SDD normal. As tasks anteriores são históricas para o escopo já aprovado.
+High Risk por alteração de autorização em nível de registro e confidencialidade, conforme constitution. A feature ainda não consta em develop; PR #120 permanece aberto. Plano revisado aprovado explicitamente por um gdev em 27/11/2026 após commit 38af8fc; implementação autorizada conforme SDD normal. As tasks anteriores são históricas para o escopo já aprovado.

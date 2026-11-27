@@ -3,7 +3,7 @@
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Spec: [spec.md](spec.md)
 Fast-track risk: High
 **Branch:** feat/00115-adicionar-area-de-anotacoes-sobre-gdevs
-**Estado:** aguardando aprovação humana do plano revisado (High Risk).
+**Estado:** plano revisado aprovado (High Risk).
 **Spec aprovada:** 27/11/2026, conversa após commit 4577cea.
 
 ## Resumo e contexto técnico
@@ -35,11 +35,11 @@ Isolar notas por autor autenticado, preservando a interface existente e a restri
 - Executar migrations em banco descartável de testes. Se algum ambiente persistente já tiver aplicado a versão anterior da migration, interromper o rollout e verificar o esquema antes de qualquer alteração. Não realizar reset destrutivo nem deploy nesta etapa.
 
 ## Constituição e estrutura
-- High Risk mantido: autorização por registro e privacidade. Spec aprovada; este plano exige aprovação separada antes de tasks/implementação. Uma branch/spec, issue #115 e PR #120 preservados.
+- High Risk mantido: autorização por registro e privacidade. Spec aprovada; plano aprovado separadamente em 27/11/2026 antes de tasks/implementação. Uma branch/spec, issue #115 e PR #120 preservados.
 - Arquivos de implementação previstos: backend/app/Models/UserNote.php, backend/app/Http/Controllers/UserNoteController.php, backend/routes/api.php se necessário, migration inicial de user_notes e backend/tests/Feature/UserNotesTest.php; frontend/src/features/notesApi.ts, NotesPage.tsx, useNoteAutosave.ts e testes relacionados. Reutilizar middleware admin existente sem alterar a autorização de Enquetes.
 - Contrato e modelo descritos nos artefatos data-model.md e contracts/notes-api.md. Sem violação arquitetural planejada.
 
 ## Aprovação
 Fast-track aprovado por um gdev antes da implementação (2026-11-27). Checkpoint Medium Risk original aprovado; implementação inicial publicada. Revisão de escopo com novo checkpoint Medium Risk aprovado em 27/11/2026, incluindo Tiptap. A prévia permanece exclusivamente admin e o autosave mantém o mesmo mecanismo de autorização.
 
-Aprovação da revisão de privacidade: spec aprovada explicitamente em 27/11/2026 (commit 4577cea). Plano aguardando aprovação; nenhuma task de implementação nova autorizada.
+Aprovação da revisão de privacidade: spec aprovada explicitamente em 27/11/2026 (commit 4577cea). Plano revisado aprovado explicitamente em 27/11/2026 (commit 38af8fc); implementação autorizada.
