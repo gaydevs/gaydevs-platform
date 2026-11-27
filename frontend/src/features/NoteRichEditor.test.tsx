@@ -73,3 +73,59 @@ test('clearing editor emits an empty note', async () => {
   act(() => { (field as HTMLElement & { editor: Editor }).editor.commands.clearContent() })
   expect(onChange).toHaveBeenLastCalledWith('')
 })
+
+test.each([
+  ['image-only clipboard', { types: ['Files'], files: [new File(['image'], 'image.png', { type: 'image/png' })], getData: (): string => '' }],
+  ['empty clipboard', { types: ['text/plain'], getData: (): string => '' }],
+  ['unavailable clipboard', undefined],
+] as const)('%s preserves selected text without emitting onChange', async (_scenario, clipboardData) => {
+  const onChange = vi.fn()
+  render(<NoteRichEditor content="Texto de teste" onChange={onChange} />)
+  const field = await screen.findByRole('textbox', { name: 'Anotações' })
+  const editor = (field as HTMLElement & { editor: Editor }).editor
+  act(() => { editor.commands.setTextSelection({ from: 1, to: 6 }) })
+  expect(editor.state.doc.textBetween(1, 6)).toBe('Texto')
+  expect(editor.state.selection.empty).toBe(false)
+  fireEvent.paste(field, { clipboardData })
+  expect(field).toHaveTextContent('Texto de teste')
+  expect(editor.state.doc.textContent).toBe('Texto de teste')
+  expect(editor.state.selection.from).toBe(1)
+  expect(editor.state.selection.to).toBe(6)
+  expect(onChange).not.toHaveBeenCalled()
+})
+
+test('pastes plain text at the cursor and emits the updated Markdown', async () => {
+  const onChange = vi.fn()
+  render(<NoteRichEditor content="Texto de teste" onChange={onChange} />)
+  const field = await screen.findByRole('textbox', { name: 'Anotações' })
+  const editor = (field as HTMLElement & { editor: Editor }).editor
+  act(() => { editor.commands.setTextSelection(6) })
+  fireEvent.paste(field, { clipboardData: { types: ['text/plain', 'text/html'], getData: (type: string) => type === 'text/plain' ? ' novo' : '<strong>novo</strong>' } })
+  expect(editor.state.doc.textContent).toBe('Texto novo de teste')
+  expect(field.querySelector('strong')).toBeNull()
+  expect(onChange).toHaveBeenCalledTimes(1)
+  expect(onChange.mock.lastCall?.[0].trim()).toBe('Texto novo de teste')
+})
+
+test('pastes plain text over a selection and emits the replacement once', async () => {
+  const onChange = vi.fn()
+  render(<NoteRichEditor content="Texto de teste" onChange={onChange} />)
+  const field = await screen.findByRole('textbox', { name: 'Anotações' })
+  const editor = (field as HTMLElement & { editor: Editor }).editor
+  act(() => { editor.commands.setTextSelection({ from: 1, to: 6 }) })
+  fireEvent.paste(field, { clipboardData: { types: ['text/plain'], getData: () => 'Nota' } })
+  expect(editor.state.doc.textContent).toBe('Nota de teste')
+  expect(onChange).toHaveBeenCalledTimes(1)
+  expect(onChange.mock.lastCall?.[0].trim()).toBe('Nota de teste')
+})
+
+test('preserves intentionally pasted whitespace as text', async () => {
+  const onChange = vi.fn()
+  render(<NoteRichEditor content="Texto de teste" onChange={onChange} />)
+  const field = await screen.findByRole('textbox', { name: 'Anotações' })
+  const editor = (field as HTMLElement & { editor: Editor }).editor
+  act(() => { editor.commands.setTextSelection(6) })
+  fireEvent.paste(field, { clipboardData: { types: ['text/plain'], getData: () => ' ' } })
+  expect(editor.state.doc.textContent).toBe('Texto  de teste')
+  expect(onChange).toHaveBeenCalledTimes(1)
+})
