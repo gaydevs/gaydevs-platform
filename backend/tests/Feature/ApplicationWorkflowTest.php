@@ -20,9 +20,9 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     config([
         'applications.enabled' => true,
-        'applications.admin_email' => 'admin@example.test',
-        'applications.whatsapp' => '5511999999999',
-        'applications.platform_url' => 'https://example.test/platform',
+        'mail.notification_email' => 'admin@example.test',
+        'applications.support_whatsapp' => '5511999999999',
+        'app.frontend_url' => 'https://example.test/platform',
         'applications.turnstile' => ['sitekey' => 'test', 'secret' => 'test', 'hostname' => 'localhost', 'action' => 'application_otp'],
     ]);
     $this->withCredentials()->withHeaders(['Origin' => 'http://127.0.0.1:5173', 'Referer' => 'http://127.0.0.1:5173/gaydevs/platform/']);
@@ -185,3 +185,22 @@ test('draft without current privacy acceptance cannot write personal data', func
     $this->patchJson('/applications/steps/identification', ['revision' => $a->revision, 'first_name' => 'Test', 'last_name' => 'Candidate', 'whatsapp' => '+12025550123'])->assertUnprocessable();
     expect($a->refresh()->first_name)->toBeNull();
 });
+
+test('outbox builds development notification links from the shared frontend URL', function () {
+    config(['app.frontend_url' => 'http://localhost:5173/gaydevs/platform/', 'mail.notification_email' => 'notifications@example.test']);
+    $a = workflowPending();
+    $worker = app(ApplicationNotifications::class);
+    $worker->enqueue($a);
+    expect($worker->process())->toBe(1);
+    Mail::assertSent(ApplicationSubmittedMail::class, fn ($mail) => $mail->reviewUrl === 'http://localhost:5173/gaydevs/platform/admin/applications/'.$a->id && $mail->hasTo('notifications@example.test'));
+});
+
+test('outbox rejects unsafe frontend URLs and nonlocal HTTP', function (string $url) {
+    config(['app.frontend_url' => $url]);
+    $a = workflowPending();
+    $worker = app(ApplicationNotifications::class);
+    $worker->enqueue($a);
+    expect($worker->process())->toBe(0);
+    expect(DB::table('application_notifications')->where('applicant_id', $a->id)->value('status'))->toBe('pending');
+    Mail::assertNothingSent();
+})->with(['http://example.test/platform', 'https://user:pass@example.test/platform', 'https://example.test/platform?x=1', 'https://example.test/platform#anchor']);

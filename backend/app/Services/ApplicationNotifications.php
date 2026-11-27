@@ -30,14 +30,10 @@ class ApplicationNotifications
         if (! config('applications.enabled')) {
             return 0;
         }
-        $recipient = config('applications.admin_email');
-        $base = rtrim((string) config('applications.platform_url'), '/');
+        $recipient = config('mail.notification_email');
+        $base = rtrim((string) config('app.frontend_url'), '/');
         if (! filter_var($recipient, FILTER_VALIDATE_EMAIL)
-            || ! filter_var($base, FILTER_VALIDATE_URL)
-            || parse_url($base, PHP_URL_SCHEME) !== 'https'
-            || parse_url($base, PHP_URL_USER) !== null
-            || parse_url($base, PHP_URL_QUERY) !== null
-            || parse_url($base, PHP_URL_FRAGMENT) !== null
+            || ! ApplicationAvailability::validFrontendUrl($base)
             || (app()->environment('production') && in_array(config('mail.default'), ['log', 'array'], true))) {
             Log::channel('operational')->error('applications.notification_configuration_invalid');
 

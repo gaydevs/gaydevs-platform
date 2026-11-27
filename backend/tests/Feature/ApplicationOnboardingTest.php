@@ -4,7 +4,7 @@ use App\Models\Applicant;
 use App\Models\User;
 use App\Models\UserPreference;
 use App\Models\VisitorObservation;
-use App\Services\ApplicationTerms;
+use App\Services\ApplicationAvailability;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -13,8 +13,9 @@ test('public config is disabled by default and never exposes private configurati
     $this->getJson('/applications/config')->assertOk()->assertExactJson(['enabled' => false]);
     config([
         'applications.enabled' => true,
-        'applications.admin_email' => 'admin@example.test',
-        'applications.whatsapp' => '5511999999999',
+        'mail.notification_email' => 'admin@example.test',
+        'app.frontend_url' => 'http://localhost:5173/gaydevs/platform',
+        'applications.support_whatsapp' => '5511999999999',
         'applications.turnstile' => ['sitekey' => 'public-test', 'secret' => 'private-test', 'hostname' => 'localhost', 'action' => 'application_otp'],
     ]);
     $this->getJson('/applications/config')->assertOk()->assertExactJson([
@@ -42,10 +43,9 @@ test('only admitted members receive onboarding and seen preference is persistent
 test('production refuses activation while privacy terms are not finalized', function () {
     config([
         'applications.enabled' => true,
-        'applications.admin_email' => 'admin@example.test',
-        'applications.platform_url' => 'https://example.test/platform',
-        'applications.whatsapp' => '5511999999999',
-        'applications.approved_terms_version' => ApplicationTerms::VERSION,
+        'mail.notification_email' => 'admin@example.test',
+        'app.frontend_url' => 'https://example.test/platform',
+        'applications.support_whatsapp' => '5511999999999',
         'applications.turnstile' => ['sitekey' => 'public-test', 'secret' => 'private-test', 'hostname' => 'example.test', 'action' => 'application_otp'],
         'mail.default' => 'smtp',
     ]);
@@ -63,4 +63,15 @@ test('shared authentication observations redact private page referer', function 
         ->getJson('/auth/session')->assertOk();
     $observation = VisitorObservation::query()->latest('id')->firstOrFail();
     expect($observation->referer)->toBeNull()->and($observation->path)->toBe('auth/session');
+});
+
+test('frontend URL requires HTTPS outside local and testing environments', function () {
+    $original = app()->environment();
+    app()->instance('env', 'production');
+    try {
+        expect(ApplicationAvailability::validFrontendUrl('http://localhost:5173/gaydevs/platform'))->toBeFalse()
+            ->and(ApplicationAvailability::validFrontendUrl('https://example.test/platform'))->toBeTrue();
+    } finally {
+        app()->instance('env', $original);
+    }
 });

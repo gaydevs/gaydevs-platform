@@ -14,24 +14,38 @@ class ApplicationAvailability
         }
         $turnstile = config('applications.turnstile');
         if (blank($turnstile['sitekey']) || blank($turnstile['secret']) || blank($turnstile['hostname'])
-            || blank($turnstile['action']) || ! filter_var(config('applications.admin_email'), FILTER_VALIDATE_EMAIL)
-            || ! preg_match('/^\+?[1-9][0-9]{7,14}$/D', (string) config('applications.whatsapp'))
+            || blank($turnstile['action']) || ! filter_var(config('mail.notification_email'), FILTER_VALIDATE_EMAIL)
+            || ! preg_match('/^\+?[1-9][0-9]{7,14}$/D', (string) config('applications.support_whatsapp'))
             || blank(config('app.key'))
             || ! ApplicationTurnstile::credentialsAllowed()
+            || ! self::validFrontendUrl((string) config('app.frontend_url'))
             || (app()->environment('production') && (
                 in_array(config('mail.default'), ['log', 'array'], true)
                 || ! ApplicationTerms::FINALIZED
-                || config('applications.approved_terms_version') !== ApplicationTerms::VERSION
-                || ! filter_var(config('applications.platform_url'), FILTER_VALIDATE_URL)
-                || parse_url((string) config('applications.platform_url'), PHP_URL_SCHEME) !== 'https'
             ))) {
             Log::channel('operational')->error('applications.configuration_invalid');
             throw new HttpException(503, 'Cadastro temporariamente indisponível.');
         }
     }
 
+    public static function validFrontendUrl(string $url): bool
+    {
+        if (! filter_var($url, FILTER_VALIDATE_URL)
+            || parse_url($url, PHP_URL_USER) !== null
+            || parse_url($url, PHP_URL_PASS) !== null
+            || parse_url($url, PHP_URL_QUERY) !== null
+            || parse_url($url, PHP_URL_FRAGMENT) !== null) {
+            return false;
+        }
+
+        return parse_url($url, PHP_URL_SCHEME) === 'https'
+            || (app()->environment('local', 'testing')
+                && parse_url($url, PHP_URL_SCHEME) === 'http'
+                && in_array(parse_url($url, PHP_URL_HOST), ['localhost', '127.0.0.1', '[::1]'], true));
+    }
+
     public function whatsapp(): string
     {
-        return 'https://wa.me/'.ltrim((string) config('applications.whatsapp'), '+');
+        return 'https://wa.me/'.ltrim((string) config('applications.support_whatsapp'), '+');
     }
 }

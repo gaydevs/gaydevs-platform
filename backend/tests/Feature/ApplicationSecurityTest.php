@@ -24,8 +24,9 @@ class ApplicationCsrfEnforced extends PreventRequestForgery
 beforeEach(function () {
     config([
         'applications.enabled' => true,
-        'applications.admin_email' => 'admin@example.test',
-        'applications.whatsapp' => '5511999999999',
+        'mail.notification_email' => 'admin@example.test',
+        'app.frontend_url' => 'http://localhost:5173/gaydevs/platform',
+        'applications.support_whatsapp' => '5511999999999',
         'applications.turnstile' => ['sitekey' => 'test', 'secret' => 'test', 'hostname' => 'localhost', 'action' => 'application_otp'],
         'sanctum.middleware.validate_csrf_token' => ApplicationCsrfEnforced::class,
     ]);

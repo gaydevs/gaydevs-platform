@@ -9,11 +9,10 @@ Somente no ambiente persistente do backend. Não incluir credenciais, telefone o
 | Variável | Default / ação |
 | --- | --- |
 | APPLICATIONS_ENABLED | false até todos os gates |
-| APPLICATION_TERMS_APPROVED_VERSION | versão final aprovada, não minuta |
-| APPLICATION_PLATFORM_URL | URL HTTPS da plataforma, sem credenciais, query ou fragmento |
-| APPLICATION_ADMIN_EMAIL | caixa autorizada de avisos |
-| GDEV_SM_WHATSAPP | número internacional sem espaços |
-| APPLICATION_TURNSTILE_TEST_MODE | false; somente local/testing |
+| APP_FRONTEND_URL | URL compartilhada da plataforma; HTTPS em produção, HTTP loopback somente local/testing, sem credenciais, query ou fragmento |
+| NOTIFICATION_EMAIL | caixa autorizada de avisos |
+| APPLICATION_SUPPORT_WHATSAPP | número internacional sem espaços |
+| APPLICATION_TURNSTILE_TEST_MODE | true no .env.example; false em produção; somente local/testing |
 | APPLICATION_TURNSTILE_SITEKEY / SECRET | credenciais do widget; só sitekey pública |
 | APPLICATION_TURNSTILE_HOSTNAME / ACTION | hostname permitido / application_otp |
 | APPLICATION_OTP_COOLDOWN | 60 segundos |
@@ -22,7 +21,7 @@ Somente no ambiente persistente do backend. Não incluir credenciais, telefone o
 | APPLICATION_MAIL_DAY | 100 (OTP + aviso) |
 | APPLICATION_SESSION_IDLE_DAYS / ABSOLUTE_DAYS | 30 / 90 |
 
-OTP: 6 dígitos, 10 minutos conforme passwordless. Cadastro e avisos não consomem a metade final das cotas globais horária e diária; falhas também consomem reserva. Cache compartilhado com locks atômicos, IP confiável, HTTPS e APP_KEY estável. Cookie candidato Secure/HttpOnly/SameSite=Lax independente da sessão de membro. Config pública expõe apenas enabled, sitekey, action, cooldown. Produção exige ApplicationTerms::FINALIZED, versão aprovada e transporte real.
+OTP: 6 dígitos, 10 minutos conforme passwordless. Cadastro e avisos não consomem a metade final das cotas globais horária e diária; falhas também consomem reserva. Cache compartilhado com locks atômicos, IP confiável, HTTPS e APP_KEY estável. Cookie candidato Secure/HttpOnly/SameSite=Lax independente da sessão de membro. Config pública expõe apenas enabled, sitekey, action, cooldown. Produção exige ApplicationTerms::FINALIZED e transporte real. A versão dos aceites permanece em ApplicationTerms::VERSION; aprovação do conteúdo documentada antes de alterar FINALIZED, sem duplicar versão no ambiente.
 
 ## Turnstile e perfis
 

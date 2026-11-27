@@ -2,10 +2,7 @@
 
 return [
     'enabled' => env('APPLICATIONS_ENABLED', false),
-    'approved_terms_version' => env('APPLICATION_TERMS_APPROVED_VERSION'),
-    'platform_url' => env('APPLICATION_PLATFORM_URL'),
-    'admin_email' => env('APPLICATION_ADMIN_EMAIL'),
-    'whatsapp' => env('GDEV_SM_WHATSAPP'),
+    'support_whatsapp' => env('APPLICATION_SUPPORT_WHATSAPP'),
     'turnstile' => [
         'test_mode' => env('APPLICATION_TURNSTILE_TEST_MODE', false),
         'sitekey' => env('APPLICATION_TURNSTILE_SITEKEY'),
