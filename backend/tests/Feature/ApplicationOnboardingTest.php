@@ -9,10 +9,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('public config is disabled by default and never exposes private configuration', function () {
+test('public config depends only on valid settings and never exposes private configuration', function () {
+    config(['applications.turnstile.secret' => null]);
     $this->getJson('/applications/config')->assertOk()->assertExactJson(['enabled' => false]);
     config([
-        'applications.enabled' => true,
         'mail.from.address' => 'admin@example.test',
         'app.frontend_url' => 'http://localhost:5173/gaydevs/platform',
         'applications.support_whatsapp' => '5511999999999',
@@ -42,7 +42,6 @@ test('only admitted members receive onboarding and seen preference is persistent
 
 test('production refuses activation while privacy terms are not finalized', function () {
     config([
-        'applications.enabled' => true,
         'mail.from.address' => 'admin@example.test',
         'app.frontend_url' => 'https://example.test/platform',
         'applications.support_whatsapp' => '5511999999999',

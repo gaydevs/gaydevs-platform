@@ -8,7 +8,6 @@ Somente no ambiente persistente do backend. Não incluir credenciais, telefone o
 
 | Variável | Default / ação |
 | --- | --- |
-| APPLICATIONS_ENABLED | false até todos os gates |
 | APP_FRONTEND_URL | URL compartilhada da plataforma; HTTPS em produção, HTTP loopback somente local/testing, sem credenciais, query ou fragmento |
 | MAIL_FROM_ADDRESS | remetente SMTP e destinatário dos avisos de candidatura; confirmar que a caixa recebe mensagens |
 | WHATSAPP_SUPPORT | número internacional sem espaços |
@@ -21,7 +20,7 @@ Somente no ambiente persistente do backend. Não incluir credenciais, telefone o
 | APPLICATION_MAIL_DAY | 100 (OTP + aviso) |
 | APPLICATION_SESSION_IDLE_DAYS / ABSOLUTE_DAYS | 30 / 90 |
 
-OTP: 6 dígitos, 10 minutos conforme passwordless. Cadastro e avisos não consomem a metade final das cotas globais horária e diária; falhas também consomem reserva. Cache compartilhado com locks atômicos, IP confiável, HTTPS e APP_KEY estável. Cookie candidato Secure/HttpOnly/SameSite=Lax independente da sessão de membro. Config pública expõe apenas enabled, sitekey, action, cooldown. Produção exige ApplicationTerms::FINALIZED e transporte real. A versão dos aceites permanece em ApplicationTerms::VERSION; aprovação do conteúdo documentada antes de alterar FINALIZED, sem duplicar versão no ambiente.
+OTP: 6 dígitos, 10 minutos conforme passwordless. Cadastro e avisos não consomem a metade final das cotas globais horária e diária; falhas também consomem reserva. Cache compartilhado com locks atômicos, IP confiável, HTTPS e APP_KEY estável. Cookie candidato Secure/HttpOnly/SameSite=Lax independente da sessão de membro. Disponibilidade é derivada das configurações obrigatórias, sem flag manual. Config pública expõe apenas enabled, sitekey, action, cooldown. Produção exige ApplicationTerms::FINALIZED e transporte real. A versão dos aceites permanece em ApplicationTerms::VERSION; aprovação do conteúdo documentada antes de alterar FINALIZED, sem duplicar versão no ambiente.
 
 ## Turnstile e perfis
 
@@ -31,7 +30,7 @@ GitHub usa [REST Get a user](https://docs.github.com/en/rest/users/users#get-a-u
 
 ## Migrations e recuperação
 
-Backup restaurável e upgrade ensaiado com dados sintéticos em MySQL compatível com host e PHP 8.3. Conferir FK, generated column active_email UNIQUE, múltiplos NULL, privilégio TRIGGER, índices. CI MySQL 8.4 não comprova o host. DDL MySQL não é transacional: interromper release em falha, manter feature desativada, inspecionar schema/migrations/triggers; não repetir ALTER às cegas. Somente migrate --force no release aprovado. Nunca migrate:fresh/db:wipe em dados reais. Downgrade com histórico de candidaturas ou destinatário OTP distinto do e-mail normalizado atual bloqueado; snapshots redundantes de login não impedem rollback. Parar escritas durante reversão. Se rollback parcial falhar, conferir migrate:status antes de retomar; preferir correção progressiva após uso real. Restauração exige coordenação para preservar dados posteriores. Testes MySQL de upgrade/concorrência usam schemas descartáveis separados do banco de testes no GitHub Actions com CI=true, GITHUB_ACTIONS=true, APP_ENV=testing, host 127.0.0.1:3306 e banco testing; o marcador APPLICATION_MYSQL_CI é interno aos subprocessos descartáveis. Nunca usar banco real.
+Backup restaurável e upgrade ensaiado com dados sintéticos em MySQL compatível com host e PHP 8.3. Conferir FK, generated column active_email UNIQUE, múltiplos NULL, privilégio TRIGGER, índices. CI MySQL 8.4 não comprova o host. DDL MySQL não é transacional: interromper release em falha, manter ambiente em manutenção, inspecionar schema/migrations/triggers; não repetir ALTER às cegas. Somente migrate --force no release aprovado. Nunca migrate:fresh/db:wipe em dados reais. Downgrade com histórico de candidaturas ou destinatário OTP distinto do e-mail normalizado atual bloqueado; snapshots redundantes de login não impedem rollback. Parar escritas durante reversão. Se rollback parcial falhar, conferir migrate:status antes de retomar; preferir correção progressiva após uso real. Restauração exige coordenação para preservar dados posteriores. Testes MySQL de upgrade/concorrência usam schemas descartáveis separados do banco de testes no GitHub Actions com CI=true, GITHUB_ACTIONS=true, APP_ENV=testing, host 127.0.0.1:3306 e banco testing; o marcador APPLICATION_MYSQL_CI é interno aos subprocessos descartáveis. Nunca usar banco real.
 
 ## Scheduler e avisos
 

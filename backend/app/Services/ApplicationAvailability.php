@@ -9,9 +9,6 @@ class ApplicationAvailability
 {
     public function ensure(): void
     {
-        if (! config('applications.enabled')) {
-            throw new HttpException(503, 'Cadastro temporariamente indisponível.');
-        }
         $turnstile = config('applications.turnstile');
         if (blank($turnstile['sitekey']) || blank($turnstile['secret']) || blank($turnstile['hostname'])
             || blank($turnstile['action']) || ! filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL)

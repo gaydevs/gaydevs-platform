@@ -23,7 +23,6 @@ class ApplicationCsrfEnforced extends PreventRequestForgery
 
 beforeEach(function () {
     config([
-        'applications.enabled' => true,
         'mail.from.address' => 'admin@example.test',
         'app.frontend_url' => 'http://localhost:5173/gaydevs/platform',
         'applications.support_whatsapp' => '5511999999999',

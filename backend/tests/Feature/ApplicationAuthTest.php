@@ -25,7 +25,6 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     config([
-        'applications.enabled' => true,
         'mail.from.address' => 'admin@example.test',
         'app.frontend_url' => 'http://localhost:5173/gaydevs/platform',
         'applications.support_whatsapp' => '5511999999999',
@@ -53,10 +52,10 @@ function verifyApplicationCode($test, array $challenge)
     return $test->postJson('/applications/verify', ['otp_request_id' => $challenge[0], 'code' => $challenge[1], 'consents' => ['personal_data' => ApplicationTerms::VERSION]]);
 }
 
-test('disabled or misconfigured registration fails closed and never sends mail', function () {
-    config(['applications.enabled' => false]);
+test('misconfigured registration fails closed and never sends mail', function () {
+    config(['applications.turnstile.secret' => null]);
     $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertServiceUnavailable();
-    config(['applications.enabled' => true, 'applications.support_whatsapp' => null]);
+    config(['applications.turnstile.secret' => 'test', 'applications.support_whatsapp' => null]);
     $this->postJson('/applications/otp', ['email' => 'a@example.test', 'turnstile_token' => 'token', 'consents' => ['personal_data' => ApplicationTerms::VERSION]])->assertServiceUnavailable();
     expect(Applicant::count())->toBe(0);
     Mail::assertNothingSent();

@@ -59,7 +59,7 @@ Manter a aplicação Laravel 13/Sanctum e React/TypeScript existentes, sem novo 
 ## Impactos e dependências
 
 - Alterações de schema, serviços OTP, rotas, views de email, scheduler, configurações, documentação de hospedagem e frontend. Sem mudança de infraestrutura além de Turnstile/variáveis de ambiente e tarefa no scheduler já existente.
-- Atualizar .env.example com placeholders e documentação de deploy/configuração; não editar .env real. Usar ativação controlada do CTA/rotas somente após configuração validada; sem fallback inseguro.
+- Atualizar .env.example com placeholders e documentação de deploy/configuração; não editar .env real. Disponibilizar CTA/rotas automaticamente após configuração validada, sem flag manual; sem fallback inseguro.
 - Verificar MySQL de hospedagem, cache com locks, limites do transporte e política CSP para Turnstile. Não acessar produção nem usar contas reais em testes.
 - Sem exclusão automática de applicants, sem dashboard do funil, sem automação externa de admissão. Retenção e direitos dos titulares exigem política aprovada pelo responsável; sem presumir validade legal de retenção indefinida.
 

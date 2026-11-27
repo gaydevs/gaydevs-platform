@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'enabled' => env('APPLICATIONS_ENABLED', false),
     'support_whatsapp' => env('WHATSAPP_SUPPORT'),
     'turnstile' => [
         'test_mode' => env('TURNSTILE_TEST_MODE', false),

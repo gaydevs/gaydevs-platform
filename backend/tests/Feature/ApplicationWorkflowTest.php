@@ -19,7 +19,6 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     config([
-        'applications.enabled' => true,
         'mail.from.address' => 'admin@example.test',
         'applications.support_whatsapp' => '5511999999999',
         'app.frontend_url' => 'https://example.test/platform',
