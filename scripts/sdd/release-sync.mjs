@@ -103,8 +103,8 @@ main(() => {
       continue;
     }
     if (entry.status !== 'Ready for Release') continue;
-    const status = setStatusIfNeeded(entry.context.issue, 'Done', board);
-    closeCompleted(entry.context.issue);
+    const status = setStatusIfNeeded(entry.context.issue, 'Done', board, { expected: entry.status });
+    closeCompleted(readIssue(entry.context.issue.number).issue);
     if (status.changed || entry.context.issue.state !== 'closed' || entry.context.issue.state_reason !== 'completed') changed += 1;
   }
 

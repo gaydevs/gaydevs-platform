@@ -219,3 +219,30 @@ equivalente. Aprovação e merge continuam humanos; nenhuma automação aprova,
 revisa ou mergeia PRs. Rejected e Canceled são os encerramentos Not planned.
 O deploy existente roda em pushes de main/master que alterem frontend ou o
 workflow de deploy, além de disparo manual; nem todo merge dispara deploy.
+
+
+## Auditoria de integridade SDD (#95)
+
+O reconciliador consulta GitHub e produz um relatório de evidências, sem
+promover trabalho por mera existência de branch ou PR. Histórico nativo de
+Status identifica regressões assíncronas e distingue mudanças posteriores.
+
+- node scripts/sdd/reconcile.mjs --dry-run: auditoria sem escrita (padrão).
+- node scripts/sdd/reconcile.mjs --dry-run --issue 114: limitar a uma Issue;
+  repetir --issue para auditar vários IDs.
+- node scripts/sdd/reconcile.mjs --apply --issue 114: aplicar apenas correções
+  iniciais determinísticas; transições avançadas permanecem pendentes.
+- --advanced exige --apply e exatamente uma Issue: uso controlado e somente
+  após análise de evidências e autorização. Revalida os dados antes de escrever.
+  Não usar como substituto de aprovação humana.
+- --apply --close-delivered --issue N (repetível): fechamento controlado
+  de Issues já em Done com entrega comprovada, sem alterar cards.
+
+O workflow SDD integrity audit é separado dos required checks e executa em
+dry-run (05:24 UTC, 02:24 em São Paulo). Acesso a Project da organização exige
+credencial autorizada; se GITHUB_TOKEN não tiver acesso, fornecer
+SDD_PROJECT_TOKEN por configuração administrativa segura. O relatório detalhado permanece no CLI autenticado; não é publicado nos logs ou artefatos do repositório público. Nenhuma credencial é criada pelo script. Escrita periódica não está habilitada.
+
+A investigação de #114/#115 identificou o ator github-project-automation,
+mas o A/B da fixture #123 não reproduziu o gatilho específico. Manter
+workflows nativos até obter evidência. Acompanhamento posterior: #125.

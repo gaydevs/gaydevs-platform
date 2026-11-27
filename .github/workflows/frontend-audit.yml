@@ -3,7 +3,7 @@ name: Frontend Audit
 on:
   workflow_call:
   schedule:
-    - cron: '0 0 * * 1'
+    - cron: '24 4 * * 1'
   workflow_dispatch:
 
 permissions:

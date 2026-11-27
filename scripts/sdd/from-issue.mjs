@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { config, root, readIssue, identity, assertUnblocked, git, project, setStatus, api, fastTrackRisk, main } from './core.mjs';
+import { config, root, readIssue, identity, assertUnblocked, assertPriority, git, project, setStatus, api, fastTrackRisk, main } from './core.mjs';
 
 main(() => {
   const args = process.argv.slice(2);
@@ -33,6 +33,7 @@ main(() => {
   if (!flags.has('--start')) return console.log(JSON.stringify({ ...work, fastTrack, risk, context }, null, 2));
   if (fastTrack && !humanApproved) throw new Error('Fast-track exige aprovação humana explícita: use --human-approved somente após recebê-la.');
   assertUnblocked(context);
+  assertPriority(context);
   const withoutProject = flags.has('--without-project');
   const board = withoutProject ? null : project();
   if (withoutProject) console.error('ATENÇÃO: sincronização com Project explicitamente pendente.');

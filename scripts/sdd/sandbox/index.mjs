@@ -44,7 +44,7 @@ export function initialState() {
   return {
     issues: { 27: issue(), 28: issue(28, 'Bug'), 29: issue(29, 'Tech Debt') },
     pulls: {}, pullFiles: {}, compares: {},
-    comments: {}, fields: {}, dependencies: {}, items: {}, failures: [],
+    comments: {}, fields: Object.fromEntries([27, 28, 29].map(n => [n, [{ issue_field_name: 'Priority', single_select_option: { name: 'Medium' } }]])), dependencies: {}, items: {}, failures: [],
     project: { id: 'P_1', title: 'gaydevs project', fields: { nodes: [{ id: 'STATUS', name: 'Status',
       options: ['Backlog', 'Specifying', 'Ready', 'In Progress', 'Review', 'Ready for Release', 'Done', 'Rejected', 'Canceled'].map((name, i) => ({ id: `S_${i}`, name })) }] } },
   };

@@ -14,9 +14,9 @@ main(() => {
       Rejected: ['Backlog', 'Specifying'],
       Canceled: ['Ready', 'In Progress', 'Review', 'Ready for Release'],
     };
-    if (!allowed[status].includes(current)) throw new Error(`Transição inválida: ${current} não pode virar ${status}.`);
-    setStatus(context.issue, status, board);
-    closeNotPlanned(context.issue);
+    if (current !== status && !allowed[status].includes(current)) throw new Error(`Transição inválida: ${current} não pode virar ${status}.`);
+    setStatus(context.issue, status, board, { expected: current });
+    closeNotPlanned(readIssue(context.issue.number).issue);
     console.log(`Issue #${number}: ${status} (Issue encerrada como Not planned)`);
     return;
   } else {

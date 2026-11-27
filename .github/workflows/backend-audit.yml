@@ -3,8 +3,7 @@ name: Backend Audit
 on:
   workflow_call:
   schedule:
-    # Every Monday at midnight (UTC)
-    - cron: '0 0 * * 1'
+    - cron: '24 3 * * 1'
   workflow_dispatch:
 
 permissions:
