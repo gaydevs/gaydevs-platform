@@ -10,7 +10,7 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 - [ ] T001 — Revalidar issue, dependências, branch e integração com develop; preparar ambiente local isolado, confirmar versões SQLite/MySQL e baseline de testes, sem dados reais.
 - [ ] T002 — Criar migration, enum, model e factory de applicants com UUID v7, campos do plano, revision, índices e coluna gerada active_email UNIQUE; testar histórico e unicidade concorrente.
-- [ ] T003 — Criar models/migrations de applicant_consents e applicant_events com constraints, versionamento e idempotência; testar registro atômico de etapas e decisões.
+- [x] T003 — Criar models/migrations de applicant_consents e applicant_events com constraints, versionamento e idempotência; testar registro atômico de etapas e decisões.
 - [ ] T004 — Migrar otp_requests com email, purpose e applicant_id, user_id nullable, índices e constraints; preservar legado e testar backfill e integridade de otp_attempts.
 - [ ] T005 — Adicionar users.applicant_id nullable UNIQUE com FK; testar upgrade e proteção de downgrade quando houver dados novos.
 - [ ] T006 — Implementar transições de candidatura, normalização de email, locks por email e repositório/ações de domínio; testar corrida entre criação, retomada, submissão e aprovação.
@@ -56,6 +56,13 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 - [ ] T031 — Executar testes frontend Vitest/Testing Library, lint, typecheck, build e check:content; cobrir fluxos principais, regressões e casos de erro.
 - [ ] T032 — QA manual mobile/desktop isolado, deep links e smoke Turnstile com test keys/e-mail fake; verificar privacidade, sessão e regras de acesso; confrontar todos os 14 REQs e 19 cenários de aceite da spec.
 - [ ] T033 — Revisão de diff, migrations, contratos, riscos e evidências; atualizar checklist e documentação; publicar branch e abrir PR para develop com Refs #113 e Spec: 00113. Sincronizar Project conforme workflow; solicitar revisão de outro gdev. Não aprovar/merge/release automaticamente.
+
+## Evidências de execução — 2026-11-27
+
+- T001 (parcial): branch sincronizada com origin/develop (nenhum commit atrás); issue aberta e sem dependências bloqueantes. Ambiente isolado Survivor, PHP local 8.4.27, SQLite 3.46.1, dependências Composer do mesmo lockfile e .env.testing local com chave descartável. Baseline backend: 168 testes passaram, 2 ignorados, 1000 assertions. A primeira execução falhou por falta de APP_KEY, corrigida apenas no ambiente de testes. Docker sem permissão e driver PDO MySQL indisponível; confirmar MySQL e PHP 8.3 em ambiente isolado antes de concluir T001.
+- T002 (parcial): migration applicants, enum, model e factory implementados. Coluna gerada active_email UNIQUE validada em SQLite, inclusive histórico e mudanças de status. Falta validar a corrida com conexões concorrentes em MySQL e compatibilidade com o host.
+- T003: migrations/models de applicant_consents e applicant_events, chaves únicas por versão e event_key, FK restrict e rollback conjunto de alteração + evento testados em SQLite. Versionamento de textos e chamadas transacionais de domínio continuam nas tarefas T006/T016/T017/T020.
+- Validação focada: ApplicantFoundationTest.php, 8 testes passaram (25 assertions); Pint passou nos 8 arquivos novos. Sem rotas públicas, alterações de autenticação ou deploy nesta etapa.
 
 ## Limites
 
