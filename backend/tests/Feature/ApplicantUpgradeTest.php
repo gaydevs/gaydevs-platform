@@ -7,6 +7,7 @@ use App\Models\VisitorObservation;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\Support\IsolatedApplicationDatabase;
 
@@ -69,7 +70,35 @@ test('upgrade preserves legacy OTP history and does not invent recipients after 
             expect(DB::select('PRAGMA foreign_key_check'))->toBe([]);
         }
         expect(fn () => User::factory()->create(['status' => 'invalid']))->toThrow(QueryException::class);
-        expect(fn () => $otpMigration->down())->toThrow(RuntimeException::class);
+        // A changed recipient is independent historical information.
+        DB::table('users')->where('id', $first->id)->update(['email' => 'different@example.com']);
+        expect(fn () => $otpMigration->down())->toThrow(RuntimeException::class, 'Cannot remove OTP recipient history');
+        DB::table('users')->where('id', $first->id)->update(['email' => 'Old@Example.com']);
+
+        // Even registration for an existing member is not representable as a legacy login.
+        $registration = (array) DB::table('otp_requests')->find($firstOtp);
+        $registration['id'] = (string) Str::uuid7();
+        $registration['purpose'] = 'registration';
+        DB::table('otp_requests')->insert($registration);
+        expect(fn () => $otpMigration->down())->toThrow(RuntimeException::class, 'Cannot remove OTP registration history');
+        DB::table('otp_requests')->where('id', $registration['id'])->delete();
+
+        // Immediate rollback on a populated legacy database keeps all original history.
+        $userMigration->down();
+        $otpMigration->down();
+        expect(DB::table('otp_requests')->count())->toBe(2)
+            ->and(DB::table('otp_requests')->find($firstOtp)->user_id)->toBe($first->id)
+            ->and(DB::table('otp_requests')->find($changedOtp)->superseded_by_id)->toBe($firstOtp)
+            ->and(DB::table('otp_attempts')->find($attemptId)->matched_otp_request_id)->toBe($changedOtp)
+            ->and(DB::table('otp_attempts')->find($attemptId)->authenticated_user_id)->toBe($first->id)
+            ->and(Schema::hasColumn('otp_requests', 'email'))->toBeFalse();
+        if ($isolated->driver === 'sqlite') {
+            expect(DB::select('PRAGMA foreign_key_check'))->toBe([]);
+        }
+        $otpMigration->up();
+        $userMigration->up();
+        expect(OtpRequest::findOrFail($firstOtp)->email)->toBe('old@example.com')
+            ->and(DB::table('otp_attempts')->count())->toBe(1);
     } finally {
         $isolated->close();
     }

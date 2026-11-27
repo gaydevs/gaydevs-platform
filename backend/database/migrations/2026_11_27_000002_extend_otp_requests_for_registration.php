@@ -42,9 +42,22 @@ return new class extends Migration
     public function down(): void
     {
         if (DB::table('otp_requests')->where('purpose', '!=', 'login')
-            ->orWhereNotNull('applicant_id')->orWhereNotNull('email')->orWhereNull('user_id')->exists()) {
-            throw new RuntimeException('Cannot remove OTP recipient or registration history. Restore a verified backup instead.');
+            ->orWhereNotNull('applicant_id')->orWhereNull('user_id')->exists()) {
+            throw new RuntimeException('Cannot remove OTP registration history. Restore a verified backup instead.');
         }
+
+        // Backfilled login recipients are redundant while the linked user's
+        // normalized email still matches. Preserve distinct historical recipients.
+        DB::table('otp_requests')->leftJoin('users', 'users.id', '=', 'otp_requests.user_id')
+            ->whereNotNull('otp_requests.email')
+            ->select('otp_requests.id', 'otp_requests.email', 'users.email as user_email')
+            ->chunkById(500, function ($rows): void {
+                foreach ($rows as $row) {
+                    if ($row->user_email === null || $row->email !== mb_strtolower(trim($row->user_email))) {
+                        throw new RuntimeException('Cannot remove OTP recipient history. Restore a verified backup instead.');
+                    }
+                }
+            }, 'otp_requests.id', 'id');
 
         $this->alter(function (): void {
             foreach (['insert', 'update'] as $operation) {
