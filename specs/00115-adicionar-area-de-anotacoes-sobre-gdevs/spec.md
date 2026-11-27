@@ -81,3 +81,25 @@ Refinamento visual solicitado diretamente pelo gdev: modal Área restrita sobre 
 - Colagem sem texto (incluindo imagem) não altera conteúdo nem seleção nem dispara autosave; colagem de texto puro continua disponível.
 
 Refinamentos e respectivos testes autorizados pelo gdev na conversa de 27/11/2026. Correções de revisão não alteram o modelo de dados, contratos de API ou autorização.
+
+## Revisão de integridade concorrente (27/11/2026)
+
+**Estado:** revisão de escopo High Risk, aguardando aprovação explícita desta spec antes do plano técnico. Achado Major da segunda revisão CodeRabbit (PR #120, discussão 4723530517). Manter o isolamento por autor e a mesma branch/issue. Não implementar histórico de versões nem polling do editor.
+
+### Critérios de aceite
+- Cada ficha tem uma revisão monotônica; uma gravação concorrente baseada em revisão obsoleta não pode sobrescrever uma versão já confirmada. A criação concorrente de uma ficha vazia também respeita essa garantia. O servidor continua responsável pela identidade do autor e pela validação atômica da revisão.
+- Ao abrir a ficha, obter conteúdo e revisão; cada autosave usa a revisão conhecida. Atualizar a revisão após confirmação. Sem requisições periódicas ou consultas adicionais no caminho normal de salvamento.
+- Diferenciar conflito de versão de perda de sessão/autorização; não retornar dados privados a uma identidade divergente. Em conflito, devolver somente conteúdo e revisão da ficha do autor autenticado.
+- Se o conteúdo remoto coincidir com a versão enviada ou com a edição local atual, reconciliar silenciosamente a confirmação quando seguro; preservar alterações locais posteriores. Se houver divergência não reconciliável com segurança, preservar o rascunho e abrir o modal de conflito, suspendendo o autosave.
+- Modal de conflito bloqueante no padrão visual existente, sem X, Escape ou fechamento pelo fundo. Exibir que a anotação foi alterada em outra gravação/sessão. Duas ações: Recarregar (descartar local somente após obter o remoto com sucesso) e Sobrescrever (salvar o rascunho local sobre a revisão remota apresentada, mediante escolha explícita do gdev). Sobrescrever também valida a revisão; se houver nova alteração concorrente, manter modal e rascunho, apresentar conflito atualizado e exigir nova escolha. Sem sobrescrita incondicional.
+- Enquanto o conflito estiver aberto ou sua resolução em andamento, impedir edição por trás do modal, gravações duplicadas e saída interna silenciosa; preservar a proteção de fechamento/reload da aba e a política de perda de sessão. Não permitir que um salvamento tardio mude o estado de outro editor ou autor. Retomar o autosave normal após resolução bem-sucedida; preservar rascunho e informar falha transitória na resolução, permitindo nova tentativa. Se havia saída pendente, só prosseguir quando a resolução confirmar persistência ou descarte explícito.
+
+### Cenários obrigatórios de teste
+1. Criação inicial, edição sequencial, limpeza, unicidade e revisão correta; revisão ausente/inválida; concorrência na criação e na atualização com somente um vencedor atômico (SQLite e MySQL).
+2. Gravação antiga B abortada localmente e concluída depois de C, inclusive logout ignorado que falha; B não sobrescreve C. Ordem inversa: B vence, C detecta conflito e mantém rascunho; nunca confirmação falsa. Testar ordem efetiva de persistência, não apenas ordem das respostas.
+3. Duas abas do mesmo autor com a mesma revisão: uma salva, outra recebe conflito e mantém sua edição. Dois autores continuam independentes; tentativa de usar identidade ou campos de propriedade indevidos continua bloqueada.
+4. Resposta perdida depois de commit: reconciliar conteúdo coincidente, atualizar revisão e preservar edição posterior. Resposta perdida sem commit: retry com revisão conhecida; falhas transitórias preservam rascunho e proteção de saída. Respostas tardias e requisições abortadas não atualizam outra ficha/sessão.
+5. Modal: não fecha por X, Escape ou backdrop; foco contido; edição e saída interna bloqueadas; Recarregar e Sobrescrever funcionam; falha de rede em cada ação mantém rascunho; cliques repetidos não duplicam gravação; terceiro write durante sobrescrita gera novo conflito; nenhuma sobrescrita automática de conteúdo diferente. Validar beforeunload e saída pendente durante resolução.
+6. Fluxo normal: debounce e autosave serializado, sem polling adicional, sem regressão de login, logout, histórico, editor/Markdown, privacidade e listagem.
+
+Os outros dois achados Minor da segunda revisão (foco anterior ao login e edição após saída aprovada) permanecem em aberto e serão tratados separadamente, sem ampliar a refatoração #122.
