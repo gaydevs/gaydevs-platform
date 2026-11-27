@@ -205,3 +205,43 @@ test('an oversized note is not transmitted and can be corrected before retry', a
   expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin', 'ana', 'short', expect.any(AbortSignal))
   expect(proceed).toHaveBeenCalledOnce()
 })
+
+test('a failed response after reverting to the confirmed content keeps persistence uncertain until retry succeeds', async () => {
+  let reject!: (error: Error) => void
+  vi.mocked(saveMemberNote)
+    .mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail }))
+    .mockRejectedValueOnce(new ApiError('Gateway Timeout', 504))
+    .mockResolvedValueOnce(response('A'))
+  let guard: LeaveGuard | undefined
+  const register = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
+  const { result } = renderHook(() => useNoteAutosave('admin', 'ana', 'A', register))
+
+  act(() => result.current.change('B'))
+  await act(async () => vi.advanceTimersByTimeAsync(700))
+  expect(saveMemberNote).toHaveBeenCalledExactlyOnceWith('admin', 'ana', 'B', expect.any(AbortSignal))
+  act(() => result.current.change('A'))
+  await act(async () => reject(new TypeError('Response lost after commit')))
+  expect(result.current.status).toBe('error')
+
+  const unload = new Event('beforeunload', { cancelable: true })
+  window.dispatchEvent(unload)
+  expect(unload.defaultPrevented).toBe(true)
+
+  const proceed = vi.fn()
+  await act(async () => { expect(guard?.(proceed)).toBe(true) })
+  expect(result.current.leaveOpen).toBe(true)
+  expect(result.current.status).toBe('error')
+  expect(proceed).not.toHaveBeenCalled()
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'A', expect.any(AbortSignal))
+
+  await act(async () => result.current.retry())
+  expect(saveMemberNote).toHaveBeenCalledTimes(3)
+  expect(saveMemberNote).toHaveBeenLastCalledWith('admin', 'ana', 'A', expect.any(AbortSignal))
+  expect(result.current.status).toBe('saved')
+  expect(result.current.leaveOpen).toBe(false)
+  expect(proceed).toHaveBeenCalledOnce()
+  expect(guard?.(vi.fn())).toBe(false)
+  const confirmed = new Event('beforeunload', { cancelable: true })
+  window.dispatchEvent(confirmed)
+  expect(confirmed.defaultPrevented).toBe(false)
+})

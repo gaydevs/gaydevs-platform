@@ -10,6 +10,7 @@ export const NOTE_SAVE_DELAY = 700
 export function useNoteAutosave(actorId: string, memberId: string, initial: string, registerGuard?: RegisterLeaveGuard) {
   const latest = useRef(initial)
   const persisted = useRef(initial)
+  const persistenceUncertain = useRef(false)
   const inFlight = useRef(false)
   const activeRequest = useRef<AbortController | null>(null)
   const sessionChanged = useRef(false)
@@ -24,7 +25,7 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
     if (timer.current !== null) window.clearTimeout(timer.current)
     timer.current = null
   }, [])
-  const dirty = useCallback(() => !abandoned.current && (inFlight.current || latest.current !== persisted.current), [])
+  const dirty = useCallback(() => !abandoned.current && (inFlight.current || persistenceUncertain.current || latest.current !== persisted.current), [])
 
   const flush = useCallback(async function flushLatest() {
     clearTimer()
@@ -47,8 +48,11 @@ export function useNoteAutosave(actorId: string, memberId: string, initial: stri
       await saveMemberNote(actorId, memberId, content, controller.signal)
       if (controller.signal.aborted) return
       persisted.current = content
+      persistenceUncertain.current = false
     } catch (error) {
       if (controller.signal.aborted) return
+      // A failed response does not prove the server did not commit the write.
+      persistenceUncertain.current = true
       inFlight.current = false
       if (mounted.current) {
         if (error instanceof ApiError && [401, 403, 409].includes(error.status)) {
