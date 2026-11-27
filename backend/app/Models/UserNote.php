@@ -2,15 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuidV7;
 use Illuminate\Database\Eloquent\Model;
 
 class UserNote extends Model
 {
-    protected $primaryKey = 'user_id';
+    use HasUuidV7;
 
-    public $incrementing = false;
-
-    protected $keyType = 'string';
-
-    protected $fillable = ['user_id', 'content'];
+    protected $fillable = ['author_id', 'user_id', 'content'];
 }

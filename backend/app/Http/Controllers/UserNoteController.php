@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\UserNote;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,11 +12,16 @@ use Illuminate\Support\Str;
 
 class UserNoteController
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $authorId = $this->authorId($request);
+
         return response()->json([
             'members' => User::query()
-                ->leftJoin('user_notes', 'users.id', '=', 'user_notes.user_id')
+                ->leftJoin('user_notes', function (JoinClause $join) use ($authorId): void {
+                    $join->on('users.id', '=', 'user_notes.user_id')
+                        ->where('user_notes.author_id', '=', $authorId);
+                })
                 ->orderBy('users.name')->orderBy('users.id')
                 ->get(['users.id', 'users.name', 'user_notes.content'])
                 ->map(fn (User $user): array => [
@@ -26,24 +32,31 @@ class UserNoteController
         ])->header('Cache-Control', 'private, no-store');
     }
 
-    public function show(string $member): JsonResponse
+    public function show(Request $request, string $member): JsonResponse
     {
+        $authorId = $this->authorId($request);
         $member = User::query()->findOrFail($member);
 
-        return $this->noteResponse($member, UserNote::query()->find($member->id)?->content ?? '');
+        return $this->noteResponse($member, UserNote::query()->where('author_id', $authorId)->where('user_id', $member->id)->value('content') ?? '');
     }
 
     public function update(Request $request, string $member): JsonResponse
     {
+        $authorId = $this->authorId($request);
         $member = User::query()->findOrFail($member);
 
-        $validated = $request->validate(['content' => ['present', 'nullable', 'string', 'max:10000']]);
+        $validated = $request->validate([
+            'content' => ['present', 'nullable', 'string', 'max:10000'],
+            'id' => ['missing'],
+            'author_id' => ['missing'],
+            'user_id' => ['missing'],
+        ]);
         $content = $validated['content'] ?? '';
 
         try {
             UserNote::query()->upsert(
-                [['user_id' => $member->id, 'content' => $content]],
-                ['user_id'],
+                [['id' => (string) Str::uuid7(), 'author_id' => $authorId, 'user_id' => $member->id, 'content' => $content]],
+                ['author_id', 'user_id'],
                 ['content'],
             );
         } catch (QueryException) {
@@ -52,6 +65,15 @@ class UserNoteController
         }
 
         return $this->noteResponse($member, $content);
+    }
+
+    private function authorId(Request $request): string
+    {
+        // The header is a session consistency check, never a source of ownership.
+        $authorId = (string) $request->user()->getAuthIdentifier();
+        abort_unless($request->header('X-Notes-Actor') === $authorId, 409, 'Sessão alterada. Recarregue a página.');
+
+        return $authorId;
     }
 
     private function preview(string $content): string

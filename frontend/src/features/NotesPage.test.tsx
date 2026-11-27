@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { ApiError } from './auth/api'
 import { NotesPage } from './NotesPage'
 import { NoteRichEditor } from './NoteRichEditor'
 import { NoteEditorLoading } from './NotesLoadingStates'
@@ -180,4 +181,64 @@ test('a background save failure stays silent until exit, and retry in modal comp
   await userEvent.click(retry)
   await waitFor(() => expect(proceed).toHaveBeenCalledOnce())
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+})
+
+
+test('switching admins clears previews and ignores a late response for the previous admin', async () => {
+  const other = { ...admin, id: 'admin-b' }
+  let finish!: (value: typeof member[]) => void
+  vi.mocked(listNoteMembers).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    .mockResolvedValueOnce([{ ...member, preview: 'Nota do segundo' }])
+  const props = { base, memberId: null, restoring: false, onNavigate: vi.fn() }
+  const { rerender } = render(<NotesPage {...props} user={admin} />)
+  const signal = vi.mocked(listNoteMembers).mock.calls[0][1]
+  rerender(<NotesPage {...props} user={other} />)
+  expect(signal?.aborted).toBe(true)
+  expect(await screen.findByText('Nota do segundo')).toBeInTheDocument()
+  await act(async () => finish([{ ...member, preview: 'Nota do primeiro' }]))
+  expect(screen.queryByText('Nota do primeiro')).not.toBeInTheDocument()
+  expect(listNoteMembers).toHaveBeenLastCalledWith('admin-b', expect.any(AbortSignal))
+})
+
+test('switching admins removes the previous editor and cancels pending autosave', async () => {
+  vi.mocked(getMemberNote).mockResolvedValueOnce({ member, content: 'Privado do primeiro' })
+    .mockResolvedValueOnce({ member, content: 'Privado do segundo' })
+  const props = { base, memberId: 'ana', restoring: false, onNavigate: vi.fn() }
+  const { rerender } = render(<NotesPage {...props} user={admin} />)
+  const editor = await screen.findByRole('textbox', { name: 'Anotações' }, { timeout: 5000 })
+  expect(editor).toHaveTextContent('Privado do primeiro')
+  fireEvent.paste(editor, { clipboardData: { getData: () => ' edit' } })
+  rerender(<NotesPage {...props} user={{ ...admin, id: 'admin-b' }} />)
+  expect(editor).not.toBeInTheDocument()
+  expect(await screen.findByText('Privado do segundo')).toBeInTheDocument()
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 800)) })
+  expect(saveMemberNote).not.toHaveBeenCalled()
+  expect(getMemberNote).toHaveBeenLastCalledWith('admin-b', 'ana', expect.any(AbortSignal))
+})
+
+test('session mismatch hides the old editor and instructs reload without offering retry', async () => {
+  vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Private' })
+  vi.mocked(saveMemberNote).mockRejectedValue(new ApiError('Sessão alterada', 409))
+  let guard: LeaveGuard | undefined
+  const registerGuard = (value: LeaveGuard) => { guard = value; return () => { guard = undefined } }
+  render(<NotesPage memberId="ana" base={base} user={admin} restoring={false} onNavigate={vi.fn()} registerGuard={registerGuard} />)
+  const editor = await screen.findByRole('textbox', { name: 'Anotações' }, { timeout: 5000 })
+  fireEvent.paste(editor, { clipboardData: { getData: () => ' edit' } })
+  const proceed = vi.fn()
+  act(() => { expect(guard?.(proceed)).toBe(true) })
+  const dialog = await screen.findByRole('dialog', { name: 'Sessão alterada' })
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  expect(within(dialog).getByRole('button', { name: 'Recarregar' })).toBeInTheDocument()
+  expect(within(dialog).queryByRole('button', { name: 'Tentar de novo' })).not.toBeInTheDocument()
+  expect(proceed).not.toHaveBeenCalled()
+})
+
+test('visitor cannot load notes on either route', () => {
+  const props = { base, user: null, restoring: false, onNavigate: vi.fn() }
+  const { rerender } = render(<NotesPage {...props} memberId={null} />)
+  expect(screen.getByRole('alert')).toHaveTextContent('Área restrita')
+  rerender(<NotesPage {...props} memberId="ana" />)
+  expect(screen.getByRole('alert')).toHaveTextContent('Área restrita')
+  expect(listNoteMembers).not.toHaveBeenCalled()
+  expect(getMemberNote).not.toHaveBeenCalled()
 })

@@ -9,7 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('user_notes', function (Blueprint $table): void {
-            $table->foreignUuid('user_id')->primary()->constrained('users')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('author_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
+            $table->unique(['author_id', 'user_id']);
+            $table->index('user_id');
             $table->text('content');
             $table->timestamps();
         });

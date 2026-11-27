@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ApiError } from './auth/api'
 import { saveMemberNote } from './notesApi'
 
 export type LeaveGuard = (proceed: () => void) => boolean
 export type RegisterLeaveGuard = (guard: LeaveGuard) => () => void
-export type SaveStatus = 'saved' | 'pending' | 'saving' | 'error'
+export type SaveStatus = 'saved' | 'pending' | 'saving' | 'error' | 'session-changed'
 export const NOTE_SAVE_DELAY = 700
 
-export function useNoteAutosave(memberId: string, initial: string, registerGuard?: RegisterLeaveGuard) {
+export function useNoteAutosave(actorId: string, memberId: string, initial: string, registerGuard?: RegisterLeaveGuard) {
   const latest = useRef(initial)
   const persisted = useRef(initial)
   const inFlight = useRef(false)
+  const activeRequest = useRef<AbortController | null>(null)
+  const sessionChanged = useRef(false)
   const timer = useRef<number | null>(null)
   const mounted = useRef(true)
   const leave = useRef<(() => void) | null>(null)
@@ -24,7 +27,7 @@ export function useNoteAutosave(memberId: string, initial: string, registerGuard
 
   const flush = useCallback(async function flushLatest() {
     clearTimer()
-    if (!mounted.current || inFlight.current) return
+    if (!mounted.current || inFlight.current || sessionChanged.current) return
     const finish = () => {
       setStatus('saved')
       const proceed = leave.current
@@ -37,21 +40,31 @@ export function useNoteAutosave(memberId: string, initial: string, registerGuard
     if (content.length > 10000) { setStatus('error'); return }
     inFlight.current = true
     setStatus('saving')
+    const controller = new AbortController()
+    activeRequest.current = controller
     try {
-      await saveMemberNote(memberId, content)
+      await saveMemberNote(actorId, memberId, content, controller.signal)
+      if (controller.signal.aborted) return
       persisted.current = content
-    } catch {
+    } catch (error) {
+      if (controller.signal.aborted) return
       inFlight.current = false
-      if (mounted.current) setStatus('error')
+      if (mounted.current) {
+        if (error instanceof ApiError && [401, 403, 409].includes(error.status)) {
+          sessionChanged.current = true
+          setStatus('session-changed')
+        } else setStatus('error')
+      }
       return
     }
     inFlight.current = false
     if (!mounted.current) return
     if (dirty()) void flushLatest()
     else finish()
-  }, [clearTimer, dirty, memberId])
+  }, [actorId, clearTimer, dirty, memberId])
 
   const change = useCallback((content: string) => {
+    if (sessionChanged.current || !mounted.current) return
     latest.current = content
     clearTimer()
     if (!dirty()) { setStatus('saved'); return }
@@ -78,6 +91,9 @@ export function useNoteAutosave(memberId: string, initial: string, registerGuard
     window.addEventListener('beforeunload', beforeUnload)
     return () => {
       mounted.current = false
+      activeRequest.current?.abort()
+      inFlight.current = false
+      leave.current = null
       clearTimer()
       unregister?.()
       window.removeEventListener('beforeunload', beforeUnload)
