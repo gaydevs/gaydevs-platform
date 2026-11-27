@@ -36,4 +36,6 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 - [x] T023 Atualizar listagem a cada 15s e ao retornar à aba.
 - [ ] T024 Testes de integração e regressão, build, publicar revisão. Código publicado em 5e1e8f7; 59 testes diretamente relacionados aprovados, inclusive login, Ignorar, refresh e proteção de sessão; backend 177 passaram, 2 ignorados. Suite completa frontend interrompida por timeout do Gateway sob carga; build final não executado nessa tentativa. TypeScript e ESLint aprovados. Project voltou a Backlog e pr-sync recusou a transição.
 
+- [x] T025 Modal Área restrita sobre skeleton, Home/X/Escape, sem sobreposição com login; 48 testes relacionados aprovados (6 novos), TypeScript e ESLint aprovados. Sem mudança de backend.
+
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.

@@ -51,7 +51,7 @@ Spec aprovada explicitamente após commit 15eb617. Mantido o fluxo SDD High Risk
 ### Login obrigatório
 - Reutilizar SectionAuthGate (mode required) em NotesPage, com skeleton apropriado à rota de listagem/detalhe durante restauração e enquanto visitante; nenhuma chamada notes antes de sessão admin.
 - Generalizar no App.tsx o callback de login obrigatório atualmente usado por Enquetes, preservando o fluxo de #login/#login/otp e a rota de origem. Calcular homePath a partir do prefixo da seção ativa (notes ou polls), de modo que cancelar o login retorne à home da plataforma, não à raiz do domínio.
-- Autenticado não admin continua recebendo Área restrita sem requisições privadas. Admin usa o fluxo existente com actorId. Não modificar gates/middleware ou contratos do backend.
+- Autenticado não admin recebe modal Área restrita sobre o mesmo skeleton, sem requisições privadas. Reutilizar ModalHeader, login-overlay e poll-error-dialog; Home/X/Escape navegam à home; aguardar fechamento do login para montar o modal. Aplicar também aos 403 na listagem e ficha, descartando dados da listagem. Admin usa o fluxo existente com actorId. Não modificar gates/middleware ou contratos do backend.
 
 ### Ignorar salvamento
 - Em useNoteAutosave, adicionar ação explícita ignoreLeave separada de cancelLeave (X/Escape). Capturar e limpar o callback de saída antes de executá-lo uma única vez. Invalidar a fila/timer e a continuação do autosave da ficha abandonada; abortar o fetch local em voo quando possível. Uma requisição já aceita pelo servidor ainda pode concluir, sem garantia. Não tentar rollback de escrita nem reenviar após saída ou mudança de sessão.

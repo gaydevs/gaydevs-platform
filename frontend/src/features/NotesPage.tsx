@@ -29,10 +29,11 @@ export function NotesSectionBar({ visible, path, onNavigate }: { visible: boolea
   }} /></SectionSubmenuBar>
 }
 
-function NoteList({ actorId, base, onNavigate, onBrandVisibilityChange }: { actorId: string; base: string; onNavigate: (path: string) => void; onBrandVisibilityChange?: (visible: boolean) => void }) {
-  const { members, error } = useNoteList(actorId)
+function NoteList({ actorId, base, onNavigate, onBrandVisibilityChange, onHome }: { actorId: string; base: string; onHome: () => void; onNavigate: (path: string) => void; onBrandVisibilityChange?: (visible: boolean) => void }) {
+  const { members, error, restricted } = useNoteList(actorId)
   const brand = useRef<HTMLImageElement>(null)
   useSectionBrandVisibility({ brandRef: brand, onVisibilityChange: onBrandVisibilityChange })
+  if (restricted) return <RestrictedView memberId={null} onHome={onHome} />
   return <section className="polls-page polls-page--landing container" aria-labelledby="notes-title">
     <div className="section-heading polls-landing-heading"><h1 className="polls-hero-title" id="notes-title"><NotesBrand className="polls-hero-brand" linked={false} iconRef={brand} /></h1></div>
     {error ? <p className="poll-error" role="alert">{error}</p> : members === null ? <NoteListLoading /> : members.length === 0 ? <p className="poll-empty">Nenhum gdev encontrado.</p> :
@@ -81,27 +82,70 @@ function LoadedNote({ actorId, note, registerGuard }: { actorId: string; note: M
   </>
 }
 
-function NoteEditor({ actorId, memberId, registerGuard }: { actorId: string; memberId: string; registerGuard?: RegisterLeaveGuard }) {
+function NoteEditor({ actorId, memberId, registerGuard, onHome }: { actorId: string; memberId: string; registerGuard?: RegisterLeaveGuard; onHome: () => void }) {
   const [note, setNote] = useState<MemberNote | null>(null)
   const [error, setError] = useState('')
+  const [restricted, setRestricted] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
     getMemberNote(actorId, memberId, controller.signal).then(result => {
       if (!controller.signal.aborted) setNote(result)
-    }).catch(error => { if (!controller.signal.aborted) setError(error instanceof ApiError && error.status === 409 ? 'Sessão alterada. Recarregue a página.' : 'Não foi possível carregar a anotação.') })
+    }).catch(error => {
+      if (controller.signal.aborted) return
+      if (error instanceof ApiError && error.status === 403) setRestricted(true)
+      else setError(error instanceof ApiError && error.status === 409 ? 'Sessão alterada. Recarregue a página.' : 'Não foi possível carregar a anotação.')
+    })
     return () => controller.abort()
   }, [actorId, memberId])
+  if (restricted) return <RestrictedView memberId={memberId} onHome={onHome} />
   return <section className="polls-page container" aria-labelledby={note ? "note-title" : undefined}>
     {note ? <LoadedNote actorId={actorId} note={note} registerGuard={registerGuard} /> : error ? <p className="poll-error" role="alert">{error}</p> : <NoteDetailLoading />}
   </section>
 }
 
-export function NotesPage({ memberId, base, user, restoring, onLogin, onNavigate, onBrandVisibilityChange, registerGuard }: { memberId: string | null; base: string; user: AuthenticatedUser | null; restoring: boolean; onLogin?: () => void; onNavigate: (path: string) => void; onBrandVisibilityChange?: (visible: boolean) => void; registerGuard?: RegisterLeaveGuard }) {
-  const skeleton = memberId
+function RestrictedDialog({ onHome }: { onHome: () => void }) {
+  const homeButton = useRef<HTMLButtonElement>(null)
+  const homeRef = useRef(onHome)
+  useEffect(() => { homeRef.current = onHome }, [onHome])
+  useEffect(() => {
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    homeButton.current?.focus()
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') homeRef.current() }
+    window.addEventListener('keydown', escape)
+    return () => {
+      document.body.style.overflow = previous
+      window.removeEventListener('keydown', escape)
+    }
+  }, [])
+  return <div className="login-overlay" role="presentation">
+    <section className="login-dialog poll-error-dialog" role="dialog" aria-modal="true" aria-labelledby="notes-restricted-title">
+      <ModalHeader closeLabel="voltar à home" onClose={onHome}><NotesBrand linked={false} /></ModalHeader>
+      <div className="poll-error-dialog__body">
+        <p className="login-dialog__eyebrow">ANOTAÇÕES</p>
+        <h2 id="notes-restricted-title">Área restrita</h2>
+        <p className="poll-close-dialog__description">Esta área é exclusiva para administradores.</p>
+        <button ref={homeButton} className="action-link poll-error-dialog__action" type="button" onClick={onHome}>Home</button>
+      </div>
+    </section>
+  </div>
+}
+
+function NotesSkeleton({ memberId }: { memberId: string | null }) {
+  return memberId
     ? <section className="polls-page container"><NoteDetailLoading /></section>
     : <section className="polls-page polls-page--landing container"><div className="section-heading polls-landing-heading"><h1 className="polls-hero-title"><NotesBrand className="polls-hero-brand" linked={false} /></h1></div><NoteListLoading /></section>
+}
+
+function RestrictedView({ memberId, onHome, loginOpen = false }: { memberId: string | null; onHome: () => void; loginOpen?: boolean }) {
+  return <><NotesSkeleton memberId={memberId} />{!loginOpen && <RestrictedDialog onHome={onHome} />}</>
+}
+
+export function NotesPage({ memberId, base, user, restoring, onLogin, loginOpen = false, onNavigate, onBrandVisibilityChange, registerGuard }: { memberId: string | null; base: string; user: AuthenticatedUser | null; restoring: boolean; onLogin?: () => void; loginOpen?: boolean; onNavigate: (path: string) => void; onBrandVisibilityChange?: (visible: boolean) => void; registerGuard?: RegisterLeaveGuard }) {
+  const skeleton = <NotesSkeleton memberId={memberId} />
+  const onHome = () => onNavigate(base.slice(0, -'/notes'.length) || '/')
   if (restoring) return skeleton
   if (!user) return <SectionAuthGate mode="required" authenticated={false} restoring={false} fallback={skeleton} onRequireLogin={onLogin}>{null}</SectionAuthGate>
-  if (user.member_type !== 'admin') return <section className="polls-page container"><p className="poll-error" role="alert">Área restrita.</p></section>
-  return memberId ? <NoteEditor key={`${user.id}:${memberId}`} actorId={user.id} memberId={memberId} registerGuard={registerGuard} /> : <NoteList key={user.id} actorId={user.id} base={base} onNavigate={onNavigate} onBrandVisibilityChange={onBrandVisibilityChange} />
+  if (user.member_type !== 'admin') return <RestrictedView memberId={memberId} onHome={onHome} loginOpen={loginOpen} />
+  return memberId ? <NoteEditor key={`${user.id}:${memberId}`} actorId={user.id} memberId={memberId} registerGuard={registerGuard} onHome={onHome} /> : <NoteList key={user.id} actorId={user.id} base={base} onNavigate={onNavigate} onBrandVisibilityChange={onBrandVisibilityChange} onHome={onHome} />
 }

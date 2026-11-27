@@ -166,7 +166,7 @@ export default function App() {
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
     {isNotesSection && auth.user?.member_type === 'admin' && <NotesSectionBar visible={showNotesSectionBar} path={notesPath} onNavigate={navigate} />}
     <main id="conteudo">
-      {isNotesSection ? <NotesPage memberId={noteMemberId} base={notesPath} user={auth.user} restoring={auth.restoring} onLogin={openSectionLogin} onNavigate={navigate} onBrandVisibilityChange={setBrandVisible} registerGuard={registerLeaveGuard} /> : pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openSectionLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
+      {isNotesSection ? <NotesPage memberId={noteMemberId} base={notesPath} user={auth.user} restoring={auth.restoring} onLogin={openSectionLogin} loginOpen={Boolean(loginStep)} onNavigate={navigate} onBrandVisibilityChange={setBrandVisible} registerGuard={registerLeaveGuard} /> : pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openSectionLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
       <Hero content={hero} mobile={images.heroMobile} desktop={images.heroDesktop} onBrandVisibilityChange={setBrandVisible} />
       <About content={about} />
       <Topics content={topics} />

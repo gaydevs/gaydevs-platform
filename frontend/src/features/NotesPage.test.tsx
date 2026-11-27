@@ -20,11 +20,17 @@ const base = '/gaydevs/platform/notes'
 afterEach(cleanup)
 beforeEach(() => { vi.resetAllMocks() })
 
-test('denies direct access to ordinary members without fetching notes', () => {
-  render(<NotesPage memberId="ana" base={base} user={{ ...member, member_type: 'member' }} restoring={false} onNavigate={vi.fn()} />)
-  expect(screen.getByRole('alert')).toHaveTextContent('Área restrita')
+test.each([null, 'ana'])('denies direct access on %s with modal and skeleton, without fetching notes', memberId => {
+  const onNavigate = vi.fn()
+  render(<NotesPage memberId={memberId} base={base} user={{ ...member, member_type: 'member' }} restoring={false} onNavigate={onNavigate} />)
+  const dialog = screen.getByRole('dialog', { name: 'Área restrita' })
+  expect(dialog).toHaveAttribute('aria-modal', 'true')
+  expect(screen.getByRole('status', { name: memberId ? 'Carregando anotação' : 'Carregando gdevs' })).toBeInTheDocument()
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   expect(getMemberNote).not.toHaveBeenCalled()
   expect(listNoteMembers).not.toHaveBeenCalled()
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Home' }))
+  expect(onNavigate).toHaveBeenCalledWith('/gaydevs/platform')
 })
 
 test('shows alphabetical cards with previews and navigates to a member', async () => {
@@ -265,4 +271,33 @@ test.each(['saving', 'error', 'session-changed'])('Ignorar leaves without confir
   if (state === 'saving') await act(async () => finish({ member, content: 'Texto novo' }))
   expect(proceed).toHaveBeenCalledOnce()
   expect(saveMemberNote).toHaveBeenCalledOnce()
+})
+
+
+test('restricted modal waits until login has closed and never fetches private data', () => {
+  const props = { memberId: null, base, user: { ...member, member_type: 'member' }, restoring: false, onNavigate: vi.fn() }
+  const { rerender } = render(<NotesPage {...props} loginOpen />)
+  expect(screen.queryByRole('dialog', { name: 'Área restrita' })).not.toBeInTheDocument()
+  expect(screen.getByRole('status', { name: 'Carregando gdevs' })).toBeInTheDocument()
+  rerender(<NotesPage {...props} loginOpen={false} />)
+  expect(screen.getByRole('dialog', { name: 'Área restrita' })).toBeInTheDocument()
+  expect(listNoteMembers).not.toHaveBeenCalled()
+  expect(getMemberNote).not.toHaveBeenCalled()
+})
+
+test.each(['close', 'escape'])('restricted dialog %s returns home', method => {
+  const onNavigate = vi.fn()
+  render(<NotesPage memberId={null} base={base} user={{ ...member, member_type: 'member' }} restoring={false} onNavigate={onNavigate} />)
+  if (method === 'close') fireEvent.click(screen.getByRole('button', { name: 'voltar à home' }))
+  else fireEvent.keyDown(window, { key: 'Escape' })
+  expect(onNavigate).toHaveBeenCalledWith('/gaydevs/platform')
+})
+
+test.each([null, 'ana'])('403 from notes endpoint presents restricted modal on %s', async memberId => {
+  vi.mocked(listNoteMembers).mockRejectedValue(new ApiError('Forbidden', 403))
+  vi.mocked(getMemberNote).mockRejectedValue(new ApiError('Forbidden', 403))
+  render(<NotesPage memberId={memberId} base={base} user={admin} restoring={false} onNavigate={vi.fn()} />)
+  expect(await screen.findByRole('dialog', { name: 'Área restrita' })).toBeInTheDocument()
+  expect(screen.getByRole('status', { name: memberId ? 'Carregando anotação' : 'Carregando gdevs' })).toBeInTheDocument()
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
 })

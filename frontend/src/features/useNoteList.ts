@@ -6,7 +6,7 @@ import { POLL_REFRESH_INTERVAL_MS } from './pollRoutes'
 export const NOTES_REFRESH_INTERVAL_MS = POLL_REFRESH_INTERVAL_MS
 
 export function useNoteList(actorId: string) {
-  const [snapshot, setSnapshot] = useState<{ actorId: string; members: NoteMember[] | null; error: string } | null>(null)
+  const [snapshot, setSnapshot] = useState<{ actorId: string; members: NoteMember[] | null; error: string; restricted?: boolean } | null>(null)
 
   useEffect(() => {
     let active = true
@@ -27,7 +27,7 @@ export function useNoteList(actorId: string) {
         if (!active || controller.signal.aborted) return
         if (error instanceof ApiError && [401, 403, 409].includes(error.status)) {
           blocked = true
-          setSnapshot({ actorId, members: null, error: error.status === 403 ? 'Área restrita.' : 'Sessão alterada. Recarregue a página.' })
+          setSnapshot({ actorId, members: null, error: error.status === 403 ? 'Área restrita.' : 'Sessão alterada. Recarregue a página.', restricted: error.status === 403 })
         } else if (!loaded) {
           setSnapshot({ actorId, members: null, error: 'Não foi possível carregar os gdevs.' })
         }
@@ -50,6 +50,6 @@ export function useNoteList(actorId: string) {
   }, [actorId])
 
   return snapshot?.actorId === actorId
-    ? { members: snapshot.members, error: snapshot.error }
-    : { members: null, error: '' }
+    ? { members: snapshot.members, error: snapshot.error, restricted: Boolean(snapshot.restricted) }
+    : { members: null, error: '', restricted: false }
 }
