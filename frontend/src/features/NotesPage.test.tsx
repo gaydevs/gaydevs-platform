@@ -137,6 +137,42 @@ test('list displays shimmering card skeletons until the request resolves', async
   expect(await screen.findByRole('button', { name: /Ana Silva/ })).toBeInTheDocument()
 })
 
+test('responsive grid defines one, two and three equally sized columns at the intended breakpoints', () => {
+  const styles = readFileSync('src/styles/global.css', 'utf8')
+  expect(styles).toMatch(/\.notes-list\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\);\s*\}/)
+  expect(styles).toMatch(/@media\s*\(min-width:\s*640px\)\s*\{\s*\.notes-list\s*\{\s*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);\s*\}\s*\}/)
+  expect(styles).toMatch(/@media\s*\(min-width:\s*1024px\)\s*\{\s*\.notes-list\s*\{\s*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);\s*\}\s*\}/)
+  expect(styles).toMatch(/\.notes-card__preview\s*\{[^}]*-webkit-line-clamp:\s*2;[^}]*overflow:\s*hidden/)
+})
+
+test('loading and loaded cards share the responsive grid and maintain alphabetical DOM and keyboard order', async () => {
+  const members = [
+    { id: 'f', name: 'Fernanda' },
+    { id: 'c', name: 'Caio', preview: 'Prévia longa de anotação' },
+    { id: 'e', name: 'Eduardo' },
+    { id: 'a', name: 'Ana Silva', preview: 'Backend' },
+    { id: 'd', name: 'Daniel' },
+    { id: 'b', name: 'Bruno' },
+  ]
+  let resolveList!: (value: typeof members) => void
+  vi.mocked(listNoteMembers).mockImplementation(() => new Promise(resolve => { resolveList = resolve }))
+  const { container } = render(<NotesPage memberId={null} base={base} user={admin} restoring={false} onNavigate={vi.fn()} />)
+  const loading = screen.getByRole('status', { name: 'Carregando gdevs' })
+  expect(loading).toHaveClass('poll-list', 'notes-list')
+  expect(loading.querySelectorAll(':scope > .notes-card')).toHaveLength(3)
+  await act(async () => resolveList(members))
+  const list = container.querySelector('.notes-list')
+  expect(list).toHaveClass('poll-list', 'notes-list')
+  expect(list?.querySelectorAll(':scope > .notes-card')).toHaveLength(6)
+  const cards = screen.getAllByRole('button')
+  expect(cards.map(card => card.querySelector('.notes-card__name')?.textContent)).toEqual(['Ana Silva', 'Bruno', 'Caio', 'Daniel', 'Eduardo', 'Fernanda'])
+  const user = userEvent.setup()
+  for (const card of cards) {
+    await user.tab()
+    expect(card).toHaveFocus()
+  }
+})
+
 test('detail displays name and editor skeletons while loading, then the actual note', async () => {
   let resolveNote!: (value: { member: typeof member; content: string }) => void
   vi.mocked(getMemberNote).mockImplementation(() => new Promise(resolve => { resolveNote = resolve }))
