@@ -29,4 +29,11 @@ Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Plano: [plan.md
 - [x] T018 Testar isolamento, autorização, integridade, troca de sessão e regressões. Backend: 177 passaram, 2 ignorados, 1.097 assertions; frontend: 160 passaram, após repetir dois timeouts sob carga com menos workers. Teste MySQL e revisão visual completa pendentes.
 - [x] T019 Executar verificações e publicar revisão no PR #120. Commit ddf7b4c, TypeScript, ESLint nos arquivos alterados, Pint e build aprovados; build alerta para chunk lazy do editor >500 kB. Project retornou a Specifying; revisão seguinte pendente.
 
+## Refinamento de navegação e refresh
+- [x] T020 Registrar aprovação da spec (15eb617) e plano (ff7e31a).
+- [ ] T021 Reutilizar login obrigatório e skeleton das seções.
+- [ ] T022 Implementar Ignorar e invalidar gravações da ficha abandonada.
+- [ ] T023 Atualizar listagem a cada 15s e ao retornar à aba.
+- [ ] T024 Testes de integração e regressão, build, publicar revisão.
+
 Tasks permanecem neste arquivo; não gerar Issues automaticamente.

@@ -3,7 +3,7 @@
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/115 · Spec: [spec.md](spec.md)
 Fast-track risk: High
 **Branch:** feat/00115-adicionar-area-de-anotacoes-sobre-gdevs
-**Estado:** refinamento de navegação aprovado na spec; plano do refinamento aguardando aprovação (High Risk).
+**Estado:** refinamento de navegação aprovado na spec; plano do refinamento aprovado (High Risk).
 **Spec aprovada:** 27/11/2026, conversa após commit 4577cea.
 
 ## Resumo e contexto técnico
@@ -46,7 +46,7 @@ Aprovação da revisão de privacidade: spec aprovada explicitamente em 27/11/20
 
 ## Plano do refinamento de navegação e refresh (27/11/2026)
 
-Spec aprovada explicitamente após commit 15eb617. Mantido o fluxo SDD High Risk da issue. Plano a aprovar antes de implementar.
+Spec aprovada explicitamente após commit 15eb617. Mantido o fluxo SDD High Risk da issue. Plano aprovado explicitamente pelo gdev em 27/11/2026 após commit ff7e31a.
 
 ### Login obrigatório
 - Reutilizar SectionAuthGate (mode required) em NotesPage, com skeleton apropriado à rota de listagem/detalhe durante restauração e enquanto visitante; nenhuma chamada notes antes de sessão admin.

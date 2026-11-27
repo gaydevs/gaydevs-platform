@@ -1,7 +1,7 @@
 # 00115 — Adicionar área de anotações sobre gdevs
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/115
-Estado: High Risk; spec do refinamento aprovada; plano do refinamento pendente.
+Estado: High Risk; spec e plano do refinamento aprovados.
 Fast-track risk: High
 ## Objetivo
 Registrar informações livres sobre cada gdev, permitindo que padrões emerjam do uso sem antecipar campos estruturados.
@@ -66,3 +66,5 @@ Refinamento aprovado explicitamente pelo gdev em 27/11/2026, na conversa após c
 - Substituir o botão Cancelar no modal de saída por Ignorar. Ignorar prossegue imediatamente ao destino original, inclusive histórico/logout, sem confirmação de persistência. Informar possibilidade de perda de alterações pendentes. Uma requisição já recebida pelo servidor pode concluir depois da saída; não iniciar novos envios ou retries da ficha abandonada. X/Escape continuam mantendo a ficha aberta. Sessão divergente não pode salvar em outra conta.
 - Atualizar automaticamente a listagem a cada 15 segundos enquanto estiver aberta e visível, além da consulta imediata ao retornar da ficha e ao voltar à aba. Atualização silenciosa sem esqueletos após a carga inicial; preservar lista em falhas transitórias e evitar sobreposição de requisições. Em perda de autorização/troca de sessão, remover conteúdo privado da listagem. Todas as prévias continuam limitadas ao autor autenticado.
 - Testes obrigatórios: visitante em ambas as rotas, login/cancelamento/admin/não admin; Ignorar durante gravação pendente, falha, histórico/logout, conclusão tardia e ausência de reenvio; atualização periódica, retorno à lista/aba, falhas, descarte de respostas obsoletas, ausência de requisições concorrentes e isolamento por autor.
+
+Plano do refinamento aprovado explicitamente pelo gdev em 27/11/2026 após commit ff7e31a; implementação autorizada.
