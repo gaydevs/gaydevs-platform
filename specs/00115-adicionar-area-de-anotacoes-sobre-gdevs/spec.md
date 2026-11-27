@@ -1,7 +1,7 @@
 # 00115 — Adicionar área de anotações sobre gdevs
 
 Issue: https://github.com/gaydevs/gaydevs-platform/issues/115
-Estado: fast-track Medium Risk aguardando novo checkpoint humano para revisão de escopo.
+Estado: fast-track Medium Risk com checkpoint humano aprovado.
 Fast-track risk: Medium
 
 ## Objetivo
@@ -19,4 +19,4 @@ Registrar informações livres sobre cada gdev, permitindo que padrões emerjam 
 ## Risco e aprovação
 Fast-track aprovado por um gdev antes da implementação (conversa de 2026-11-27, após avaliação Medium Risk). Um checkpoint humano adicional é obrigatório antes da implementação.
 
-Revisão de escopo solicitada pelo gdev após a abertura do PR #120: paridade visual com Enquetes, prévia nos cards, editor visual e salvamento automático com proteção de navegação. A implementação da revisão depende de novo checkpoint explícito sobre os artefatos atualizados; a aprovação original fica preservada no histórico.
+Revisão de escopo solicitada pelo gdev após a abertura do PR #120: paridade visual com Enquetes, prévia nos cards, editor visual e salvamento automático com proteção de navegação. Checkpoint explícito da revisão aprovado em 27/11/2026 (commit c318ed7); a aprovação original fica preservada no histórico.

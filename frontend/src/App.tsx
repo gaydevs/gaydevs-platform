@@ -23,6 +23,7 @@ import { LoginDialog } from './features/auth/LoginDialog'
 import { PollAuditDialog, PollErrorDialog, PollsPage, PollsSectionBar } from './features/PollsPage'
 import type { Poll } from './features/pollsApi'
 import { NotesPage, NotesSectionBar } from './features/NotesPage'
+import type { LeaveGuard } from './features/useNoteAutosave'
 
 export default function App() {
   // Os hooks mantêm autenticação e URL fora da árvore visual da landing page.
@@ -30,16 +31,64 @@ export default function App() {
   const login = useLoginHash()
   const { open: openLogin, close: closeLoginHash, showStep: showLoginStep, step: loginStep } = login
   const refreshAuth = auth.refresh
+  const logout = auth.logout
   const [brandVisible, setBrandVisible] = useState(true)
   const [auditPoll, setAuditPoll] = useState<Poll | null>(null)
   const [pollError, setPollError] = useState<string | null>(null)
   const pollsLoginPrompt = useRef(false)
   const loginCompleted = useRef(false)
   const [pathname, setPathname] = useState(() => typeof window === 'undefined' ? '/' : window.location.pathname)
+  const leaveGuard = useRef<LeaveGuard | null>(null)
+  const registerLeaveGuard = useCallback((guard: LeaveGuard) => {
+    leaveGuard.current = guard
+    return () => { if (leaveGuard.current === guard) leaveGuard.current = null }
+  }, [])
+  const locationRef = useRef<{ href: string; index: number } | null>(null)
+  const restoringHistory = useRef<{ index: number; resume: (() => void) | null } | null>(null)
+  const bypassHistory = useRef(false)
   useEffect(() => {
-    const synchronizePathname = () => setPathname(window.location.pathname)
+    const initialIndex = window.history.state?.gdevsIndex ?? 0
+    window.history.replaceState({ ...window.history.state, gdevsIndex: initialIndex }, '')
+    locationRef.current = { href: window.location.href, index: initialIndex }
+    const synchronizePathname = () => {
+      const previous = locationRef.current
+      const target = { href: window.location.href, index: window.history.state?.gdevsIndex }
+      const restoration = restoringHistory.current
+      if (restoration && target.index === restoration.index) {
+        restoringHistory.current = null
+        restoration.resume?.()
+        return
+      }
+      if (previous && !bypassHistory.current && leaveGuard.current) {
+        const delta = typeof target.index === 'number' ? target.index - previous.index : 0
+        const proceed = () => {
+          if (delta) {
+            const resume = () => { bypassHistory.current = true; window.history.go(delta) }
+            if (restoringHistory.current) restoringHistory.current.resume = resume
+            else resume()
+          } else {
+            window.history.pushState({ gdevsIndex: previous.index + 1 }, '', target.href)
+            locationRef.current = { href: target.href, index: previous.index + 1 }
+            setPathname(window.location.pathname)
+          }
+        }
+        if (leaveGuard.current(proceed)) {
+          if (delta) {
+            restoringHistory.current = { index: previous.index, resume: null }
+            window.history.go(-delta)
+          } else {
+            window.history.pushState({ gdevsIndex: previous.index }, '', previous.href)
+          }
+          return
+        }
+      }
+      bypassHistory.current = false
+      const index = typeof target.index === 'number' ? target.index : 0
+      if (typeof target.index !== 'number') window.history.replaceState({ ...window.history.state, gdevsIndex: index }, '')
+      locationRef.current = { href: target.href, index }
+      setPathname(window.location.pathname)
+    }
     window.addEventListener('popstate', synchronizePathname)
-
     return () => window.removeEventListener('popstate', synchronizePathname)
   }, [])
   useEffect(() => {
@@ -53,15 +102,26 @@ export default function App() {
   }, [pathname])
   const navigate = useCallback((path: string) => {
     const target = new URL(path, window.location.href)
-    if (target.origin !== window.location.origin) {
-      window.location.assign(path)
-      return
+    const proceed = () => {
+      if (target.origin !== window.location.origin) {
+        window.location.assign(path)
+        return
+      }
+      if (target.href !== window.location.href) {
+        const index = (locationRef.current?.index ?? 0) + 1
+        window.history.pushState({ gdevsIndex: index }, '', target.href)
+        locationRef.current = { href: target.href, index }
+      }
+      setPathname(target.pathname)
+      window.scrollTo(0, 0)
     }
-    const next = `${target.pathname}${target.search}${target.hash}`
-    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.pushState(null, '', next)
-    setPathname(target.pathname)
-    window.scrollTo(0, 0)
+    if (target.href !== window.location.href && leaveGuard.current?.(proceed)) return
+    proceed()
   }, [])
+  const guardedLogout = useCallback(async () => {
+    if (leaveGuard.current?.(() => { void logout() })) return
+    await logout()
+  }, [logout])
   const pollsMarker = '/polls'
   const pollsIndex = pathname.indexOf(pollsMarker)
   const pollIdentifier = pollsIndex >= 0 ? pathname.slice(pollsIndex + pollsMarker.length).replace(/^\/+|\/+$/g, '') || null : null
@@ -75,6 +135,7 @@ export default function App() {
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
   const homePath = pollsPath.slice(0, -pollsMarker.length) || '/'
+  const showNotesSectionBar = isNotesSection && (noteMemberId !== null || !brandVisible)
   const showPollsSectionBar = isPollsSection && (!isPollsLanding || !brandVisible)
   const openAudit = useCallback((poll: Poll) => {
     if (auth.user) setAuditPoll(poll)
@@ -101,11 +162,11 @@ export default function App() {
 
   return <>
     <a className="skip-link" href="#conteudo">{accessibility.skip}</a>
-    <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={auth.logout} onNavigate={navigate} />
+    <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={guardedLogout} onNavigate={navigate} />
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
-    {isNotesSection && auth.user?.member_type === 'admin' && <NotesSectionBar path={notesPath} onNavigate={navigate} />}
+    {isNotesSection && auth.user?.member_type === 'admin' && <NotesSectionBar visible={showNotesSectionBar} path={notesPath} onNavigate={navigate} />}
     <main id="conteudo">
-      {isNotesSection ? <NotesPage memberId={noteMemberId} base={notesPath} user={auth.user} restoring={auth.restoring} onNavigate={navigate} /> : pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
+      {isNotesSection ? <NotesPage memberId={noteMemberId} base={notesPath} user={auth.user} restoring={auth.restoring} onNavigate={navigate} onBrandVisibilityChange={setBrandVisible} registerGuard={registerLeaveGuard} /> : pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
       <Hero content={hero} mobile={images.heroMobile} desktop={images.heroDesktop} onBrandVisibilityChange={setBrandVisible} />
       <About content={about} />
       <Topics content={topics} />

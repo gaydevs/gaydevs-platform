@@ -14,14 +14,17 @@ test('admin lists members and maintains a single private note per member', funct
     Sanctum::actingAs($admin);
 
     $this->getJson('/notes')->assertOk()->assertExactJson(['members' => [
-        ['id' => $member->id, 'name' => 'Ana'],
-        ['id' => $admin->id, 'name' => 'Zeta'],
+        ['id' => $member->id, 'name' => 'Ana', 'preview' => ''],
+        ['id' => $admin->id, 'name' => 'Zeta', 'preview' => ''],
     ]]);
     $path = '/notes/'.$member->id;
     $this->getJson($path)->assertOk()->assertJsonPath('content', '');
     $this->putJson($path, ['content' => '**Primeira**'])->assertOk()->assertJsonPath('content', '**Primeira**');
     $this->putJson($path, ['content' => '# Nova'])->assertOk();
     $this->getJson($path)->assertOk()->assertJsonPath('content', '# Nova');
+    $this->getJson('/notes')->assertOk()->assertJsonPath('members.0.preview', 'Nova')->assertJsonMissingPath('members.0.content');
+    $this->putJson($path, ['content' => '**'.str_repeat('x', 200).'**'])->assertOk();
+    $this->getJson('/notes')->assertOk()->assertJsonPath('members.0.preview', str_repeat('x', 157).'…');
     expect(UserNote::query()->count())->toBe(1);
     $this->putJson($path, ['content' => ''])->assertOk()->assertJsonPath('content', '');
     $this->getJson($path)->assertJsonPath('content', '');

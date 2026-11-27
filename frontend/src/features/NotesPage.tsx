@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { SectionSubmenuBar } from '../components/SectionSubmenuBar'
+import { NotesBrand } from '../components/NotesBrand'
+import { ModalHeader } from '../components/ModalHeader'
+import { LoadingSpinner } from '../components/LoadingSpinner'
+import { useSectionBrandVisibility } from '../components/useSectionBrandVisibility'
 import type { AuthenticatedUser } from './auth/api'
-import { getMemberNote, listNoteMembers, saveMemberNote, type MemberNote, type NoteMember } from './notesApi'
+import { getMemberNote, listNoteMembers, type MemberNote, type NoteMember } from './notesApi'
+import { useNoteAutosave, type RegisterLeaveGuard, type SaveStatus } from './useNoteAutosave'
+
+const NoteRichEditor = lazy(() => import('./NoteRichEditor').then(module => ({ default: module.NoteRichEditor })))
 
 function memberInitials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean)
@@ -12,44 +19,18 @@ function Avatar({ name }: { name: string }) {
   return <span className="notes-avatar" aria-hidden="true">{memberInitials(name)}</span>
 }
 
-export function NotesSectionBar({ path, onNavigate }: { path: string; onNavigate: (path: string) => void }) {
-  return <SectionSubmenuBar visible><button className="action-link action-link--secondary" type="button" onClick={() => onNavigate(path)}>Anotações</button></SectionSubmenuBar>
+export function NotesSectionBar({ visible, path, onNavigate }: { visible: boolean; path: string; onNavigate: (path: string) => void }) {
+  return <SectionSubmenuBar visible={visible} className="polls-section-bar"><NotesBrand href={path} onClick={event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault(); onNavigate(path)
+  }} /></SectionSubmenuBar>
 }
 
-function inlineMarkdown(line: string): ReactNode[] {
-  return line.split(/(\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g).map((part, index) =>
-    part.startsWith('**') && part.endsWith('**') && part.length > 4 ? <strong key={index}>{part.slice(2, -2)}</strong> :
-    part.startsWith('*') && part.endsWith('*') && part.length > 2 ? <em key={index}>{part.slice(1, -1)}</em> : part)
-}
-
-export function NotePreview({ content }: { content: string }) {
-  const lines = content.split('\n')
-  const blocks: ReactNode[] = []
-  for (let index = 0; index < lines.length;) {
-    const line = lines[index]
-    const list = /^(- |\d+\. )/.exec(line)
-    if (list) {
-      const ordered = list[0] !== '- '
-      const pattern = ordered ? /^\d+\. / : /^- /
-      const items: ReactNode[] = []
-      const start = index
-      while (index < lines.length && pattern.test(lines[index])) {
-        items.push(<li key={index}>{inlineMarkdown(lines[index].replace(pattern, ''))}</li>)
-        index++
-      }
-      blocks.push(ordered ? <ol key={start}>{items}</ol> : <ul key={start}>{items}</ul>)
-      continue
-    }
-    const heading = /^#{1,3} (.*)$/.exec(line)
-    blocks.push(heading ? <h3 key={index}>{inlineMarkdown(heading[1])}</h3> : <p key={index}>{inlineMarkdown(line)}{line === '' && <br />}</p>)
-    index++
-  }
-  return <div className="notes-preview">{blocks}</div>
-}
-
-function NoteList({ base, onNavigate }: { base: string; onNavigate: (path: string) => void }) {
+function NoteList({ base, onNavigate, onBrandVisibilityChange }: { base: string; onNavigate: (path: string) => void; onBrandVisibilityChange?: (visible: boolean) => void }) {
   const [members, setMembers] = useState<NoteMember[] | null>(null)
   const [error, setError] = useState(false)
+  const brand = useRef<HTMLImageElement>(null)
+  useSectionBrandVisibility({ brandRef: brand, onVisibilityChange: onBrandVisibilityChange })
   useEffect(() => {
     const controller = new AbortController()
     listNoteMembers(controller.signal).then(items => {
@@ -57,76 +38,74 @@ function NoteList({ base, onNavigate }: { base: string; onNavigate: (path: strin
     }).catch(() => { if (!controller.signal.aborted) setError(true) })
     return () => controller.abort()
   }, [])
-  return <section className="polls-page polls-page--landing notes-landing container" aria-labelledby="notes-title">
-    <div className="section-heading"><h1 id="notes-title">Anotações</h1></div>
-    {error ? <p className="poll-error" role="alert">Não foi possível carregar os gdevs.</p> : members === null ? <p role="status">Carregando gdevs…</p> : members.length === 0 ? <p>Nenhum gdev encontrado.</p> :
-      <div className="poll-list notes-list">{members.map(member => <button key={member.id} className="poll-card notes-card" type="button" onClick={() => onNavigate(`${base}/${member.id}`)}><Avatar name={member.name} /><span>{member.name}</span></button>)}</div>}
+  return <section className="polls-page polls-page--landing container" aria-labelledby="notes-title">
+    <div className="section-heading polls-landing-heading"><h1 className="polls-hero-title" id="notes-title"><NotesBrand className="polls-hero-brand" linked={false} iconRef={brand} /></h1></div>
+    {error ? <p className="poll-error" role="alert">Não foi possível carregar os gdevs.</p> : members === null ? <p role="status">Carregando gdevs…</p> : members.length === 0 ? <p className="poll-empty">Nenhum gdev encontrado.</p> :
+      <div className="poll-list notes-list">{members.map(member => <button key={member.id} className="poll-card notes-card" type="button" onClick={() => onNavigate(`${base}/${member.id}`)}><Avatar name={member.name} /><span className="notes-card__body"><span className="notes-card__name">{member.name}</span><span className="notes-card__preview">{member.preview || 'Sem anotações'}</span></span></button>)}</div>}
   </section>
 }
 
-function NoteEditor({ memberId, base, onNavigate }: { memberId: string; base: string; onNavigate: (path: string) => void }) {
+const saveLabels: Record<SaveStatus, string> = { saved: 'Anotação salva', pending: 'Salvando…', saving: 'Salvando…', error: 'Não foi possível salvar' }
+
+function SaveDialog({ status, cancel, retry }: { status: SaveStatus; cancel: () => void; retry: () => void }) {
+  const cancelButton = useRef<HTMLButtonElement>(null)
+  const cancelRef = useRef(cancel)
+  useEffect(() => { cancelRef.current = cancel }, [cancel])
+  useEffect(() => {
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    cancelButton.current?.focus()
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') cancelRef.current() }
+    window.addEventListener('keydown', escape)
+    return () => { document.body.style.overflow = previous; window.removeEventListener('keydown', escape) }
+  }, [])
+  const failed = status === 'error'
+  return <div className="login-overlay" role="presentation">
+    <section className="login-dialog poll-close-dialog" role="dialog" aria-modal="true" aria-labelledby="notes-save-title">
+      <ModalHeader closeLabel="cancelar saída" onClose={cancel}><NotesBrand wordmark="/gdevs/notes" linked={false} /></ModalHeader>
+      <div className="poll-close-dialog__body">
+        <p className="login-dialog__eyebrow">ANOTAÇÕES</p>
+        <h2 id="notes-save-title">{failed ? 'Não foi possível salvar' : 'Salvando anotação'}</h2>
+        <p className="poll-close-dialog__description">{failed ? 'Seu texto continua na ficha. Tente novamente antes de sair.' : 'Aguarde o salvamento para continuar.'}</p>
+        <div className="poll-close-dialog__actions">
+          <button ref={cancelButton} className="action-link action-link--secondary" type="button" onClick={cancel}>Cancelar</button>
+          {failed ? <button className="action-link" type="button" onClick={retry}>Tentar de novo</button> : <span role="status" className="notes-saving-spinner"><LoadingSpinner /></span>}
+        </div>
+      </div>
+    </section>
+  </div>
+}
+
+function LoadedNote({ note, registerGuard }: { note: MemberNote; registerGuard?: RegisterLeaveGuard }) {
+  const autosave = useNoteAutosave(note.member.id, note.content, registerGuard)
+  return <>
+    <div className="section-heading notes-detail-heading">
+      <div className="notes-heading"><Avatar name={note.member.name} /><h1 id="note-title">{note.member.name}</h1></div>
+      <p className="poll-date-meta notes-save-status" role="status">{saveLabels[autosave.status]}</p>
+      {autosave.status === 'error' && <button className="action-link action-link--secondary" type="button" onClick={autosave.retry}>Tentar de novo</button>}
+    </div>
+    <div className="poll-form notes-form"><Suspense fallback={<p role="status">Carregando editor…</p>}><NoteRichEditor content={note.content} onChange={autosave.change} /></Suspense></div>
+    {autosave.leaveOpen && <SaveDialog status={autosave.status} cancel={autosave.cancelLeave} retry={autosave.retry} />}
+  </>
+}
+
+function NoteEditor({ memberId, registerGuard }: { memberId: string; registerGuard?: RegisterLeaveGuard }) {
   const [note, setNote] = useState<MemberNote | null>(null)
-  const [content, setContent] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [preview, setPreview] = useState(false)
-  const editor = useRef<HTMLTextAreaElement>(null)
+  const [error, setError] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
     getMemberNote(memberId, controller.signal).then(result => {
-      if (!controller.signal.aborted) { setNote(result); setContent(result.content) }
-    }).catch(() => { if (!controller.signal.aborted) setError('Não foi possível carregar a anotação.') })
+      if (!controller.signal.aborted) setNote(result)
+    }).catch(() => { if (!controller.signal.aborted) setError(true) })
     return () => controller.abort()
   }, [memberId])
-  const format = (prefix: string, suffix = '', line = false) => {
-    const field = editor.current
-    if (!field) return
-    const start = line ? content.lastIndexOf('\n', field.selectionStart - 1) + 1 : field.selectionStart
-    const end = field.selectionEnd
-    const selection = content.slice(start, end)
-    const replacement = line ? selection.split('\n').map(part => prefix + part).join('\n') : prefix + selection + suffix
-    const next = content.slice(0, start) + replacement + content.slice(end)
-    if (next.length > 10000) return
-    setContent(next); setSaved(false)
-    requestAnimationFrame(() => {
-      field.focus()
-      field.setSelectionRange(start + prefix.length, start + replacement.length - suffix.length)
-    })
-  }
-  const save = async () => {
-    setBusy(true); setError(''); setSaved(false)
-    try {
-      const updated = await saveMemberNote(memberId, content)
-      setNote(updated); setContent(updated.content); setSaved(true)
-    } catch { setError('Não foi possível salvar a anotação. Tente novamente.') }
-    finally { setBusy(false) }
-  }
   return <section className="polls-page container" aria-labelledby="note-title">
-    <button className="action-link action-link--secondary" type="button" onClick={() => onNavigate(base)}>Voltar</button>
-    {note ? <>
-      <div className="notes-heading"><Avatar name={note.member.name} /><h1 id="note-title">{note.member.name}</h1></div>
-      <form className="poll-form" onSubmit={event => { event.preventDefault(); void save() }}>
-        <label htmlFor={preview ? undefined : "note-content"}>Anotações</label>
-        <div className="notes-toolbar" role="group" aria-label="Formatação">
-          <button type="button" disabled={busy || preview} aria-label="Negrito" onClick={() => format('**', '**')}><strong>B</strong></button>
-          <button type="button" disabled={busy || preview} aria-label="Itálico" onClick={() => format('*', '*')}><em>I</em></button>
-          <button type="button" disabled={busy || preview} onClick={() => format('## ', '', true)}>Subtítulo</button>
-          <button type="button" disabled={busy || preview} onClick={() => format('- ', '', true)}>Lista</button>
-          <button type="button" disabled={busy || preview} onClick={() => format('1. ', '', true)}>Lista numerada</button>
-          <button type="button" aria-pressed={preview} onClick={() => setPreview(value => !value)}>{preview ? 'Editar' : 'Visualizar'}</button>
-        </div>
-        {preview ? <NotePreview content={content} /> : <textarea id="note-content" ref={editor} className="notes-textarea" value={content} disabled={busy} maxLength={10000} onChange={event => { setContent(event.target.value); setSaved(false) }} rows={12} />}
-        {error && <p className="poll-error" role="alert">{error}</p>}
-        {saved && <p role="status">Anotação salva.</p>}
-        <button className="action-link poll-submit-button" type="submit" disabled={busy || content === note.content}>{busy ? 'Salvando…' : 'Salvar'}</button>
-      </form>
-    </> : <><h1 id="note-title">Anotações</h1>{error ? <p className="poll-error" role="alert">{error}</p> : <p role="status">Carregando…</p>}</>}
+    {note ? <LoadedNote note={note} registerGuard={registerGuard} /> : <><h1 id="note-title">Anotações</h1>{error ? <p className="poll-error" role="alert">Não foi possível carregar a anotação.</p> : <p role="status">Carregando…</p>}</>}
   </section>
 }
 
-export function NotesPage({ memberId, base, user, restoring, onNavigate }: { memberId: string | null; base: string; user: AuthenticatedUser | null; restoring: boolean; onNavigate: (path: string) => void }) {
+export function NotesPage({ memberId, base, user, restoring, onNavigate, onBrandVisibilityChange, registerGuard }: { memberId: string | null; base: string; user: AuthenticatedUser | null; restoring: boolean; onNavigate: (path: string) => void; onBrandVisibilityChange?: (visible: boolean) => void; registerGuard?: RegisterLeaveGuard }) {
   if (restoring) return <section className="polls-page container"><p role="status">Identificando gdev…</p></section>
   if (user?.member_type !== 'admin') return <section className="polls-page container"><p className="poll-error" role="alert">Área restrita.</p></section>
-  return memberId ? <NoteEditor key={`${user.id}:${memberId}`} memberId={memberId} base={base} onNavigate={onNavigate} /> : <NoteList key={user.id} base={base} onNavigate={onNavigate} />
+  return memberId ? <NoteEditor key={`${user.id}:${memberId}`} memberId={memberId} registerGuard={registerGuard} /> : <NoteList key={user.id} base={base} onNavigate={onNavigate} onBrandVisibilityChange={onBrandVisibilityChange} />
 }

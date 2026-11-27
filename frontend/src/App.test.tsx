@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -9,7 +9,9 @@ import App from './App'
 import { useAuth } from './features/auth/useAuth'
 import { useLoginHash, type LoginStep } from './features/auth/useLoginHash'
 import { getPoll, listPolls, type PollListResponse } from './features/pollsApi'
+import { getMemberNote, listNoteMembers, saveMemberNote, type MemberNote } from './features/notesApi'
 
+vi.mock('./features/notesApi', () => ({ getMemberNote: vi.fn(), listNoteMembers: vi.fn(), saveMemberNote: vi.fn() }))
 vi.mock('./features/auth/useAuth', () => ({ useAuth: vi.fn() }))
 vi.mock('./features/auth/useLoginHash', () => ({ useLoginHash: vi.fn() }))
 vi.mock('./features/pollsApi', () => ({
@@ -127,4 +129,55 @@ describe('poll landing authentication', () => {
 
     await waitFor(() => expect(document.querySelector('.section-submenu-bar')).toHaveClass('section-submenu-bar--visible'))
   })
+})
+
+
+describe('notes navigation while autosave is pending', () => {
+  const base = '/gaydevs/platform/notes'
+  const member = { id: 'gdev-1', name: 'Gdev Exemplo', preview: 'Texto' }
+  function setup() {
+    window.history.replaceState(null, '', base)
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    const logout = vi.fn().mockResolvedValue(undefined)
+    vi.mocked(useAuth).mockReturnValue({ user: { id: 'admin', name: 'Admin', member_type: 'admin' }, restoring: false, refresh: vi.fn(), logout })
+    vi.mocked(useLoginHash).mockReturnValue({ step: null, open: vi.fn(), showStep: vi.fn(), close: vi.fn() })
+    vi.mocked(listNoteMembers).mockResolvedValue([member])
+    vi.mocked(getMemberNote).mockResolvedValue({ member, content: 'Texto' })
+    let resolveSave!: (value: MemberNote) => void
+    vi.mocked(saveMemberNote).mockImplementation(() => new Promise(resolve => { resolveSave = resolve }))
+    render(<App />)
+    return { logout, finish: () => resolveSave({ member, content: 'Texto novo' }) }
+  }
+  async function edit() {
+    await userEvent.click(await screen.findByRole('button', { name: /Gdev Exemplo/ }))
+    const editor = await screen.findByRole('textbox', { name: 'Anotações' }, { timeout: 5000 })
+    fireEvent.paste(editor, { clipboardData: { getData: () => ' novo' } })
+  }
+
+  it('guards the section link and resumes navigation after saving', async () => {
+    const { finish } = setup()
+    await edit()
+    await userEvent.click(screen.getByRole('link', { name: 'abrir anotações' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Salvando anotação' })
+    expect(window.location.pathname).toBe(base + '/gdev-1')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(window.location.pathname).toBe(base + '/gdev-1')
+    await userEvent.click(screen.getByRole('link', { name: 'abrir anotações' }))
+    await screen.findByRole('dialog')
+    await act(async () => finish())
+    await waitFor(() => expect(window.location.pathname).toBe(base))
+    expect(await screen.findByRole('heading', { name: '/gdevs/notes' })).toBeInTheDocument()
+  }, 15000)
+
+  it('restores history while saving, then resumes the original back navigation', async () => {
+    const { finish } = setup()
+    await edit()
+    act(() => window.history.back())
+    await screen.findByRole('dialog', { name: 'Salvando anotação' })
+    await waitFor(() => expect(window.location.pathname).toBe(base + '/gdev-1'))
+    await act(async () => finish())
+    await waitFor(() => expect(window.location.pathname).toBe(base))
+    expect(await screen.findByRole('heading', { name: '/gdevs/notes' })).toBeInTheDocument()
+  }, 15000)
 })

@@ -1,6 +1,6 @@
 import { request } from './auth/api'
 
-export interface NoteMember { id: string; name: string }
+export interface NoteMember { id: string; name: string; preview?: string }
 export interface MemberNote { member: NoteMember; content: string }
 
 export async function listNoteMembers(signal?: AbortSignal): Promise<NoteMember[]> {

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title id="title">GayDevs Notes</title>
+  <defs>
+    <linearGradient id="neon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22D3EE"/><stop offset="40%" stop-color="#3B82F6"/><stop offset="70%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="10" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="220" y="130" width="584" height="764" rx="96" fill="#12152A" fill-opacity=".86" stroke="url(#neon)" stroke-width="32" filter="url(#glow)"/>
+  <g fill="none" stroke="url(#neon)" stroke-width="34" stroke-linecap="round" filter="url(#glow)">
+    <path d="M340 255h344M340 545h344M340 655h344M340 765h235"/>
+    <circle cx="395" cy="365" r="54"/>
+    <path d="M301 485c0-57 42-87 94-87s94 30 94 87M540 355h144M540 438h102"/>
+  </g>
+</svg>
