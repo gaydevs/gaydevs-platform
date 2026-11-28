@@ -37,6 +37,7 @@ export default function App() {
   const [brandVisible, setBrandVisible] = useState(true)
   const [auditPoll, setAuditPoll] = useState<Poll | null>(null)
   const [pollError, setPollError] = useState<string | null>(null)
+  const [privacyOpen, setPrivacyOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#privacy')
   const pollsLoginPrompt = useRef(false)
   const loginCompleted = useRef(false)
   const [pathname, setPathname] = useState(() => typeof window === 'undefined' ? '/' : window.location.pathname)
@@ -45,6 +46,11 @@ export default function App() {
     window.addEventListener('popstate', synchronizePathname)
 
     return () => window.removeEventListener('popstate', synchronizePathname)
+  }, [])
+  useEffect(() => {
+    const synchronizePrivacy = () => setPrivacyOpen(window.location.hash === '#privacy')
+    window.addEventListener('hashchange', synchronizePrivacy)
+    return () => window.removeEventListener('hashchange', synchronizePrivacy)
   }, [])
   useEffect(() => {
     const previousScrollRestoration = window.history.scrollRestoration
@@ -75,19 +81,18 @@ export default function App() {
   const isApply = route.relative === 'apply'
   const isAdmin = /^admin\/applications(?:\/[^/]+)?$/.test(route.relative)
   const isOnboarding = route.relative === 'onboarding'
-  const isPrivacy = route.relative === 'privacy'
-  const isLandingPage = !isPrivacy && !isPollsSection && !isApply && !isAdmin && !isOnboarding
+  const isLandingPage = !isPollsSection && !isApply && !isAdmin && !isOnboarding
   const onboardingShown = useRef<string | null>(null)
   useEffect(() => {
     if (!auth.user) { onboardingShown.current = null; return }
-    if (isPrivacy) return
+    if (privacyOpen) return
     if (!auth.user.onboarding_required || onboardingShown.current === auth.user.id) return
     onboardingShown.current = auth.user.id
     if (!isOnboarding) {
       window.history.replaceState(null, '', route.base + '/onboarding')
       window.dispatchEvent(new PopStateEvent('popstate'))
     }
-  }, [auth.user, isOnboarding, isPrivacy, route.base])
+  }, [auth.user, isOnboarding, privacyOpen, route.base])
   const applicationLink = {label: 'quero ser um gdev', href: route.path('apply')}
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
@@ -98,6 +103,10 @@ export default function App() {
     else openLogin()
   }, [auth.user, openLogin])
   const showPollError = useCallback((message: string) => setPollError(message), [])
+  const closePrivacy = useCallback(() => {
+    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    setPrivacyOpen(false)
+  }, [])
   const openPollsLogin = useCallback(() => {
     pollsLoginPrompt.current = true
     loginCompleted.current = false
@@ -122,7 +131,7 @@ export default function App() {
     <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={auth.logout} onNavigate={navigate} />
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
     <main id="conteudo">
-      {isPrivacy ? <PrivacyPage /> : isApply ? <ApplicationPage home={route.base || '/'} onLogin={login.open} onMemberRefresh={refreshAuth} /> :
+      {isApply ? <ApplicationPage home={route.base || '/'} onLogin={login.open} onMemberRefresh={refreshAuth} /> :
       isAdmin ? <AdminApplications key={pathname} id={route.relative.split('/')[2]} user={auth.user} restoring={auth.restoring} base={route.path('admin/applications')} onNavigate={navigate} onLogin={login.open} /> :
       isOnboarding ? <OnboardingPage user={auth.user} restoring={auth.restoring} onLogin={login.open} onDone={async () => { await refreshAuth(); navigate(route.path('polls')) }} /> :
       pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>
@@ -137,10 +146,11 @@ export default function App() {
       <FinalCta content={finalCta} links={[applicationLink, ...publicLinks]} />
       </>}
     </main>
-    <Footer content={footer} developerLinks={developerLinks} privacyHref={route.path('privacy')} />
+    <Footer content={footer} developerLinks={developerLinks} privacyHref="#privacy" />
     {/* Montar só quando aberto garante estado novo a cada reabertura. */}
     {loginStep && <LoginDialog step={loginStep} onStepChange={showLoginStep} onClose={closeLogin} onAuthenticated={handleLoginAuthenticated} />}
     {auditPoll && auth.user && <PollAuditDialog key={auditPoll.slug} poll={auditPoll} onClose={() => setAuditPoll(null)} />}
     {pollError && <PollErrorDialog message={pollError} onClose={() => setPollError(null)} />}
+    {privacyOpen && <PrivacyPage onClose={closePrivacy} />}
   </>
 }
