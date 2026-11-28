@@ -8,10 +8,18 @@ use App\Models\User;
 use App\Services\UserPreferenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserPreferenceController extends Controller
 {
     public function __construct(private readonly UserPreferenceService $preferences) {}
+
+    public function markOnboardingSeen(Request $request): Response
+    {
+        $this->preferences->markOnboardingSeen($request->user());
+
+        return response()->noContent();
+    }
 
     public function show(Request $request): JsonResponse
     {

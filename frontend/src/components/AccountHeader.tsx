@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { AuthenticatedUser } from '../features/auth/api'
 import { BrandLogo } from './BrandLogo'
+import { platformRoute } from '../features/applications/presentation'
 
 interface AccountHeaderProps {
   user: AuthenticatedUser | null
@@ -14,13 +15,12 @@ interface AccountHeaderProps {
 export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout, onNavigate }: AccountHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const pollsMarker = '/polls'
   const currentPathname = typeof window === 'undefined' ? '/' : window.location.pathname
-  const pollsIndex = currentPathname.indexOf(pollsMarker)
-  const pollsPath = pollsIndex >= 0 ? currentPathname.slice(0, pollsIndex) + pollsMarker : `${currentPathname.replace(/\/$/, '')}/polls`
-  const homePath = pollsIndex >= 0 ? `${currentPathname.slice(0, pollsIndex) || '/'}/`.replace(/\/{2,}/g, '/') : '#inicio'
+  const route = platformRoute(currentPathname)
+  const pollsPath = route.path('polls')
+  const homePath = route.relative ? (route.base || '/') + (route.base ? '/' : '') : '#inicio'
   const goHome = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (pollsIndex < 0 || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if (!route.relative || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
     onNavigate(homePath)
   }
@@ -46,6 +46,8 @@ export function AccountHeader({ user, restoring, brandVisible, onLogin, onLogout
               {menuOpen && <nav className="account-header__menu-popover" aria-label="menu do gdev">
                 <button type="button" onClick={() => { setMenuOpen(false); onNavigate(homePath) }}>home</button>
                 <button type="button" onClick={() => { setMenuOpen(false); onNavigate(pollsPath) }}>enquetes</button>
+                {user.member_type === 'admin' && <button type="button" onClick={() => { setMenuOpen(false); onNavigate(route.path('admin/applications')) }}>candidaturas</button>}
+                {user.onboarding_eligible && <button type="button" onClick={() => { setMenuOpen(false); onNavigate(route.path('onboarding')) }}>onboarding</button>}
                 <button type="button" onClick={() => { setMenuOpen(false); void onLogout() }}>sair</button>
               </nav>}
             </div>

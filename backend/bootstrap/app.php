@@ -4,12 +4,14 @@ use App\Exceptions\OperationalException;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\ExpireAuthenticatedSessions;
 use App\Http\Middleware\TrackVisitor;
+use App\Services\ApplicationNotifications;
 use App\Support\RequestCorrelation;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,6 +34,18 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->shouldRenderJsonWhen(fn (Request $request, Throwable $exception): bool => $request->is('applications/*', 'admin/applications*') || $request->expectsJson());
+        $exceptions->dontFlash(['email', 'code', 'turnstile_token', 'first_name', 'last_name', 'whatsapp', 'linkedin', 'github', 'instagram', 'referral_source', 'consents', 'admin_notes']);
+        $exceptions->report(function (Throwable $exception) {
+            if (request()->is('applications/*', 'admin/applications*')) {
+                Log::channel('operational')->error('applications.unhandled_exception', [
+                    'request_id' => RequestCorrelation::id(request()),
+                    'exception_type' => $exception::class,
+                ]);
+
+                return false;
+            }
+        });
         $exceptions->report(function (Throwable $exception): void {
             $request = request();
             $isServerError = ! ($exception instanceof HttpExceptionInterface)
@@ -56,7 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->respond(function (Response $response): Response {
             $requestId = request()->attributes->get(RequestCorrelation::ATTRIBUTE);
             if ($response->getStatusCode() >= Response::HTTP_INTERNAL_SERVER_ERROR
-                && request()->expectsJson()
+                && (request()->expectsJson() || request()->is('applications/*', 'admin/applications*'))
                 && is_string($requestId)) {
                 $response = response()->json([
                     'message' => 'Erro interno do servidor.',
@@ -68,10 +82,23 @@ return Application::configure(basePath: dirname(__DIR__))
                 $response->headers->set(RequestCorrelation::HEADER, $requestId);
             }
 
+            if (request()->is('applications/*', 'admin/applications*')) {
+                if ($response instanceof JsonResponse && $response->getStatusCode() >= 400) {
+                    $payload = $response->getData(true);
+                    foreach (['exception', 'file', 'line', 'trace'] as $key) {
+                        unset($payload[$key]);
+                    }
+                    $response->setData($payload);
+                }
+                $response->headers->set('Cache-Control', 'no-store, private');
+            }
+
             return $response;
         });
     })
     ->withSchedule(function (Schedule $schedule): void {
+        $schedule->call(fn () => app(ApplicationNotifications::class)->process())
+            ->name('applications:notifications')->everyMinute()->withoutOverlapping();
         $schedule->command('visitors:anonymize-ips')
             ->name('visitors:anonymize-ips')
             ->dailyAt('03:00')

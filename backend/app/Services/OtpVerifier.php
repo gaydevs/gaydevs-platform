@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Data\OtpVerification;
 use App\Enums\OtpAttemptResult;
+use App\Enums\OtpPurpose;
 use App\Enums\OtpRequestStatus;
 use App\Models\AuthenticatedSession;
-use App\Models\OtpAttempt;
 use App\Models\OtpRequest;
 use App\Models\VisitorObservation;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\RateLimiter;
 class OtpVerifier
 {
     private const TRANSACTION_ATTEMPTS = 3;
+
+    public function __construct(private OtpPrimitives $otp) {}
 
     public function verify(
         string $otpRequestId,
@@ -41,6 +43,7 @@ class OtpVerifier
         ): OtpVerification {
             $otpRequest = OtpRequest::query()
                 ->with('user')
+                ->where('purpose', OtpPurpose::Login)
                 ->lockForUpdate()
                 ->find($otpRequestId);
 
@@ -80,11 +83,7 @@ class OtpVerifier
                 );
             }
 
-            if ($otpRequest->status === OtpRequestStatus::Expired || $otpRequest->expires_at->isPast()) {
-                if ($otpRequest->status !== OtpRequestStatus::Expired) {
-                    $otpRequest->update(['status' => OtpRequestStatus::Expired]);
-                }
-
+            if ($this->otp->expire($otpRequest)) {
                 return $this->record($otpRequest, $observation, OtpAttemptResult::Expired);
             }
 
@@ -105,10 +104,7 @@ class OtpVerifier
                     'authenticated_at' => $acceptedAt,
                     'last_seen_at' => $acceptedAt,
                 ]);
-                $otpRequest->update([
-                    'status' => OtpRequestStatus::Used,
-                    'accepted_at' => $acceptedAt,
-                ]);
+                $this->otp->accept($otpRequest, $acceptedAt);
 
                 return $this->record(
                     $otpRequest,
@@ -130,18 +126,9 @@ class OtpVerifier
                 );
             }
 
-            $failedAttempts = $otpRequest->failed_attempts + 1;
-            $locked = $failedAttempts >= (int) config('passwordless.otp.max_verification_attempts');
-            $otpRequest->update([
-                'failed_attempts' => $failedAttempts,
-                'status' => $locked ? OtpRequestStatus::Locked : OtpRequestStatus::Pending,
-            ]);
+            $result = $this->otp->fail($otpRequest, (int) config('passwordless.otp.max_verification_attempts'));
 
-            return $this->record(
-                $otpRequest,
-                $observation,
-                $locked ? OtpAttemptResult::Locked : OtpAttemptResult::InvalidCode,
-            );
+            return $this->record($otpRequest, $observation, $result);
         }, self::TRANSACTION_ATTEMPTS);
     }
 
@@ -149,6 +136,7 @@ class OtpVerifier
     {
         return OtpRequest::query()
             ->where('user_id', $currentRequest->user_id)
+            ->where('purpose', OtpPurpose::Login)
             ->where('status', OtpRequestStatus::Superseded->value)
             ->latest('created_at')
             ->limit((int) config('passwordless.otp.superseded_code_lookup_limit'))
@@ -164,14 +152,7 @@ class OtpVerifier
         bool $authenticatedUser = false,
         ?AuthenticatedSession $authenticatedSession = null,
     ): OtpVerification {
-        OtpAttempt::query()->create([
-            'otp_request_id' => $otpRequest->id,
-            'matched_otp_request_id' => $matchedOtpRequest?->id,
-            'visitor_observation_id' => $observation->id,
-            'authenticated_user_id' => $authenticatedUser ? $otpRequest->user_id : null,
-            'result' => $result,
-            'attempted_at' => now(),
-        ]);
+        $this->otp->record($otpRequest, $observation, $result, $matchedOtpRequest, $authenticatedUser);
 
         return new OtpVerification(
             $result,

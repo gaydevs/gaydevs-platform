@@ -15,6 +15,7 @@ class AuthenticatedSessionManager
 {
     public function establish(Request $request, User $user, AuthenticatedSession $authenticatedSession): void
     {
+        app(ApplicantSessions::class)->clear($request);
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
         $request->session()->put(AuthenticatedSession::SESSION_KEY, $authenticatedSession->id);
@@ -47,6 +48,7 @@ class AuthenticatedSessionManager
             'end_reason' => 'logout',
         ]);
 
+        app(ApplicantSessions::class)->clear($request);
         $this->invalidateWebSession($request);
     }
 
@@ -63,6 +65,7 @@ class AuthenticatedSessionManager
         $this->attributeObservation($request, authenticatedSession: $authenticatedSession);
         $this->endAllWebSessions($user, 'logout_all');
 
+        app(ApplicantSessions::class)->clear($request);
         $this->invalidateWebSession($request);
     }
 

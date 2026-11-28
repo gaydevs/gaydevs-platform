@@ -571,12 +571,13 @@ describe('poll presentation', () => {
   })
 
   it('loads the next three polls only when the list sentinel becomes visible', async () => {
-    let triggerIntersection: () => void = () => undefined
+    let triggerIntersection: (() => void) | undefined
+    const observe = vi.fn()
     vi.stubGlobal('IntersectionObserver', class {
       constructor(callback: IntersectionObserverCallback) {
         triggerIntersection = () => callback([{ isIntersecting: true } as IntersectionObserverEntry], this as unknown as IntersectionObserver)
       }
-      observe() {}
+      observe = observe
       disconnect() {}
       unobserve() {}
     })
@@ -594,7 +595,8 @@ describe('poll presentation', () => {
     expect(listPolls).toHaveBeenCalledWith({ limit: 3 })
     expect(screen.queryByText('Quarto?')).not.toBeInTheDocument()
 
-    await act(async () => { triggerIntersection() })
+    await waitFor(() => expect(observe).toHaveBeenCalled())
+    await act(async () => { triggerIntersection?.() })
     expect(document.querySelectorAll('.poll-list--batch-loading .poll-loading-card')).toHaveLength(3)
 
     resolveNextPage(pollPage([

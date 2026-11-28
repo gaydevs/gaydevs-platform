@@ -6,6 +6,7 @@ use App\Enums\MemberType;
 use App\Models\Concerns\HasUuidV7;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -27,7 +28,12 @@ class User extends Authenticatable
         return ['member_type' => MemberType::class];
     }
 
-    protected $hidden = ['email'];
+    protected $hidden = ['email', 'applicant_id'];
+
+    public function applicant(): BelongsTo
+    {
+        return $this->belongsTo(Applicant::class);
+    }
 
     public function otpRequests(): HasMany
     {

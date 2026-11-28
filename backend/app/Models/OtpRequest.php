@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OtpPurpose;
 use App\Enums\OtpRequestStatus;
 use App\Models\Concerns\HasUuidV7;
 use Database\Factories\OtpRequestFactory;
@@ -18,12 +19,13 @@ class OtpRequest extends Model
 
     protected $guarded = [];
 
-    protected $hidden = ['code_hash'];
+    protected $hidden = ['code_hash', 'email'];
 
     protected function casts(): array
     {
         return [
             'status' => OtpRequestStatus::class,
+            'purpose' => OtpPurpose::class,
             'expires_at' => 'datetime',
             'accepted_at' => 'datetime',
             'superseded_at' => 'datetime',
@@ -33,6 +35,11 @@ class OtpRequest extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function applicant(): BelongsTo
+    {
+        return $this->belongsTo(Applicant::class);
     }
 
     public function visitorObservation(): BelongsTo
