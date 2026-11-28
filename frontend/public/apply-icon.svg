@@ -8,11 +8,12 @@
       <feGaussianBlur stdDeviation="10" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <g fill="#12152A" fill-opacity=".86" stroke="url(#neon)" stroke-width="32" filter="url(#glow)">
+  <g transform="translate(-100 0)" fill="#12152A" fill-opacity=".86" stroke="url(#neon)" stroke-width="32" filter="url(#glow)">
     <circle cx="512" cy="300" r="150"/>
     <path d="M202 800c0-175 129-288 310-288s310 113 310 288c0 35-28 62-63 62H265c-35 0-63-27-63-62Z"/>
   </g>
-  <g fill="none" stroke="url(#neon)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+  <g transform="translate(-100 0)" fill="none" stroke="url(#neon)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
     <path d="m445 640-60 56 60 56M579 640l60 56-60 56M537 615l-50 162"/>
   </g>
+  <path d="M790 395v160M710 475h160" fill="none" stroke="url(#neon)" stroke-width="42" stroke-linecap="round" filter="url(#glow)"/>
 </svg>
