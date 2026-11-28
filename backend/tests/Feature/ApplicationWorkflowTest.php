@@ -194,12 +194,21 @@ test('outbox builds development notification links from the shared frontend URL'
     Mail::assertSent(ApplicationSubmittedMail::class, fn ($mail) => $mail->reviewUrl === 'http://localhost:5173/gaydevs/platform/admin/applications/'.$a->id && $mail->hasTo('notifications@example.test'));
 });
 
-test('outbox rejects unsafe frontend URLs and nonlocal HTTP', function (string $url) {
-    config(['app.frontend_url' => $url]);
+test('outbox consumes the configured frontend URL without environment validation', function () {
+    config(['app.frontend_url' => 'http://example.test/platform?x=1#anchor']);
+    $a = workflowPending();
+    $worker = app(ApplicationNotifications::class);
+    $worker->enqueue($a);
+    expect($worker->process())->toBe(1);
+    Mail::assertSent(ApplicationSubmittedMail::class, fn ($mail) => $mail->reviewUrl === 'http://example.test/platform?x=1#anchor/admin/applications/'.$a->id);
+});
+
+test('outbox rejects a missing frontend URL', function () {
+    config(['app.frontend_url' => '']);
     $a = workflowPending();
     $worker = app(ApplicationNotifications::class);
     $worker->enqueue($a);
     expect($worker->process())->toBe(0);
     expect(DB::table('application_notifications')->where('applicant_id', $a->id)->value('status'))->toBe('pending');
     Mail::assertNothingSent();
-})->with(['http://example.test/platform', 'https://user:pass@example.test/platform', 'https://example.test/platform?x=1', 'https://example.test/platform#anchor']);
+});

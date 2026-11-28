@@ -15,7 +15,7 @@ class ApplicationTurnstile
         $testSite = preg_match('/^[123]x0{20}(AA|AB|BB|FF)$/D', $site) === 1;
         $testSecret = preg_match('/^[123]x0{31}AA$/D', $secret) === 1;
         if (config('applications.turnstile.test_mode')) {
-            return app()->environment('local', 'testing') && $testSite && $testSecret;
+            return $testSite && $testSecret;
         }
 
         return ! $testSite && ! $testSecret;

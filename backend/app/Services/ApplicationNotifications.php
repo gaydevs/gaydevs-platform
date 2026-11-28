@@ -30,7 +30,7 @@ class ApplicationNotifications
         $recipient = config('mail.from.address');
         $base = rtrim((string) config('app.frontend_url'), '/');
         if (! filter_var($recipient, FILTER_VALIDATE_EMAIL)
-            || ! ApplicationAvailability::validFrontendUrl($base)
+            || ! ApplicationAvailability::frontendUrlConfigured($base)
             || (app()->environment('production') && in_array(config('mail.default'), ['log', 'array'], true))) {
             Log::channel('operational')->error('applications.notification_configuration_invalid');
 

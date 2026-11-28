@@ -8,10 +8,10 @@ Somente no ambiente persistente do backend. Não incluir credenciais, telefone o
 
 | Variável | Default / ação |
 | --- | --- |
-| APP_FRONTEND_URL | URL compartilhada da plataforma; HTTPS em produção, HTTP loopback somente local/testing, sem credenciais, query ou fragmento |
+| APP_FRONTEND_URL | URL compartilhada da plataforma; consumida como configurada, desde que não esteja vazia |
 | MAIL_FROM_ADDRESS | remetente SMTP e destinatário dos avisos de candidatura; confirmar que a caixa recebe mensagens |
 | WHATSAPP_SUPPORT | número internacional sem espaços |
-| TURNSTILE_TEST_MODE | true no .env.example; false em produção; somente local/testing |
+| TURNSTILE_TEST_MODE | true autoriza chaves dummy explicitamente; falso obrigatório em produção |
 | TURNSTILE_SITEKEY / SECRET | credenciais do widget; só sitekey pública |
 | TURNSTILE_HOSTNAME / ACTION | hostname permitido / application_otp |
 | APPLICATION_OTP_COOLDOWN | 60 segundos |
@@ -24,7 +24,7 @@ OTP: 6 dígitos, 10 minutos conforme passwordless. Cadastro e avisos não consom
 
 ## Turnstile e perfis
 
-CSP: permitir script-src e frame-src de https://challenges.cloudflare.com sem ampliar outras diretivas. Usar [chaves dummy oficiais](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) somente em local/testing com modo de teste explícito. Siteverify continua obrigatório. Validar hostname/action reais em QA isolado, nunca usar chaves dummy em produção.
+CSP: permitir script-src e frame-src de https://challenges.cloudflare.com sem ampliar outras diretivas. Usar [chaves dummy oficiais](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) somente com modo de teste explícito; a disponibilidade continua recusando esse modo em produção. Siteverify continua obrigatório. Validar hostname/action reais em QA isolado, nunca usar chaves dummy em produção.
 
 GitHub usa [REST Get a user](https://docs.github.com/en/rest/users/users#get-a-user) com DNS IPv4 público pinado, TLS, sem proxy/redirect, 3s de orçamento, corpo/cabeçalhos limitados e sem credenciais. 200 com login correspondente confirma perfil público, não identidade; 404 pode ser restrição, portanto inconclusivo; 410 inválido. LinkedIn/Instagram: validar sintaxe e revisar manualmente, sem consulta automatizada sem autorização. Escopo aprovado pelo gdev solicitante em 2026-11-27; T015 concluída. Conferir manualmente a existência dos perfis LinkedIn e Instagram antes da decisão de admissão. Host precisa de cURL, PHP CLI compatível e proc_open; falhas de perfil são inconclusivas, Turnstile falha fechado.
 

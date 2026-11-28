@@ -64,13 +64,8 @@ test('shared authentication observations redact private page referer', function 
     expect($observation->referer)->toBeNull()->and($observation->path)->toBe('auth/session');
 });
 
-test('frontend URL requires HTTPS outside local and testing environments', function () {
-    $original = app()->environment();
-    app()->instance('env', 'production');
-    try {
-        expect(ApplicationAvailability::validFrontendUrl('http://localhost:5173/gaydevs/platform'))->toBeFalse()
-            ->and(ApplicationAvailability::validFrontendUrl('https://example.test/platform'))->toBeTrue();
-    } finally {
-        app()->instance('env', $original);
-    }
+test('frontend URL is consumed as configured and only cannot be empty', function () {
+    expect(ApplicationAvailability::frontendUrlConfigured('http://localhost:5173/gaydevs/platform'))->toBeTrue()
+        ->and(ApplicationAvailability::frontendUrlConfigured('http://example.test/platform?x=1#anchor'))->toBeTrue()
+        ->and(ApplicationAvailability::frontendUrlConfigured(''))->toBeFalse();
 });
