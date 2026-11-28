@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { FieldControl } from '../../components/FieldControl'
 import { ActionLink } from '../../components/ActionLink'
-import { publicLinks, footer } from '../../data/site'
+import { applicationBenefits, publicLinks, footer } from '../../data/site'
 import { ApiError, messageForApiError, type OtpRequest } from '../auth/api'
 import * as api from './api'
 import { emptyFields, handleValue, matchingSuggestions, prefixes, progress, steps, titles } from './presentation'
@@ -78,7 +78,7 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
   const privacy = home.replace(/\/$/, '') + '/privacy'
   const homeHref = home.endsWith('/') ? home : `${home}/`
   const consent = (keys:string[], text:string, href?:string, linkText='ler detalhes') => <div key={keys.join(',')}><label className="application-check"><input type="checkbox" checked={keys.every(accepted)} required onChange={e=>setAccepts(a=>({...a,...Object.fromEntries(keys.map(key=>[key,e.target.checked ? terms!.version : '']))}))}/><span>{text}</span></label>{href && <a className="poll-inline-link" href={href} target="_blank" rel="noopener noreferrer">{linkText} ↗</a>}</div>
-  const privacyConsent = () => consent(['personal_data'],'Autorizo o tratamento dos meus dados pessoais e sensíveis.',privacy,'política de privacidade')
+  const privacyConsent = () => <label className="application-check"><input type="checkbox" checked={accepted('personal_data')} required onChange={e=>setAccepts(a=>({...a,personal_data:e.target.checked ? terms!.version : ''}))}/><span>Autorizo o tratamento dos meus dados pessoais conforme a <a className="poll-inline-link" href={privacy} target="_blank" rel="noopener noreferrer">política de privacidade ↗</a>.</span></label>
   const profileConsent = () => consent(['external_profiles'],'Autorizo a consulta e coleta de dados dos perfis informados.',privacy+'#perfis','consulta de perfis')
   const save = () => run(async () => {
     if(!session || !terms)return
@@ -103,7 +103,7 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
   return <section className="container application-page"><div className="application-panel">
     <a className="poll-inline-link" href={homeHref}>← voltar ao gaydevs</a>
     <p className="polls-eyebrow">/gdevs/apply</p><h1 ref={heading} tabIndex={-1}>{headingText}</h1>
-    <div className="application-progress"><progress aria-label="progresso da candidatura" max={100} value={percent}/><span>{percent}%</span></div>
+    {(session?.status === 'draft' || session?.status === 'pending') && <div className="application-progress"><progress aria-label="progresso da candidatura" max={100} value={percent}/><span>{percent}%</span></div>}
     {loading ? <p role="status">carregando…</p> : <>
     {profileNotice && session?.status==='draft' && <p role="status">{profileNotice}</p>}
     {error && <p role="alert" className="login-error">{error}</p>}
@@ -115,9 +115,10 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
     <form className="application-form" onSubmit={form}>
       <fieldset disabled={busy} className="application-fieldset">
       {!session ? <>
-        {!challenge ? <><p>Uma comunidade para gays e devs: tecnologia, carreira, amizade e eventos no WhatsApp, na plataforma e no Instagram. <a href={homeHref}>Conheça nossa proposta.</a></p>
-        <p>{terms.privacy_notice}</p>{privacyConsent()}
-        <label className="application-field">E-mail<FieldControl type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label></> :
+        {!challenge ? <><div className="application-intro"><p>Entre para uma comunidade de gays e devs. <a href={homeHref}>Conheça nossa proposta.</a></p>
+          <ul className="application-benefits">{applicationBenefits.map(benefit=><li key={benefit}>{benefit}</li>)}</ul></div>
+        <label className="application-field">E-mail<FieldControl type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+        {privacyConsent()}</> :
         <><p>Enviamos um código para seu e-mail. Ele expira em 10 minutos.</p><label className="application-field">Código de confirmação<FieldControl required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))}/></label></>}
         {(!challenge || remaining===0) && config.sitekey && <Turnstile key={widgetKey} sitekey={config.sitekey} action={config.action??'application_otp'} onToken={setToken} onError={captchaError}/>}
         {challenge && <><button type="button" className="action-link action-link--secondary" disabled={remaining>0||!token} onClick={()=>void requestCode()}>{remaining>0?`reenviar em ${remaining}s`:'reenviar código'}</button><button type="button" className="application-text-button" onClick={()=>{setChallenge(null);setCode('');setToken('');setWidgetKey(k=>k+1)}}>alterar e-mail</button></>}

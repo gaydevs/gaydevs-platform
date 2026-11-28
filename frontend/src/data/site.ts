@@ -20,6 +20,13 @@ export const about: SectionCopy & { paragraphs: Paragraph[]; highlights: string[
   highlights: ['🤝 criar conexões de verdade', '🧠 trocar conhecimento', '🚀 compartilhar oportunidades', '💜 construir comunidade'],
 }
 
+export const applicationBenefits = [
+  '🤝 conexões',
+  '🧠 troca de conhecimento',
+  '🚀 oportunidades',
+  '🎉 encontros e amizades',
+]
+
 export const topics: SectionCopy & { items: string[] } = {
   title: 'o que rola por aqui',
   intro: 'conversa técnica, carreira, oportunidades e vida dev — sem precisar separar tanto uma coisa da outra.',
