@@ -26,7 +26,6 @@ import { ApplicationPage } from './features/applications/ApplicationPage'
 import { AdminApplications } from './features/applications/AdminApplications'
 import { PrivacyPage } from './features/applications/PrivacyPage'
 import { OnboardingPage } from './features/applications/OnboardingPage'
-import { getConfig } from './features/applications/api'
 import { platformRoute } from './features/applications/presentation'
 
 export default function App() {
@@ -78,13 +77,6 @@ export default function App() {
   const isOnboarding = route.relative === 'onboarding'
   const isPrivacy = route.relative === 'privacy'
   const isLandingPage = !isPrivacy && !isPollsSection && !isApply && !isAdmin && !isOnboarding
-  const [applicationsEnabled, setApplicationsEnabled] = useState(false)
-  useEffect(() => {
-    if (!isLandingPage) return
-    let active = true
-    getConfig().then(c => { if (active) setApplicationsEnabled(c.enabled) }).catch(() => { if (active) setApplicationsEnabled(false) })
-    return () => { active = false }
-  }, [isLandingPage])
   const onboardingShown = useRef<string | null>(null)
   useEffect(() => {
     if (!auth.user) { onboardingShown.current = null; return }
@@ -96,7 +88,7 @@ export default function App() {
       window.dispatchEvent(new PopStateEvent('popstate'))
     }
   }, [auth.user, isOnboarding, isPrivacy, route.base])
-  const applicationLink = applicationsEnabled ? {label: 'quero ser um gdev', href: route.path('apply')} : undefined
+  const applicationLink = {label: 'quero ser um gdev', href: route.path('apply')}
   const isPollsLanding = isPollsSection && pollIdentifier === null
   const pollsPath = isPollsSection ? pathname.slice(0, pollsIndex) + pollsMarker : pollsMarker
   const homePath = pollsPath.slice(0, -pollsMarker.length) || '/'
@@ -142,7 +134,7 @@ export default function App() {
       <Gallery content={sections.gallery} photos={photos} />
       <Community content={sections.community} spaces={community} />
       <Lore content={sections.lore} profiles={lore} mascot={images.cleito} mascotAlt={accessibility.cleito} />
-      <FinalCta content={finalCta} links={applicationLink ? [applicationLink, ...publicLinks] : publicLinks} />
+      <FinalCta content={finalCta} links={[applicationLink, ...publicLinks]} />
       </>}
     </main>
     <Footer content={footer} developerLinks={developerLinks} privacyHref={route.path('privacy')} />

@@ -29,12 +29,14 @@ test('landing CTA uses platform base and is distinct from member login',async()=
   expect(links[0].closest('#inicio')).not.toBeNull()
   expect(screen.getByRole('button',{name:'entrar'})).toBeVisible()
 }, 15000)
-test('disabled config hides CTA',async()=>{
+test('landing CTA is always visible without querying application availability',()=>{
   vi.mocked(api.getConfig).mockResolvedValue({enabled:false})
   window.history.replaceState(null,'','/gaydevs/platform/')
   render(<App/>)
-  await waitFor(()=>expect(api.getConfig).toHaveBeenCalled())
-  expect(screen.queryByRole('link',{name:'quero ser um gdev'})).not.toBeInTheDocument()
+  const links=screen.getAllByRole('link',{name:'quero ser um gdev'})
+  expect(links).toHaveLength(2)
+  for(const link of links) expect(link).toHaveAttribute('href','/gaydevs/platform/apply')
+  expect(api.getConfig).not.toHaveBeenCalled()
 })
 test('admin deep link and menu remain scoped to platform base',async()=>{
   window.history.replaceState(null,'','/gaydevs/platform/admin/applications')

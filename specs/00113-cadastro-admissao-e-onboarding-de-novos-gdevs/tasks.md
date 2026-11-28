@@ -112,7 +112,7 @@ Fluxo: SDD normal, High Risk. Executar em ambiente isolado; manter tasks neste a
 
 - T032 (QA integrado executado): código e8dffcd com todos os checks executados verdes, incluindo SonarQube. Chromium/HTTPS local, Laravel real, SQLite descartável, Turnstile dummy oficial com Siteverify real, mail log: duas jornadas, uma aprovada e outra recusada; retomada, consentimentos, proteção de sessão, notificação idempotente e onboarding confirmados. Primeiro job atingiu timeout após decisões; segundo confirmou worker e onboarding. Evidências e limites em qa.md. Restam inspeção visual humana e validação do host de produção; T032 permanece aberta. CodeRabbit solicitado após publicação deste registro, sem merge ou deploy. Solicitações futuras ao CodeRabbit somente após QA humano e autorização explícita do gdev solicitante.
 
-- Ajuste solicitado no QA humano: removida a flag manual de candidaturas do backend, testes e documentação. Disponibilidade automática quando a configuração é válida; permanecem Turnstile, HTTPS, segurança, FINALIZED e transporte real em produção. Sem alteração do contrato público enabled.
+- Ajuste solicitado no QA humano: removida a flag manual de candidaturas do backend, testes e documentação. CTA sempre visível, sem consulta de configuração na home; formulário e operações dependem de configuração válida; permanecem Turnstile, HTTPS, segurança, FINALIZED e transporte real em produção. Sem alteração do contrato público enabled.
 
 ## Limites
 

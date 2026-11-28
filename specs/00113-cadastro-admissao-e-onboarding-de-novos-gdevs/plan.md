@@ -14,7 +14,7 @@ Reutilizar APP_FRONTEND_URL para o link de revisão e remover a duplicação de 
 
 ## Ajustes finais solicitados no QA humano (2026-11-27)
 
-Link de candidatura no hero e no CTA final, condicionado à disponibilidade do backend. Link sobre a comunidade aponta para /#sobre, onde os compromissos de comunidade e valores são explicitados. Consulta de perfis informados abrange dados legitimamente disponibilizados pelo titular, inclusive não públicos, sem ampliar automação ou contornar restrições. Reutilizar MAIL_FROM_ADDRESS como destinatário dos avisos. Incrementar versão de minuta após mudanças e remover sufixo draft somente no pré-release (T035).
+Link de candidatura no hero e no CTA final, sempre visível, sem consulta de disponibilidade na home. A página de candidatura apresenta indisponibilidade quando a configuração do backend é inválida. Link sobre a comunidade aponta para /#sobre, onde os compromissos de comunidade e valores são explicitados. Consulta de perfis informados abrange dados legitimamente disponibilizados pelo titular, inclusive não públicos, sem ampliar automação ou contornar restrições. Reutilizar MAIL_FROM_ADDRESS como destinatário dos avisos. Incrementar versão de minuta após mudanças e remover sufixo draft somente no pré-release (T035).
 
 ## Abordagem
 
@@ -59,7 +59,7 @@ Manter a aplicação Laravel 13/Sanctum e React/TypeScript existentes, sem novo 
 ## Impactos e dependências
 
 - Alterações de schema, serviços OTP, rotas, views de email, scheduler, configurações, documentação de hospedagem e frontend. Sem mudança de infraestrutura além de Turnstile/variáveis de ambiente e tarefa no scheduler já existente.
-- Atualizar .env.example com placeholders e documentação de deploy/configuração; não editar .env real. Disponibilizar CTA/rotas automaticamente após configuração validada, sem flag manual; sem fallback inseguro.
+- Atualizar .env.example com placeholders e documentação de deploy/configuração; não editar .env real. Exibir CTA sempre, sem flag manual; validar configuração no formulário e nas operações backend, sem fallback inseguro.
 - Verificar MySQL de hospedagem, cache com locks, limites do transporte e política CSP para Turnstile. Não acessar produção nem usar contas reais em testes.
 - Sem exclusão automática de applicants, sem dashboard do funil, sem automação externa de admissão. Retenção e direitos dos titulares exigem política aprovada pelo responsável; sem presumir validade legal de retenção indefinida.
 
