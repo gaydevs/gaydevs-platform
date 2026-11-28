@@ -34,7 +34,7 @@ test('public wizard shows benefits and email without initial progress, then rest
   page()
   expect(await screen.findByLabelText('E-mail')).toBeVisible()
   expect(screen.getByText('🤝 conexões')).toBeVisible()
-  expect(screen.getByRole('link',{name:/política de privacidade/})).toHaveAttribute('href','/gaydevs/platform/privacy')
+  expect(screen.getByRole('link',{name:/política de privacidade/})).toHaveAttribute('href','#privacy')
   expect(screen.queryByText(/sensíveis/)).not.toBeInTheDocument()
   expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
   expect(screen.queryByText('falar com o scrum master')).not.toBeInTheDocument()

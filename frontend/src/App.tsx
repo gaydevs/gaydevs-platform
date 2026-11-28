@@ -19,6 +19,8 @@ import { images } from './data/images'
 import { useAuth } from './features/auth/useAuth'
 import { useLoginHash } from './features/auth/useLoginHash'
 import { AccountHeader } from './components/AccountHeader'
+import { ApplyBrand } from './components/ApplyBrand'
+import { SectionSubmenuBar } from './components/SectionSubmenuBar'
 import { LoginDialog } from './features/auth/LoginDialog'
 import { PollAuditDialog, PollErrorDialog, PollsPage, PollsSectionBar } from './features/PollsPage'
 import type { Poll } from './features/pollsApi'
@@ -130,8 +132,9 @@ export default function App() {
     <a className="skip-link" href="#conteudo">{accessibility.skip}</a>
     <AccountHeader user={auth.user} restoring={auth.restoring} brandVisible={isLandingPage && brandVisible} onLogin={login.open} onLogout={auth.logout} onNavigate={navigate} />
     <PollsSectionBar visible={showPollsSectionBar} path={pollsPath} onNavigate={navigate} />
+    {isApply && <SectionSubmenuBar visible={!brandVisible} className="polls-section-bar"><ApplyBrand /></SectionSubmenuBar>}
     <main id="conteudo">
-      {isApply ? <ApplicationPage home={route.base || '/'} onLogin={login.open} onMemberRefresh={refreshAuth} /> :
+      {isApply ? <ApplicationPage home={route.base || '/'} onLogin={login.open} onMemberRefresh={refreshAuth} onBrandVisibilityChange={setBrandVisible} /> :
       isAdmin ? <AdminApplications key={pathname} id={route.relative.split('/')[2]} user={auth.user} restoring={auth.restoring} base={route.path('admin/applications')} onNavigate={navigate} onLogin={login.open} /> :
       isOnboarding ? <OnboardingPage user={auth.user} restoring={auth.restoring} onLogin={login.open} onDone={async () => { await refreshAuth(); navigate(route.path('polls')) }} /> :
       pollsIndex >= 0 ? <PollsPage identifier={createPoll ? null : pollIdentifier} create={createPoll} user={auth.user} sessionRestoring={auth.restoring} onLogin={isPollsLanding ? openPollsLogin : login.open} onNavigate={navigate} onAudit={openAudit} onError={showPollError} onBrandVisibilityChange={setBrandVisible} /> : <>

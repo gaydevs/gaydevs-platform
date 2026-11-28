@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { FieldControl } from '../../components/FieldControl'
 import { ActionLink } from '../../components/ActionLink'
+import { ApplyBrand } from '../../components/ApplyBrand'
+import { useSectionBrandVisibility } from '../../components/useSectionBrandVisibility'
 import { applicationBenefits, publicLinks, footer } from '../../data/site'
 import { ApiError, messageForApiError, type OtpRequest } from '../auth/api'
 import * as api from './api'
@@ -8,7 +10,7 @@ import { emptyFields, handleValue, matchingSuggestions, prefixes, progress, step
 import { Turnstile } from './Turnstile'
 import type { Fields, Session, Step, Terms, Config } from './api'
 
-export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string; onLogin: () => void; onMemberRefresh: () => Promise<unknown>}) {
+export function ApplicationPage({home, onLogin, onMemberRefresh, onBrandVisibilityChange}: {home: string; onLogin: () => void; onMemberRefresh: () => Promise<unknown>; onBrandVisibilityChange?: (visible: boolean) => void}) {
   const [config, setConfig] = useState<Config | null>(null)
   const [terms, setTerms] = useState<Terms | null>(null)
   const [session, setSession] = useState<Session | null>(null)
@@ -31,6 +33,8 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
   const [confirmSkip, setConfirmSkip] = useState(false)
   const [suggestOpen, setSuggestOpen] = useState(false)
   const heading = useRef<HTMLHeadingElement>(null)
+  const brand = useRef<HTMLDivElement>(null)
+  useSectionBrandVisibility({brandRef: brand, onVisibilityChange: onBrandVisibilityChange})
   const restore = useCallback((s: Session | null) => {
     setSession(s); setFields(s?.status==='draft' && s.fields ? {...s.fields, ...Object.fromEntries(Object.keys(prefixes).map(key=>[key,handleValue(key as keyof typeof prefixes,s.fields![key as keyof typeof prefixes]??'')]))} : emptyFields)
     setStep(s?.current_step && s.current_step !== 'submitted' ? s.current_step : 'identification')
@@ -99,11 +103,10 @@ export function ApplicationPage({home, onLogin, onMemberRefresh}: {home: string;
   const remaining=Math.max(0,Math.ceil((until-clock)/1000))
   const headingText = member || session?.status==='approved' ? 'já é gdev?' : session?.status==='rejected' ? 'candidatura encerrada' : session?.status==='pending' ? 'candidatura enviada!' : session?.status==='draft' ? titles[step] : challenge ? 'confirme seu e-mail' : 'quero ser um gdev'
   const form = (e: FormEvent) => {e.preventDefault();void (session?.status==='draft'? save():challenge?verify():requestCode())}
-  return <section className="container application-page"><div className="application-panel">
-    <a className="poll-inline-link" href={homeHref}>← voltar ao gaydevs</a>
-    <p className="polls-eyebrow">/gdevs/apply</p><h1 ref={heading} tabIndex={-1}>{headingText}</h1>
+  return <section className="container application-page"><div className="section-heading polls-landing-heading" ref={brand}><div className="polls-hero-title"><ApplyBrand className="polls-hero-brand" /></div></div><div className="application-panel">
+    <h1 ref={heading} tabIndex={-1}>{headingText}</h1>
     {(session?.status === 'draft' || session?.status === 'pending') && <div className="application-progress"><progress aria-label="progresso da candidatura" max={100} value={percent}/><span>{percent}%</span></div>}
-    {loading ? <p role="status">carregando…</p> : <>
+    {loading ? <div className="application-skeleton" role="status" aria-busy="true"><span className="sr-only">Carregando candidatura…</span><div className="application-skeleton__lines" aria-hidden="true"><span className="poll-loading__shine application-skeleton__line"/><span className="poll-loading__shine application-skeleton__line application-skeleton__line--short"/></div><div className="application-skeleton__benefits" aria-hidden="true">{[0,1,2,3].map(item=><span className="poll-loading__shine application-skeleton__benefit" key={item}/>)}</div><div className="application-skeleton__field" aria-hidden="true"><span className="poll-loading__shine application-skeleton__label"/><span className="poll-loading__shine application-skeleton__input"/></div><span className="poll-loading__shine application-skeleton__line application-skeleton__line--short" aria-hidden="true"/><span className="poll-loading__shine application-skeleton__button" aria-hidden="true"/></div> : <>
     {profileNotice && session?.status==='draft' && <p role="status">{profileNotice}</p>}
     {error && <p role="alert" className="login-error">{error}</p>}
     {member || session?.status==='approved' ? <><p>Entre com o login de membro para acessar a plataforma.</p><button className="action-link" onClick={onLogin}>entrar</button></> :

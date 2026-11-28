@@ -1,10 +1,23 @@
-.application-page { padding-top: 120px; padding-bottom: 72px; }
+.application-page { padding-top: 88px; padding-bottom: 72px; }
+.application-page .polls-hero-brand { font-size: clamp(2rem, 6vw, 4.5rem); }
+.application-page .polls-hero-brand img { width: clamp(3rem, 8vw, 6rem); height: clamp(3rem, 8vw, 6rem); }
+@media (max-width: 600px) { .application-page .polls-landing-heading .polls-brand.polls-hero-brand { font-size: clamp(1.65rem, 8vw, 3rem); } }
 .application-panel { max-width: 640px; margin-inline: auto; display: grid; gap: 20px; padding: clamp(18px, 4vw, 32px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
 .application-panel--wide { max-width: 900px; }
 .application-panel h1 { font-size: clamp(2rem, 7vw, 3.5rem); letter-spacing: -.045em; }
 .application-panel h2 { font-size: 1.4rem; }
 .application-loading { display: flex; align-items: center; gap: 10px; color: var(--text-muted); }
 .application-loading .loading-spinner { flex: 0 0 auto; }
+.application-skeleton, .application-skeleton__lines, .application-skeleton__field { display: grid; gap: 12px; }
+.application-skeleton { gap: 18px; }
+.application-skeleton__benefits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.application-skeleton__line, .application-skeleton__benefit, .application-skeleton__label, .application-skeleton__input, .application-skeleton__button { border-radius: var(--radius-sm); }
+.application-skeleton__line { width: 100%; height: 14px; }
+.application-skeleton__line--short { width: 68%; }
+.application-skeleton__benefit { height: 42px; border-radius: var(--radius-md); }
+.application-skeleton__label { width: 64px; height: 14px; }
+.application-skeleton__input { height: 52px; border-radius: var(--radius-md); }
+.application-skeleton__button { width: 150px; height: 52px; border-radius: var(--radius-md); }
 .application-version { color: var(--text-muted); font: .85rem var(--font-mono); }
 .application-version strong { color: var(--text); font-weight: 600; }
 .application-panel h1:focus { outline: none; }
@@ -16,6 +29,7 @@
 .privacy-dialog { display: flex; flex-direction: column; max-height: calc(100vh - var(--login-overlay-top-gap) - 20px); overflow: hidden; padding: 0; }
 .privacy-dialog .modal-header { flex: 0 0 auto; margin-bottom: 0; padding: 32px 24px 0; }
 .privacy-dialog .poll-audit-dialog__body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 24px 28px; }
+.privacy-dialog--loading .poll-audit-dialog__body { overflow: hidden; }
 .privacy-dialog .poll-audit-dialog__body section h2 { margin-top: 32px; }
 .privacy-loading { display: grid; gap: 32px; margin-top: 32px; }
 .privacy-loading__section { display: grid; gap: 12px; }
